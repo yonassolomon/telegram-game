@@ -1,0 +1,54 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <div class="title">👛 Wallet</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container">
+  <div class="coin-balance">
+    <div class="coin-amount">{{ player.coins }}</div>
+    <div class="coin-label">Coins</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">{{ player.wins }}</div>
+      <div class="stat-label">Wins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ player.games_played }}</div>
+      <div class="stat-label">Games</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ player.level }}</div>
+      <div class="stat-label">Level</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">📊 Transaction History</div>
+    {% for tx in transactions %}
+    <div class="txn-item">
+      <div>
+        <div class="txn-type">{{ tx.get_transaction_type_display }}</div>
+        <div class="txn-desc">{{ tx.created_at|date:"M d, H:i" }}</div>
+      </div>
+      <div class="txn-amount {% if tx.amount > 0 %}positive{% else %}negative{% endif %}">
+        {% if tx.amount > 0 %}+{% endif %}{{ tx.amount }} 💰
+      </div>
+    </div>
+    {% empty %}
+    <div style="color:var(--text-secondary);font-size:13px;padding:8px;">No transactions yet</div>
+    {% endfor %}
+  </div>
+</div>
+
+<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
+  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
+  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
+  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
+  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+</nav>
+{% endblock %}

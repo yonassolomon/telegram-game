@@ -1,0 +1,67 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="container">
+  <div class="user-header">
+    <div class="avatar-ring">
+      <div class="avatar-inner">🎰</div>
+    </div>
+    <div class="user-name">{{ player.first_name }}</div>
+    <div class="user-level">⭐ Level {{ player.level }} · {{ player.xp }} XP</div>
+  </div>
+
+  <div class="coin-balance">
+    <div class="coin-amount">{{ player.coins }}</div>
+    <div class="coin-label">Coins</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">{{ player.wins }}</div>
+      <div class="stat-label">Wins</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ player.games_played }}</div>
+      <div class="stat-label">Games</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ win_rate }}%</div>
+      <div class="stat-label">Win Rate</div>
+    </div>
+  </div>
+
+  <a href="{% url 'webapp:rooms' %}" class="btn btn-primary">🎮 Play Bingo</a>
+
+  <div class="card" style="cursor:pointer" onclick="location.href='{% url 'webapp:daily' %}'">
+    <div class="card-header">🎁 Daily Bonus</div>
+    <div style="font-size:13px;color:var(--text-secondary);">
+      {% if can_claim %}
+        ✅ Ready to claim <strong style="color:var(--neon-gold)">+100 coins</strong>!
+      {% else %}
+        ⏳ Next bonus in <strong style="color:var(--neon-purple)">{{ next_daily }}</strong>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🏆 Leaderboard</div>
+    {% for p in top_players %}
+    <div class="lb-item" onclick="location.href='{% url 'webapp:leaderboard' %}'">
+      <div class="lb-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}default{% endif %}">
+        {{ forloop.counter }}
+      </div>
+      <div class="lb-name">{{ p.first_name }}</div>
+      <div class="lb-wins">{{ p.wins }} wins</div>
+    </div>
+    {% empty %}
+    <div style="font-size:13px;color:var(--text-secondary);padding:8px;">No players yet. Be the first!</div>
+    {% endfor %}
+  </div>
+</div>
+
+<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
+  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
+  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
+  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
+  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+</nav>
+{% endblock %}

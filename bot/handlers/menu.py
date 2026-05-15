@@ -30,6 +30,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         text,
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(user.id),
         parse_mode='Markdown'
     )

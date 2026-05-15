@@ -80,6 +80,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         text,
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(user.id),
         parse_mode='Markdown'
     )

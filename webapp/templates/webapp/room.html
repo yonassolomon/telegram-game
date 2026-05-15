@@ -1,0 +1,245 @@
+{% extends 'webapp/base.html' %}
+{% load static %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:rooms' %}" class="back-btn">← Leave</a>
+  <div class="title">Room {{ room.room_code }}</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container">
+  {% if room.status == 'waiting' %}
+  <div class="card" style="text-align:center;">
+    <div class="card-header">⏳ Waiting for Players</div>
+    <div style="font-size:48px;margin:8px 0;">{{ active_players|default:0 }}/{{ room.max_players }}</div>
+    <div style="color:var(--text-secondary);font-size:13px;">
+      Fee: {{ room.entry_fee }} 💰 | Prize: {{ room.prize_pool }} 💰
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">👥 Players</div>
+    <div class="player-list">
+      {% for card in cards %}
+      <div class="player-chip">
+        <div class="dot"></div>
+        {{ card.player.first_name }}
+        {% if card.player.telegram_id == player.telegram_id %}(You){% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="startGame()">🚀 Start Game</button>
+  <button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>
+
+  {% elif room.status == 'active' and card_data %}
+  <div class="current-number" id="current-number">
+    <div class="countdown" id="countdown-box">
+      <div class="timer-num" id="timer">--</div>
+      <div>Next number in...</div>
+    </div>
+    <div class="ball" id="ball" style="display:none;"></div>
+  </div>
+
+  <div class="bingo-card" id="bingo-card">
+    <div class="bingo-row">
+      <div class="bingo-cell bingo-cell-header">B</div>
+      <div class="bingo-cell bingo-cell-header">I</div>
+      <div class="bingo-cell bingo-cell-header">N</div>
+      <div class="bingo-cell bingo-cell-header">G</div>
+      <div class="bingo-cell bingo-cell-header">O</div>
+    </div>
+    {% for row in card_grid %}
+    <div class="bingo-row">
+      {% for cell in row %}
+      <div class="bingo-cell {% if cell == 0 %}free{% endif %}" data-num="{{ cell }}">
+        {% if cell == 0 %}⭐{% else %}{{ cell|stringformat:"02d" }}{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">👥 Players ({{ cards|length }})</div>
+    <div class="player-list">
+      {% for card in cards %}
+      <div class="player-chip">
+        <div class="dot"></div>
+        {{ card.player.first_name }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🎯 Last 5 Numbers</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="called-numbers"></div>
+  </div>
+
+  {% elif room.status == 'finished' %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:64px;">{% if room.winner %}🏆{% else %}🤝{% endif %}</div>
+    <h2 style="margin:12px 0;">
+      {% if room.winner %}
+        {{ room.winner.first_name }} Won!
+      {% else %}
+        Game Over — Draw!
+      {% endif %}
+    </h2>
+    <div style="color:var(--neon-gold);font-size:24px;font-weight:800;">
+      {{ room.prize_pool }} 💰
+    </div>
+    <a href="{% url 'webapp:rooms' %}" class="btn btn-primary" style="margin-top:16px;">🔄 Find New Room</a>
+  </div>
+  {% elif not joined %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:48px;">🎮</div>
+    <div style="color:var(--text-secondary);margin:12px 0;">Join this room to play!</div>
+    <button class="btn btn-gold" onclick="joinRoom()">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
+  </div>
+  {% endif %}
+</div>
+
+<div id="winner-overlay" class="overlay" style="display:none;">
+  <div class="winner-popup">
+    <div class="trophy" id="winner-trophy">🏆</div>
+    <h2 id="winner-name"></h2>
+    <div class="prize" id="winner-prize"></div>
+    <p style="color:var(--text-secondary);font-size:13px;margin:8px 0;" id="winner-sub"></p>
+    <button class="btn btn-primary" onclick="location.href='{% url 'webapp:rooms' %}'">🔄 Play Again</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ROOM_CODE = '{{ room.room_code }}';
+const STATUS = '{{ room.status }}';
+const JOINED = {{ joined|yesno:"true,false" }};
+const TG_ID = '{{ player.telegram_id }}';
+var markedNumbers = {{ marked_numbers_json|default:"[]"|safe }};
+var pollTimer = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.bingo-cell[data-num]').forEach(function(cell) {
+    var num = parseInt(cell.dataset.num);
+    if (markedNumbers.indexOf(num) !== -1) cell.classList.add('marked');
+  });
+  if (STATUS === 'active' && JOINED) startPolling();
+});
+
+function startPolling() {
+  pollTimer = setInterval(pollGameState, 1500);
+}
+function pollGameState() {
+  fetch('/webapp/api/room/' + ROOM_CODE + '/state/?tg_id=' + TG_ID)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status === 'finished') {
+        clearInterval(pollTimer);
+        showWinner(data);
+        return;
+      }
+      if (data.current_number) showBall(data.current_number);
+      if (data.called_numbers) updateCalledNumbers(data.called_numbers);
+      if (data.marked) {
+        markedNumbers = data.marked;
+        updateCard(data.marked, data.winning_cells || []);
+      }
+      document.getElementById('timer').textContent = data.next_in || '--';
+    });
+}
+
+function showBall(num) {
+  var numDiv = document.getElementById('current-number');
+  var ball = document.getElementById('ball');
+  ball.style.display = 'inline-flex';
+  ball.textContent = num;
+  ball.style.animation = 'none';
+  ball.offsetHeight;
+  ball.style.animation = 'ballPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+}
+function updateCard(marked, winningCells) {
+  document.querySelectorAll('.bingo-cell[data-num]').forEach(function(cell) {
+    var num = parseInt(cell.dataset.num);
+    if (marked.indexOf(num) !== -1) cell.classList.add('marked');
+    if (winningCells.indexOf(num) !== -1) cell.classList.add('bingo-row-win');
+  });
+}
+function updateCalledNumbers(nums) {
+  var div = document.getElementById('called-numbers');
+  var last5 = nums.slice(-5).reverse();
+  div.innerHTML = last5.map(function(n) {
+    return '<span style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-weight:700;font-size:13px;">' + n + '</span>';
+  }).join('');
+}
+function showWinner(data) {
+  var overlay = document.getElementById('winner-overlay');
+  overlay.style.display = 'flex';
+  if (data.winner_name) {
+    document.getElementById('winner-trophy').textContent = '🏆';
+    document.getElementById('winner-name').textContent = '🎉 ' + data.winner_name + ' Wins!';
+    document.getElementById('winner-prize').textContent = data.prize + ' 💰';
+    document.getElementById('winner-sub').textContent = 'Numbers called: ' + (data.called_numbers || []).length;
+    launchConfetti();
+  } else {
+    document.getElementById('winner-trophy').textContent = '🤝';
+    document.getElementById('winner-name').textContent = 'Game Over';
+    document.getElementById('winner-prize').textContent = "It's a Draw!";
+  }
+}
+function launchConfetti() {
+  var colors = ['#ffd700','#ff2d78','#00e5ff','#b44dff','#00ff88','#ff6b6b'];
+  for (var i = 0; i < 60; i++) {
+    var el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.background = colors[i % colors.length];
+    el.style.animationDelay = Math.random() * 2 + 's';
+    el.style.width = (Math.random() * 8 + 6) + 'px';
+    el.style.height = (Math.random() * 8 + 6) + 'px';
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 3500);
+  }
+}
+
+function startGame() {
+  fetch('/webapp/api/room/' + ROOM_CODE + '/start/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({tg_id: TG_ID})
+  }).then(function(r){return r.json()}).then(function(d){
+    if (d.error) { toast(d.error); return; }
+    location.reload();
+  });
+}
+function joinRoom() {
+  fetch('/webapp/api/room/' + ROOM_CODE + '/join/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({tg_id: TG_ID})
+  }).then(function(r){return r.json()}).then(function(d){
+    if (d.error) { toast(d.error); return; }
+    location.reload();
+  });
+}
+function leaveRoom() {
+  fetch('/webapp/api/room/' + ROOM_CODE + '/leave/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({tg_id: TG_ID})
+  }).then(function(r){return r.json()}).then(function(d){
+    if (d.error) { toast(d.error); return; }
+    location.href = '{% url "webapp:rooms" %}';
+  });
+}
+function toast(msg) {
+  var el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(function() { el.remove(); }, 3000);
+}
+</script>
+{% endblock %}

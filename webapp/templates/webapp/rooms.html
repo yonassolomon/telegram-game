@@ -1,0 +1,46 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <div class="title">🎮 Bingo Rooms</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container">
+  <div style="display:flex;gap:8px;margin:12px 0;">
+    <button class="btn btn-primary btn-sm" onclick="location.href='{% url 'webapp:create_room' %}'">➕ Create</button>
+    <button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Refresh</button>
+  </div>
+
+  {% for room in rooms %}
+  <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
+    <div class="room-left">
+      <div class="room-icon">🏠</div>
+      <div class="room-info">
+        <div class="room-code">{{ room.room_code }}</div>
+        <div class="room-meta">
+          {% if room.status == 'waiting' %}🟢 Waiting{% elif room.status == 'active' %}🔴 Playing{% else %}⚫ Done{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="room-right">
+      <div class="room-fee">{{ room.entry_fee }} 💰</div>
+      <div class="room-players">{{ room.active_players|default:0 }}/{{ room.max_players }}</div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:48px;margin-bottom:12px;">🏠</div>
+    <div style="color:var(--text-secondary);margin-bottom:16px;">No rooms available</div>
+    <a href="{% url 'webapp:create_room' %}" class="btn btn-primary">Create a Room</a>
+  </div>
+  {% endfor %}
+</div>
+
+<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
+  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
+  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
+  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
+  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+</nav>
+{% endblock %}

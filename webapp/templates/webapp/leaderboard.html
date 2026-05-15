@@ -1,0 +1,38 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <div class="title">🏆 Leaderboard</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <a href="?sort=wins" class="tab {% if sort == 'wins' %}active{% endif %}">🏆 Wins</a>
+    <a href="?sort=coins" class="tab {% if sort == 'coins' %}active{% endif %}">🪙 Coins</a>
+  </div>
+
+  {% for p in players %}
+  <div class="lb-item">
+    <div class="lb-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}default{% endif %}">
+      {{ forloop.counter }}
+    </div>
+    <div class="lb-name">{{ p.first_name }} <span style="color:var(--text-secondary);font-weight:400;">Lv.{{ p.level }}</span></div>
+    <div class="lb-wins">{{ p.wins }} wins</div>
+    <div class="lb-coins" style="margin-left:8px;">{{ p.coins }} 💰</div>
+  </div>
+  {% empty %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:48px;">🏆</div>
+    <div style="color:var(--text-secondary);">No players yet</div>
+  </div>
+  {% endfor %}
+</div>
+
+<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
+  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
+  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
+  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
+  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+</nav>
+{% endblock %}

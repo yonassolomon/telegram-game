@@ -19,7 +19,7 @@ def _get_waiting_rooms():
     from django.db.models import Count
     return list(
         GameRoom.objects.filter(status='waiting')
-        .annotate(_player_count=Count('bingo_cards'))
+        .annotate(active_players=Count('bingo_cards'))
         .order_by('-created_at')[:10]
     )
 
@@ -126,12 +126,13 @@ async def play_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text = "🎮 *Play Bingo*\n\n🟢 Available rooms:\nSelect a room to join, or create your own!\n"
 
-    await update.message.reply_text(text, reply_markup=play_menu_keyboard(rooms), parse_mode='Markdown')
+    await update.message.reply_text(text, reply_markup=play_menu_keyboard(rooms, user.id), parse_mode='Markdown')
 
 
 async def play_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user = query.from_user
     rooms = await sync_to_async(_get_waiting_rooms)()
 
     if not rooms:
@@ -139,7 +140,7 @@ async def play_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text = "🎮 *Play Bingo*\n\n🟢 Available rooms:\nSelect a room to join, or create your own!\n"
 
-    await query.edit_message_text(text, reply_markup=play_menu_keyboard(rooms), parse_mode='Markdown')
+    await query.edit_message_text(text, reply_markup=play_menu_keyboard(rooms, user.id), parse_mode='Markdown')
 
 
 async def create_room_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -191,7 +191,7 @@ async def _run_game(context, room_code, cards, card_messages):
             await context.bot.send_message(
                 chat_id=tg_id,
                 text=win_text,
-                reply_markup=game_over_keyboard(),
+                reply_markup=game_over_keyboard(tg_id),
                 parse_mode='Markdown'
             )
         except Exception:

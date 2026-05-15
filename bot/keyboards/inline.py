@@ -1,19 +1,34 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from django.conf import settings
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 
-def main_menu_keyboard():
-    buttons = [
-        [InlineKeyboardButton("🎮 Play Bingo", callback_data="play")],
-        [
-            InlineKeyboardButton("👛 Wallet", callback_data="wallet"),
-            InlineKeyboardButton("🏆 Leaderboard", callback_data="leaderboard"),
-        ],
-        [
-            InlineKeyboardButton("👥 Invite Friends", callback_data="referral"),
-            InlineKeyboardButton("🎁 Daily Bonus", callback_data="daily"),
-        ],
-        [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
-    ]
+def main_menu_keyboard(tg_id=''):
+    webapp_url = getattr(settings, 'WEBAPP_URL', '')
+    is_public = bool(webapp_url) and '127.0.0.1' not in webapp_url and 'localhost' not in webapp_url
+
+    if is_public and tg_id:
+        webapp_url += '?tg_id=' + str(tg_id)
+        buttons = [
+            [InlineKeyboardButton("🎮 Play Bingo", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("👛 Wallet", callback_data="wallet")],
+            [InlineKeyboardButton("🏆 Leaderboard", callback_data="leaderboard")],
+            [InlineKeyboardButton("👥 Invite Friends", callback_data="referral")],
+            [InlineKeyboardButton("🎁 Daily Bonus", callback_data="daily")],
+            [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
+        ]
+    else:
+        buttons = [
+            [InlineKeyboardButton("🎮 Play Bingo", callback_data="play")],
+            [
+                InlineKeyboardButton("👛 Wallet", callback_data="wallet"),
+                InlineKeyboardButton("🏆 Leaderboard", callback_data="leaderboard"),
+            ],
+            [
+                InlineKeyboardButton("👥 Invite Friends", callback_data="referral"),
+                InlineKeyboardButton("🎁 Daily Bonus", callback_data="daily"),
+            ],
+            [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
+        ]
     return InlineKeyboardMarkup(buttons)
 
 
@@ -24,17 +39,22 @@ def wallet_keyboard():
     return InlineKeyboardMarkup(buttons)
 
 
-def play_menu_keyboard(rooms):
+def play_menu_keyboard(rooms, tg_id=''):
     buttons = []
     for room in rooms:
         status_emoji = {'waiting': '🟢', 'active': '🔴', 'finished': '⚫'}
         emoji = status_emoji.get(room.status, '⚪')
-        count = getattr(room, '_player_count', 0)
+        count = getattr(room, 'active_players', 0)
         label = f"{emoji} Room {room.room_code} | {count}/{room.max_players} | {room.entry_fee}💰"
         buttons.append([InlineKeyboardButton(label, callback_data=f"join_{room.room_code}")])
     buttons.append([InlineKeyboardButton("➕ Create Room", callback_data="create_room")])
     buttons.append([InlineKeyboardButton("🔄 Refresh", callback_data="play")])
     buttons.append([InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu")])
+    webapp_url = getattr(settings, 'WEBAPP_URL', '')
+    if webapp_url and '127.0.0.1' not in webapp_url and 'localhost' not in webapp_url:
+        if tg_id:
+            webapp_url += '?tg_id=' + str(tg_id)
+        buttons.insert(0, [InlineKeyboardButton("🌐 Open Mini App", web_app=WebAppInfo(url=webapp_url))])
     return InlineKeyboardMarkup(buttons)
 
 
@@ -97,7 +117,7 @@ def daily_bonus_keyboard(can_claim, next_claim=''):
 
 
 def referral_keyboard(referral_code):
-    bot_username = "Bingo2BingoBot"
+    bot_username = getattr(settings, 'BOT_USERNAME', 'Bingo2BingoBot')
     link = f"https://t.me/{bot_username}?start={referral_code}"
     buttons = [
         [InlineKeyboardButton("📋 Copy Referral Link", callback_data=f"copyref_{referral_code}")],
@@ -113,7 +133,7 @@ def help_keyboard():
     return InlineKeyboardMarkup(buttons)
 
 
-def game_over_keyboard():
+def game_over_keyboard(tg_id=''):
     buttons = [
         [InlineKeyboardButton("🎮 Play Again", callback_data="play")],
         [InlineKeyboardButton("⬅️ Main Menu", callback_data="menu")],

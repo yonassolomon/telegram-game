@@ -12,6 +12,18 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.run.pinggy-free.link',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok.io',
+]
+_webapp_url = os.getenv('WEBAPP_URL', '')
+if _webapp_url:
+    from urllib.parse import urlparse
+    _parsed = urlparse(_webapp_url)
+    _origin = f'{_parsed.scheme}://{_parsed.netloc}'
+    CSRF_TRUSTED_ORIGINS.append(_origin)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -25,6 +37,7 @@ INSTALLED_APPS = [
     'referrals',
     'games',
     'bot',
+    'webapp',
 ]
 
 MIDDLEWARE = [
@@ -81,3 +94,5 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
+BOT_USERNAME = os.getenv('BOT_USERNAME', 'Bingo2BingoBot')
+WEBAPP_URL = os.getenv('WEBAPP_URL', 'http://127.0.0.1:8000/webapp/')
