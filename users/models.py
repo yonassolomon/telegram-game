@@ -1,0 +1,53 @@
+from django.db import models
+from django.utils import timezone
+import uuid
+
+
+class Player(models.Model):
+    telegram_id = models.BigIntegerField(unique=True, db_index=True)
+    username = models.CharField(max_length=255, blank=True, default='')
+    first_name = models.CharField(max_length=255, blank=True, default='')
+    coins = models.BigIntegerField(default=500)
+    wins = models.IntegerField(default=0)
+    losses = models.IntegerField(default=0)
+    games_played = models.IntegerField(default=0)
+    xp = models.BigIntegerField(default=0)
+    level = models.IntegerField(default=1)
+    referral_code = models.CharField(max_length=32, unique=True, blank=True)
+    invited_by = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='invitees'
+    )
+    is_banned = models.BooleanField(default=False)
+    last_daily_bonus = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = 'Player'
+        verbose_name_plural = 'Players'
+        ordering = ['-coins']
+
+    def __str__(self):
+        return f"{self.username or self.first_name} ({self.telegram_id})"
+
+    def save(self, *args, **kwargs):
+        if not self.referral_code:
+            self.referral_code = uuid.uuid4().hex[:10]
+        super().save(*args, **kwargs)
+
+    def can_claim_daily(self):
+        if not self.last_daily_bonus:
+            return True
+        elapsed = timezone.now() - self.last_daily_bonus
+        return elapsed.total_seconds() >= 86400
+
+    def add_coins(self, amount):
+        self.coins = models.F('coins') + amount
+        self.save(update_fields=['coins'])
+
+    def remove_coins(self, amount):
+        if self.coins < amount:
+            raise ValueError('Insufficient coins')
+        self.coins = models.F('coins') - amount
+        self.save(update_fields=['coins'])

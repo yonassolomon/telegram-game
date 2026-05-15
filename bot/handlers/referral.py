@@ -1,0 +1,41 @@
+from asgiref.sync import sync_to_async
+from telegram import Update
+from telegram.ext import ContextTypes
+from bot.keyboards.inline import referral_keyboard
+
+
+def _get_referral_data(telegram_id):
+    from users.models import Player
+    from referrals.models import Referral
+    player = Player.objects.get(telegram_id=telegram_id)
+    invited_count = Referral.objects.filter(inviter=player).count()
+    return player.referral_code, invited_count
+
+
+async def referral_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user = query.from_user
+
+    code, count = await sync_to_async(_get_referral_data)(user.id)
+    link = f"https://t.me/Bingo2BingoBot?start={code}"
+
+    text = (
+        f"👥 *Invite Friends*\n\n"
+        f"Share your link and earn rewards!\n\n"
+        f"🔗 Your link:\n`{link}`\n\n"
+        f"👤 Friends invited: *{count}*\n"
+        f"🎁 *+100 coins* per friend who joins!\n"
+        f"🎁 Friend gets *+50 coins* too!\n\n"
+        f"📋 Tap below to copy your link."
+    )
+    await query.edit_message_text(
+        text, reply_markup=referral_keyboard(code), parse_mode='Markdown'
+    )
+
+
+async def copy_ref_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    code = query.data.replace('copyref_', '')
+    link = f"https://t.me/Bingo2BingoBot?start={code}"
+    await query.answer(f"Your link: {link}", show_alert=True)
