@@ -1,23 +1,19 @@
 import json
-import hmac
-import hashlib
+import logging
 from functools import wraps
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.db import models as db_models, transaction as db_transaction
+from django.db import models as db_models, transaction as db_transaction, close_old_connections
 from django.utils import timezone
-from django.db.models import Count
 from users.models import Player
 from games.models import GameRoom, BingoCard, GameHistory
 from wallets.models import Transaction
-from referrals.models import Referral
-from core.utils import generate_bingo_card, format_card
+from core.utils import generate_bingo_card
 
-import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('bingo.room')
 
 
 def get_player_from_request(request):
@@ -27,33 +23,28 @@ def get_player_from_request(request):
         try:
             body = json.loads(request.body)
             tg_id = str(body.get('tg_id', ''))
+            if tg_id:
+                logger.info(f'Player identified from JSON body: tg_id={tg_id}')
         except (json.JSONDecodeError, ValueError):
-            tg_id = request.POST.get('tg_id', '')
-
-    if not tg_id:
-        tg_id = request.session.get('tg_id', '')
-
-    if not tg_id:
-        tg_id = request.session.get('tg_id', '')
-
-    init_data = request.GET.get('tgWebAppData', '') or request.GET.get('initData', '')
-    if not tg_id and init_data:
-        try:
-            from urllib.parse import unquote
-            decoded = unquote(init_data)
-            pairs = {}
-            for pair in decoded.split('&'):
-                if '=' in pair:
-                    k, v = pair.split('=', 1)
-                    pairs[k] = v
-            user_json = pairs.get('user', '{}')
-            user = json.loads(user_json)
-            tg_id = str(user.get('id', ''))
-        except Exception:
             pass
 
     if not tg_id:
-        tg_id = request.GET.get('user_id', '')
+        tg_id = request.session.get('tg_id', '')
+
+    if not tg_id:
+        raw_init = request.GET.get('tgWebAppData', '')
+        if raw_init:
+            try:
+                from urllib.parse import unquote
+                pairs = {}
+                for pair in unquote(raw_init).split('&'):
+                    if '=' in pair:
+                        k, v = pair.split('=', 1)
+                        pairs[k] = v
+                user = json.loads(pairs.get('user', '{}'))
+                tg_id = str(user.get('id', ''))
+            except Exception:
+                pass
 
     if not tg_id:
         return None
@@ -65,8 +56,11 @@ def get_player_from_request(request):
             telegram_id=tid,
             defaults={'first_name': 'Player'}
         )
+        if created:
+            logger.info(f'New player auto-registered: tg_id={tid}')
         return player
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        logger.error(f'Invalid tg_id: {tg_id} err={e}')
         return None
 
 
@@ -74,12 +68,12 @@ def require_player(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         player = get_player_from_request(request)
-    if not player:
-        bot_name = getattr(settings, 'BOT_USERNAME', 'Bingo2BingoBot')
-        return render(request, 'webapp/error.html', {
-            'message': f'Open from Telegram: /start @{bot_name}',
-            'bot_username': bot_name,
-        }, status=400)
+        if not player:
+            bot_name = getattr(settings, 'BOT_USERNAME', 'Bingo2BingoBot')
+            return render(request, 'webapp/error.html', {
+                'message': f'Open from Telegram: /start @{bot_name}',
+                'bot_username': bot_name,
+            }, status=400)
         request.player = player
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -88,8 +82,10 @@ def require_player(view_func):
 def home(request):
     player = get_player_from_request(request)
     if not player:
+        bot_name = getattr(settings, 'BOT_USERNAME', 'Bingo2BingoBot')
         return render(request, 'webapp/error.html', {
-            'message': 'Open from Telegram: /start @Bingo2BingoBot'
+            'message': f'Open from Telegram: /start @{bot_name}',
+            'bot_username': bot_name,
         })
 
     if player.games_played > 0:
@@ -167,6 +163,8 @@ def create_room(request):
             description=f'Created room {room.room_code}'
         )
 
+        logger.info(f'ROOM CREATE: room={room.room_code} creator={p.telegram_id} fee={entry_fee} max={max_players}')
+
         return redirect('webapp:room', room_code=room.room_code)
 
     return render(request, 'webapp/create_room.html', {
@@ -183,9 +181,7 @@ def room(request, room_code):
 
     cards = list(BingoCard.objects.filter(game_room=room_data).select_related('player'))
     active_players = len(cards)
-    joined = BingoCard.objects.filter(
-        player=player, game_room=room_data
-    ).exists()
+    joined = any(c.player_id == player.id for c in cards)
 
     card_data = None
     card_grid = None
@@ -193,15 +189,13 @@ def room(request, room_code):
 
     if joined and room_data.status in ('active', 'finished'):
         try:
-            card = BingoCard.objects.get(player=player, game_room=room_data)
+            card = next(c for c in cards if c.player_id == player.id)
             card_data = card
             numbers = card.numbers if isinstance(card.numbers, list) else json.loads(card.numbers)
             marked = card.marked if isinstance(card.marked, list) else json.loads(card.marked)
             marked_numbers_json = json.dumps(marked)
-            card_grid = []
-            for row in range(5):
-                card_grid.append(numbers[row * 5:(row + 1) * 5])
-        except BingoCard.DoesNotExist:
+            card_grid = [numbers[row * 5:(row + 1) * 5] for row in range(5)]
+        except (StopIteration, BingoCard.DoesNotExist):
             pass
 
     return render(request, 'webapp/room.html', {
@@ -297,7 +291,9 @@ def claim_daily(request):
     })
 
 
-# ═══ API Endpoints ═══
+# ═══════════════════════════════════════════
+# API Endpoints — Room Lifecycle
+# ═══════════════════════════════════════════
 
 
 @csrf_exempt
@@ -305,26 +301,38 @@ def claim_daily(request):
 def api_join_room(request, room_code):
     player = get_player_from_request(request)
     if not player:
+        logger.warning(f'JOIN FAIL: room={room_code} reason=not_authenticated')
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
     try:
         room = GameRoom.objects.get(room_code=room_code, status='waiting')
     except GameRoom.DoesNotExist:
+        logger.warning(f'JOIN FAIL: room={room_code} reason=not_found_or_not_waiting')
         return JsonResponse({'error': 'Room not available'})
 
-    if room.bingo_cards.count() >= room.max_players:
+    current_count = room.bingo_cards.count()
+    logger.info(f'JOIN ATTEMPT: room={room_code} player={player.telegram_id} current_count={current_count} max={room.max_players}')
+
+    if current_count >= room.max_players:
+        logger.warning(f'JOIN FAIL: room={room_code} player={player.telegram_id} reason=room_full')
         return JsonResponse({'error': 'Room is full'})
 
     if BingoCard.objects.filter(player=player, game_room=room).exists():
+        logger.warning(f'JOIN FAIL: room={room_code} player={player.telegram_id} reason=already_joined')
         return JsonResponse({'error': 'Already joined'})
 
     with db_transaction.atomic():
         p = Player.objects.select_for_update().get(id=player.id)
         if p.coins < room.entry_fee:
+            logger.warning(f'JOIN FAIL: room={room_code} player={p.telegram_id} reason=insufficient_coins have={p.coins} need={room.entry_fee}')
             return JsonResponse({'error': f'Need {room.entry_fee} coins, have {p.coins}'})
+
         p.coins = db_models.F('coins') - room.entry_fee
         p.save(update_fields=['coins'])
-        BingoCard.objects.create(player=p, game_room=room, numbers=generate_bingo_card())
+
+        card = BingoCard.objects.create(
+            player=p, game_room=room, numbers=generate_bingo_card()
+        )
         room.prize_pool = db_models.F('prize_pool') + room.entry_fee
         room.save(update_fields=['prize_pool'])
 
@@ -333,7 +341,14 @@ def api_join_room(request, room_code):
         transaction_type='game_entry', description=f'Joined room {room_code}'
     )
 
-    return JsonResponse({'success': True})
+    new_count = current_count + 1
+    logger.info(f'JOIN OK: room={room_code} player={p.telegram_id} new_count={new_count}/{room.max_players} card_id={card.id}')
+
+    return JsonResponse({
+        'success': True,
+        'player_count': new_count,
+        'max_players': room.max_players,
+    })
 
 
 @csrf_exempt
@@ -341,6 +356,7 @@ def api_join_room(request, room_code):
 def api_leave_room(request, room_code):
     player = get_player_from_request(request)
     if not player:
+        logger.warning(f'LEAVE FAIL: room={room_code} reason=not_authenticated')
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
     try:
@@ -349,6 +365,7 @@ def api_leave_room(request, room_code):
             game_room__status='waiting'
         )
     except BingoCard.DoesNotExist:
+        logger.warning(f'LEAVE FAIL: room={room_code} player={player.telegram_id} reason=not_in_room')
         return JsonResponse({'error': 'Cannot leave'})
 
     room = card.game_room
@@ -362,12 +379,24 @@ def api_leave_room(request, room_code):
         room.save(update_fields=['prize_pool'])
         card.delete()
 
+        remaining = BingoCard.objects.filter(game_room=room).count()
+        if remaining == 0:
+            room.status = 'finished'
+            room.finished_at = timezone.now()
+            room.save(update_fields=['status', 'finished_at'])
+            logger.info(f'ROOM CLOSED: room={room_code} reason=all_players_left')
+
     Transaction.objects.create(
         player=p, amount=fee,
         transaction_type='deposit', description=f'Refund from leaving room {room_code}'
     )
 
-    return JsonResponse({'success': True})
+    logger.info(f'LEAVE OK: room={room_code} player={p.telegram_id} remaining={remaining}')
+
+    return JsonResponse({
+        'success': True,
+        'room_closed': remaining == 0,
+    })
 
 
 @csrf_exempt
@@ -383,16 +412,49 @@ def api_start_game(request, room_code):
 
     cards = list(BingoCard.objects.filter(game_room=room))
     if len(cards) < 2:
+        logger.warning(f'START FAIL: room={room_code} player={player.telegram_id} reason=not_enough_players count={len(cards)}')
         return JsonResponse({'error': 'Need at least 2 players'})
 
     room.status = 'active'
     room.started_at = timezone.now()
     room.save(update_fields=['status', 'started_at'])
 
+    logger.info(f'GAME START: room={room_code} players={len(cards)} starter={player.telegram_id}')
+
     from .engine import start_game_thread
     start_game_thread(room_code)
 
     return JsonResponse({'success': True})
+
+
+def api_room_info(request, room_code):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        room = GameRoom.objects.get(room_code=room_code)
+    except GameRoom.DoesNotExist:
+        return JsonResponse({'error': 'Room not found'}, status=404)
+
+    cards = list(BingoCard.objects.filter(game_room=room).select_related('player'))
+    player_list = []
+    for c in cards:
+        player_list.append({
+            'telegram_id': c.player.telegram_id,
+            'first_name': c.player.first_name,
+        })
+
+    return JsonResponse({
+        'status': room.status,
+        'room_code': room.room_code,
+        'player_count': len(cards),
+        'max_players': room.max_players,
+        'entry_fee': room.entry_fee,
+        'prize_pool': room.prize_pool,
+        'players': player_list,
+        'winner_name': room.winner.first_name if room.winner else None,
+    })
 
 
 def api_room_state(request, room_code):

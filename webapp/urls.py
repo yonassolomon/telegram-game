@@ -16,4 +16,5 @@ urlpatterns = [
     path('api/room/<str:room_code>/leave/', views.api_leave_room, name='api_leave'),
     path('api/room/<str:room_code>/start/', views.api_start_game, name='api_start'),
     path('api/room/<str:room_code>/state/', views.api_room_state, name='api_state'),
+    path('api/room/<str:room_code>/info/', views.api_room_info, name='api_info'),
 ]
