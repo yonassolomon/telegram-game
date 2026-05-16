@@ -457,6 +457,36 @@ def api_room_info(request, room_code):
     })
 
 
+def _compute_winning_cells(numbers_list, marked):
+    winning_cells = []
+    size = 5
+    marked_set = set(marked)
+    for i in range(size):
+        row_nums = [numbers_list[i * size + j] for j in range(size)]
+        if all(n in marked_set for n in row_nums):
+            winning_cells.extend(row_nums)
+        col_nums = [numbers_list[j * size + i] for j in range(size)]
+        if all(n in marked_set for n in col_nums):
+            winning_cells.extend(col_nums)
+    diag1 = [numbers_list[i * size + i] for i in range(size)]
+    if all(n in marked_set for n in diag1):
+        winning_cells.extend(diag1)
+    diag2 = [numbers_list[i * size + (size - 1 - i)] for i in range(size)]
+    if all(n in marked_set for n in diag2):
+        winning_cells.extend(diag2)
+    return list(set(winning_cells))
+
+
+def _get_card_state(card, room):
+    marked = card.marked if isinstance(card.marked, list) else []
+    numbers_list = card.numbers if isinstance(card.numbers, list) else []
+    history = GameHistory.objects.filter(game_room=room).first()
+    called = history.numbers_called if history and history.numbers_called else []
+    is_win = card.check_win()
+    winning_cells = _compute_winning_cells(numbers_list, marked) if is_win else []
+    return marked, numbers_list, called, is_win, winning_cells
+
+
 def api_room_state(request, room_code):
     player = get_player_from_request(request)
     if not player:
@@ -464,57 +494,63 @@ def api_room_state(request, room_code):
 
     room = get_object_or_404(GameRoom, room_code=room_code)
 
-    if room.status in ('waiting', 'finished'):
+    try:
+        card = BingoCard.objects.get(player=player, game_room=room)
+    except BingoCard.DoesNotExist:
         return JsonResponse({
             'status': room.status,
+            'marked': [],
+            'called_numbers': [],
+            'winning_cells': [],
+            'current_number': None,
+            'next_in': 2,
             'winner_name': room.winner.first_name if room.winner else None,
             'prize': room.prize_pool,
         })
 
-    if room.status == 'active':
-        try:
-            card = BingoCard.objects.get(player=player, game_room=room)
-        except BingoCard.DoesNotExist:
-            return JsonResponse({'status': 'active', 'marked': []})
+    marked, numbers_list, called, is_win, winning_cells = _get_card_state(card, room)
 
-        marked = card.marked if isinstance(card.marked, list) else []
-        history = GameHistory.objects.filter(game_room=room).first()
-        called = history.numbers_called if history and history.numbers_called else []
-
-        if card.check_win():
-            return JsonResponse({
-                'status': 'finished',
-                'winner_name': player.first_name,
-                'prize': room.prize_pool,
-                'marked': marked,
-                'called_numbers': called,
-            })
-
-        winning_cells = []
-        numbers_list = card.numbers if isinstance(card.numbers, list) else []
-        size = 5
-        marked_set = set(marked)
-        for i in range(size):
-            row_nums = [numbers_list[i * size + j] for j in range(size)]
-            if all(n in marked_set for n in row_nums):
-                winning_cells.extend(row_nums)
-            col_nums = [numbers_list[j * size + i] for j in range(size)]
-            if all(n in marked_set for n in col_nums):
-                winning_cells.extend(col_nums)
-        diag1 = [numbers_list[i * size + i] for i in range(size)]
-        if all(n in marked_set for n in diag1):
-            winning_cells.extend(diag1)
-        diag2 = [numbers_list[i * size + (size - 1 - i)] for i in range(size)]
-        if all(n in marked_set for n in diag2):
-            winning_cells.extend(diag2)
-
+    if room.status == 'waiting':
         return JsonResponse({
-            'status': 'active',
+            'status': room.status,
             'marked': marked,
             'called_numbers': called,
-            'winning_cells': list(set(winning_cells)),
-            'current_number': called[-1] if called else None,
+            'winning_cells': [],
+            'current_number': None,
             'next_in': 2,
         })
 
-    return JsonResponse({'status': 'unknown'})
+    if is_win:
+        return JsonResponse({
+            'status': 'finished',
+            'marked': marked,
+            'called_numbers': called,
+            'winning_cells': winning_cells,
+            'current_number': called[-1] if called else None,
+            'next_in': 0,
+            'winner_name': player.first_name,
+            'prize': room.prize_pool,
+        })
+
+    if room.status == 'finished':
+        return JsonResponse({
+            'status': 'finished',
+            'marked': marked,
+            'called_numbers': called,
+            'winning_cells': [],
+            'current_number': None,
+            'next_in': 0,
+            'winner_name': room.winner.first_name if room.winner else None,
+            'prize': room.prize_pool,
+        })
+
+    winning_cells = _compute_winning_cells(numbers_list, marked)
+
+    return JsonResponse({
+        'status': 'active',
+        'marked': marked,
+        'called_numbers': called,
+        'winning_cells': winning_cells,
+        'current_number': called[-1] if called else None,
+        'next_in': 2,
+    })

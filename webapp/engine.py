@@ -60,6 +60,8 @@ def run_game_engine(room_code):
 
             if card.check_win():
                 winner_card = card
+                card.is_winner = True
+                card.save(update_fields=['is_winner'])
                 logger.info(f'ENGINE WINNER: room={room_code} player={card.player.telegram_id} card={card.id}')
                 break
 
