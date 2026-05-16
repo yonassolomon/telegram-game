@@ -253,7 +253,20 @@ def run_game_engine(room_code):
         )
         logger.info(f'ENGINE PRIZE: room={room_code} winner={winner.telegram_id} prize={prize}')
     else:
-        logger.info(f'ENGINE DRAW: room={room_code} no_winner')
+        logger.info(f'ENGINE DRAW: room={room_code} no_winner — refunding all players')
+        fee = room.entry_fee
+        for card in cards:
+            p = card.player
+            p.coins = db_models.F('coins') + fee
+            p.games_played = db_models.F('games_played') + 1
+            p.xp = db_models.F('xp') + 25
+            p.save(update_fields=['coins', 'games_played', 'xp'])
+            Transaction.objects.create(
+                player=p, amount=fee,
+                transaction_type='draw_refund',
+                description=f'Draw refund for room {room_code}'
+            )
+        logger.info(f'ENGINE DRAW REFUNDS: room={room_code} players={len(cards)} amount_each={fee}')
 
     room.save()
 

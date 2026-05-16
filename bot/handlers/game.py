@@ -75,6 +75,19 @@ def _finalize_game_sync(room_code, winner_tg_id):
             transaction_type='game_win', description=f'Won room {room_code}'
         )
         winner_name = winner.first_name or winner.username
+    else:
+        fee = room.entry_fee
+        for card in cards:
+            p = card.player
+            p.coins = models.F('coins') + fee
+            p.games_played = models.F('games_played') + 1
+            p.xp = models.F('xp') + 25
+            p.save(update_fields=['coins', 'games_played', 'xp'])
+            Transaction.objects.create(
+                player=p, amount=fee,
+                transaction_type='draw_refund',
+                description=f'Draw refund for room {room_code}'
+            )
 
     room.save()
 

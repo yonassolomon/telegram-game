@@ -9,6 +9,7 @@ class Transaction(models.Model):
         WITHDRAWAL = 'withdrawal', 'Withdrawal'
         GAME_ENTRY = 'game_entry', 'Game Entry Fee'
         GAME_WIN = 'game_win', 'Game Win'
+        DRAW_REFUND = 'draw_refund', 'Draw Refund'
         DAILY_BONUS = 'daily_bonus', 'Daily Bonus'
         REFERRAL_BONUS = 'referral_bonus', 'Referral Bonus'
         SPIN_WIN = 'spin_win', 'Spin Win'
