@@ -1,0 +1,83 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header">
+  <a href="{% url 'dashboard:rooms' %}" class="btn btn-outline btn-sm">← Back</a>
+  <h1>Room {{ room.room_code }}</h1>
+  <div></div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card {% if room.status == 'waiting' %}orange{% elif room.status == 'active' %}green{% else %}cyan{% endif %}">
+    <div class="stat-value">{{ room.get_status_display }}</div>
+    <div class="stat-label">Status</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-value">{{ room.pc }}/{{ room.max_players }}</div>
+    <div class="stat-label">Players</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-value">{{ room.prize_pool }}</div>
+    <div class="stat-label">Prize Pool 💰</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-value">{{ room.entry_fee }}</div>
+    <div class="stat-label">Entry Fee 💰</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">👥 Players in Room</div>
+  <table>
+    <thead><tr><th>Player</th><th>Telegram ID</th><th>Coins</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for card in cards %}
+    <tr>
+      <td>{{ card.player.first_name }}</td>
+      <td>{{ card.player.telegram_id }}</td>
+      <td>{{ card.player.coins }} 💰</td>
+      <td>
+        {% if room.status == 'waiting' %}
+        <button class="btn btn-red btn-sm" onclick="kickPlayer({{ card.player.id }}, '{{ card.player.first_name|escapejs }}')">Kick</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px;">No players</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if history and history.numbers_called %}
+<div class="card">
+  <div class="card-header">🎯 Called Numbers ({{ history.numbers_called|length }})</div>
+  <div class="live-numbers">
+    {% for n in history.numbers_called %}<div class="live-ball">{{ n }}</div>{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">ℹ️ Room Info</div>
+  <table>
+    <tr><td style="color:var(--muted);width:140px;">Room Code</td><td>{{ room.room_code }}</td></tr>
+    <tr><td style="color:var(--muted);">Type</td><td>{{ room.get_room_type_display }}</td></tr>
+    <tr><td style="color:var(--muted);">Created</td><td>{{ room.created_at|date:"Y-m-d H:i:s" }}</td></tr>
+    <tr><td style="color:var(--muted);">Started</td><td>{{ room.started_at|date:"Y-m-d H:i:s"|default:"—" }}</td></tr>
+    <tr><td style="color:var(--muted);">Finished</td><td>{{ room.finished_at|date:"Y-m-d H:i:s"|default:"—" }}</td></tr>
+    <tr><td style="color:var(--muted);">Winner</td><td>{{ room.winner.first_name|default:"—" }}</td></tr>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function kickPlayer(pid, name) {
+  if (!confirm('Kick ' + name + ' from this room?')) return;
+  var fd = new FormData(); fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('/dashboard/api/players/' + pid + '/kick/{{ room.room_code }}/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); });
+}
+</script>
+{% endblock %}

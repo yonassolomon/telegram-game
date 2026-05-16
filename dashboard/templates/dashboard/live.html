@@ -1,0 +1,50 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header"><h1>🔴 Live Game Monitor</h1></div>
+
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-value" id="active-count">{{ active_rooms|length }}</div>
+    <div class="stat-label">Active Games</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-value" id="waiting-count">{{ waiting_rooms|length }}</div>
+    <div class="stat-label">Waiting Rooms</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">🔴 Active Games <span style="font-weight:400;color:var(--muted);">(auto-refreshes every 3s)</span></div>
+  <div id="active-table">
+    {% include 'dashboard/_live_rows.html' with rooms=active_rooms %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">🟡 Waiting Rooms</div>
+  <div id="waiting-table">
+    {% include 'dashboard/_live_rows.html' with rooms=waiting_rooms %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+setInterval(function() {
+  fetch('{% url "dashboard:live" %}?fragment=1')
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
+      var activeTbl = doc.getElementById('active-table');
+      var waitTbl = doc.getElementById('waiting-table');
+      var activeCnt = doc.getElementById('active-count');
+      var waitCnt = doc.getElementById('waiting-count');
+      if (activeTbl) document.getElementById('active-table').innerHTML = activeTbl.innerHTML;
+      if (waitTbl) document.getElementById('waiting-table').innerHTML = waitTbl.innerHTML;
+      if (activeCnt) document.getElementById('active-count').textContent = activeCnt.textContent;
+      if (waitCnt) document.getElementById('waiting-count').textContent = waitCnt.textContent;
+    });
+}, 3000);
+</script>
+{% endblock %}

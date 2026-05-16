@@ -1,0 +1,55 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header">
+  <h1>🏠 Room Management</h1>
+</div>
+<div class="card">
+  <form class="toolbar" method="GET">
+    <select name="status">
+      <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Rooms</option>
+      <option value="waiting" {% if status_filter == 'waiting' %}selected{% endif %}>Waiting</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="finished" {% if status_filter == 'finished' %}selected{% endif %}>Finished</option>
+    </select>
+    <button type="submit" class="btn btn-cyan btn-sm">Filter</button>
+  </form>
+  <table>
+    <thead><tr><th>Code</th><th>Status</th><th>Players</th><th>Fee</th><th>Prize</th><th>Winner</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for r in rooms %}
+    <tr>
+      <td><a href="{% url 'dashboard:room_detail' r.room_code %}">{{ r.room_code }}</a></td>
+      <td>{% if r.status == 'waiting' %}<span class="badge badge-warning">Waiting</span>
+        {% elif r.status == 'active' %}<span class="badge badge-success">Active</span>
+        {% else %}<span class="badge badge-info">Done</span>{% endif %}</td>
+      <td>{{ r.pc }}/{{ r.max_players }}</td>
+      <td>{{ r.entry_fee }} 💰</td>
+      <td>{{ r.prize_pool }} 💰</td>
+      <td>{{ r.winner.first_name|default:"—" }}</td>
+      <td>{{ r.created_at|date:"m/d H:i" }}</td>
+      <td>
+        <a href="{% url 'dashboard:room_detail' r.room_code %}" class="btn btn-outline btn-sm">View</a>
+        {% if r.status != 'finished' %}
+        <button class="btn btn-red btn-sm" onclick="forceClose('{{ r.room_code }}')">Close</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No rooms</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function forceClose(code) {
+  if (!confirm('Force close room ' + code + '?')) return;
+  var fd = new FormData(); fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('/dashboard/api/rooms/' + code + '/close/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header"><h1>📋 Audit Logs</h1></div>
+<div class="card">
+  <table>
+    <thead><tr><th>Admin</th><th>Action</th><th>Target</th><th>Room</th><th>Amount</th><th>Detail</th><th>Time</th></tr></thead>
+    <tbody>
+    {% for log in logs %}
+    <tr>
+      <td>{{ log.admin_user.username|default:"system" }}</td>
+      <td><span class="badge {% if 'ban' in log.action or 'deduct' in log.action or 'kick' in log.action or 'close' in log.action %}badge-danger{% elif 'add' in log.action %}badge-success{% else %}badge-info{% endif %}">{{ log.get_action_display }}</span></td>
+      <td>{{ log.target_player.first_name|default:"—" }}</td>
+      <td>{{ log.target_room.room_code|default:"—" }}</td>
+      <td>{% if log.amount %}{{ log.amount }} 💰{% else %}—{% endif %}</td>
+      <td style="color:var(--muted);font-size:12px;">{{ log.detail }}</td>
+      <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">No logs yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

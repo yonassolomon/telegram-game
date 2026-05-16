@@ -1,0 +1,8 @@
+<div id="active-count" style="display:none;">{{ active_rooms|length }}</div>
+<div id="waiting-count" style="display:none;">{{ waiting_rooms|length }}</div>
+<div id="active-table">
+  {% include 'dashboard/_live_rows.html' with rooms=active_rooms %}
+</div>
+<div id="waiting-table">
+  {% include 'dashboard/_live_rows.html' with rooms=waiting_rooms %}
+</div>

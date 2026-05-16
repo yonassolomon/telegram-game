@@ -1,0 +1,118 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header">
+  <h1>👥 Player Management</h1>
+</div>
+
+<div class="card">
+  <form class="toolbar" method="GET">
+    <input type="text" name="search" placeholder="Search name, username, or ID..." value="{{ search }}">
+    <select name="status">
+      <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Players</option>
+      <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+      <option value="banned" {% if status_filter == 'banned' %}selected{% endif %}>Banned</option>
+    </select>
+    <button type="submit" class="btn btn-cyan btn-sm">Search</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Player</th><th>Telegram ID</th><th>Coins</th><th>W/L</th><th>Level</th><th>Status</th><th>Joined</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for p in players %}
+    <tr>
+      <td>{{ p.id }}</td>
+      <td>{{ p.first_name }} <span style="color:var(--muted);font-size:11px;">@{{ p.username|default:"" }}</span></td>
+      <td>{{ p.telegram_id }}</td>
+      <td style="color:var(--gold);font-weight:700;">{{ p.coins }} 💰</td>
+      <td>{{ p.wins }}/{{ p.losses }}</td>
+      <td>Lv.{{ p.level }}</td>
+      <td>
+        {% if p.is_banned %}<span class="badge badge-danger">Banned</span>
+        {% else %}<span class="badge badge-success">Active</span>{% endif %}
+      </td>
+      <td>{{ p.created_at|date:"m/d" }}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn btn-gold btn-sm" onclick="openCoinModal({{ p.id }}, '{{ p.first_name|escapejs }}', 'add')">+ Coins</button>
+        <button class="btn btn-red btn-sm" onclick="openCoinModal({{ p.id }}, '{{ p.first_name|escapejs }}', 'deduct')">- Coins</button>
+        {% if p.is_banned %}
+        <button class="btn btn-cyan btn-sm" onclick="toggleBan({{ p.id }})">Unban</button>
+        {% else %}
+        <button class="btn btn-outline btn-sm" onclick="toggleBan({{ p.id }})">Ban</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">No players found</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="coin-modal" class="modal-overlay">
+  <div class="modal">
+    <h3 id="coin-modal-title"></h3>
+    <form id="coin-form">
+      {% csrf_token %}
+      <input type="hidden" id="coin-player-id">
+      <input type="hidden" id="coin-action">
+      <label>Amount</label>
+      <input type="number" id="coin-amount" min="1" required>
+      <label>Reason</label>
+      <input type="text" id="coin-reason" placeholder="e.g. Bonus, Penalty...">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeCoinModal()">Cancel</button>
+        <button type="submit" class="btn btn-cyan btn-sm">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openCoinModal(id, name, action) {
+  document.getElementById('coin-player-id').value = id;
+  document.getElementById('coin-action').value = action;
+  document.getElementById('coin-modal-title').textContent = action === 'add' ? 'Add Coins to ' + name : 'Deduct Coins from ' + name;
+  document.getElementById('coin-modal').classList.add('active');
+}
+function closeCoinModal() { document.getElementById('coin-modal').classList.remove('active'); }
+document.getElementById('coin-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var pid = document.getElementById('coin-player-id').value;
+  var action = document.getElementById('coin-action').value;
+  var amount = document.getElementById('coin-amount').value;
+  var reason = document.getElementById('coin-reason').value || 'Admin action';
+  var url = action === 'add' ? '/dashboard/api/players/' + pid + '/add-coins/' : '/dashboard/api/players/' + pid + '/deduct-coins/';
+  var formData = new FormData();
+  formData.append('amount', amount);
+  formData.append('reason', reason);
+  formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  fetch(url, { method: 'POST', body: formData })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { toast(d.error); return; }
+      toast('Done! New balance: ' + d.new_balance);
+      closeCoinModal();
+      setTimeout(function() { location.reload(); }, 800);
+    });
+});
+function toggleBan(pid) {
+  var formData = new FormData();
+  formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  fetch('/dashboard/api/players/' + pid + '/ban/', { method: 'POST', body: formData })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      toast(d.is_banned ? 'Player banned' : 'Player unbanned');
+      setTimeout(function() { location.reload(); }, 600);
+    });
+}
+function toast(msg) {
+  var el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(function() { el.remove(); }, 3000);
+}
+</script>
+{% endblock %}

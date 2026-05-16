@@ -1,0 +1,101 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header">
+  <h1>📊 Dashboard Overview</h1>
+  <div class="header-actions">
+    <a href="{% url 'dashboard:live' %}" class="btn btn-cyan">🔴 Live Monitor</a>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card cyan">
+    <div class="stat-value">{{ total_players }}</div>
+    <div class="stat-label">Total Players</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-value">{{ active_rooms }}</div>
+    <div class="stat-label">Waiting Rooms</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-value">{{ active_games }}</div>
+    <div class="stat-label">Active Games</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-value">{{ finished_games }}</div>
+    <div class="stat-label">Completed Games</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-value">{{ total_coins_issued|floatformat:0 }}</div>
+    <div class="stat-label">Coins Issued</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-value">{{ total_coins_won|floatformat:0 }}</div>
+    <div class="stat-label">Coins Won</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span>🏆 Top Winners</span>
+    <a href="{% url 'dashboard:players' %}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <table>
+    <thead><tr><th>Rank</th><th>Player</th><th>Wins</th><th>Coins</th><th>Level</th></tr></thead>
+    <tbody>
+    {% for p in top_winners %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ p.first_name }} <span style="color:var(--muted);font-size:11px;">ID:{{ p.telegram_id }}</span></td>
+      <td>{{ p.wins }}</td>
+      <td style="color:var(--gold)">{{ p.coins }} 💰</td>
+      <td>Lv.{{ p.level }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span>🏠 Recent Rooms</span>
+    <a href="{% url 'dashboard:rooms' %}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <table>
+    <thead><tr><th>Code</th><th>Status</th><th>Players</th><th>Prize</th><th>Winner</th><th>Created</th></tr></thead>
+    <tbody>
+    {% for r in recent_rooms %}
+    <tr>
+      <td><a href="{% url 'dashboard:room_detail' r.room_code %}">{{ r.room_code }}</a></td>
+      <td>
+        {% if r.status == 'waiting' %}<span class="badge badge-warning">Waiting</span>
+        {% elif r.status == 'active' %}<span class="badge badge-success">Active</span>
+        {% else %}<span class="badge badge-info">Done</span>{% endif %}
+      </td>
+      <td>{{ r.pc }}</td>
+      <td>{{ r.prize_pool }} 💰</td>
+      <td>{{ r.winner.first_name|default:"—" }}</td>
+      <td>{{ r.created_at|date:"m/d H:i" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">📋 Recent Admin Actions</div>
+  <table>
+    <thead><tr><th>Admin</th><th>Action</th><th>Target</th><th>Amount</th><th>Time</th></tr></thead>
+    <tbody>
+    {% for log in recent_logs %}
+    <tr>
+      <td>{{ log.admin_user.username|default:"system" }}</td>
+      <td>{{ log.get_action_display }}</td>
+      <td>{{ log.target_player.first_name|default:"—" }}</td>
+      <td>{% if log.amount %}{{ log.amount }} 💰{% else %}—{% endif %}</td>
+      <td>{{ log.created_at|date:"H:i:s" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

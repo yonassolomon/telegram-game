@@ -1,0 +1,30 @@
+<table>
+  <thead><tr><th>Code</th><th>Players</th><th>Prize</th><th>Started</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for r in rooms %}
+  <tr>
+    <td><a href="{% url 'dashboard:room_detail' r.room_code %}">{{ r.room_code }}</a></td>
+    <td>{{ r.pc }}/{{ r.max_players }}</td>
+    <td style="color:var(--gold)">{{ r.prize_pool }} 💰</td>
+    <td>{{ r.started_at|date:"H:i:s"|default:r.created_at|date:"H:i:s" }}</td>
+    <td>
+      <a href="{% url 'dashboard:room_detail' r.room_code %}" class="btn btn-outline btn-sm">View</a>
+      <button class="btn btn-red btn-sm" onclick="forceClose('{{ r.room_code }}')">Close</button>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">None</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<script>
+function forceClose(code) {
+  if (!confirm('Force close room ' + code + '?')) return;
+  var fd = new FormData();
+  var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (csrfEl) fd.append('csrfmiddlewaretoken', csrfEl.value);
+  fetch('/dashboard/api/rooms/' + code + '/close/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); });
+}
+</script>
