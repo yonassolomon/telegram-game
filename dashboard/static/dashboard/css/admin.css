@@ -100,6 +100,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .btn-cyan { background: var(--cyan); color: #000; }
 .btn-purple { background: var(--purple); }
 .btn-red { background: var(--red); }
+.btn-green { background: var(--green); color: #000; }
 .btn-gold { background: var(--gold); color: #000; }
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 .btn:hover { opacity: 0.85; }

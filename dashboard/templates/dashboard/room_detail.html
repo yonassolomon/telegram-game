@@ -8,22 +8,69 @@
 
 <div class="stats-grid">
   <div class="stat-card {% if room.status == 'waiting' %}orange{% elif room.status == 'active' %}green{% else %}cyan{% endif %}">
-    <div class="stat-value">{{ room.get_status_display }}</div>
+    <div class="stat-value" id="room-status">{{ room.get_status_display }}</div>
     <div class="stat-label">Status</div>
   </div>
   <div class="stat-card gold">
-    <div class="stat-value">{{ room.pc }}/{{ room.max_players }}</div>
+    <div class="stat-value" id="player-count">{{ room.pc }}/{{ room.max_players }}</div>
     <div class="stat-label">Players</div>
   </div>
   <div class="stat-card purple">
-    <div class="stat-value">{{ room.prize_pool }}</div>
+    <div class="stat-value" id="prize-pool">{{ room.prize_pool }}</div>
     <div class="stat-label">Prize Pool 💰</div>
   </div>
   <div class="stat-card cyan">
-    <div class="stat-value">{{ room.entry_fee }}</div>
-    <div class="stat-label">Entry Fee 💰</div>
+    <div class="stat-value" id="game-mode-badge">{{ room.game_mode|default:'auto'|title }}</div>
+    <div class="stat-label">Game Mode</div>
   </div>
 </div>
+
+{% if room.status == 'active' %}
+<div class="card" style="border-color: rgba(0,230,118,0.3);">
+  <div class="card-header">🎮 Game Controls</div>
+
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:var(--bg);border-radius:8px;">
+    <input type="number" id="manual-number" min="1" max="75" placeholder="1-75"
+      style="width:80px;background:var(--card-bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-size:18px;font-weight:700;text-align:center;outline:none;">
+    <button class="btn btn-cyan" onclick="callSpecificNumber()" id="btn-call-specific">📞 Call Number</button>
+    <span id="call-error" style="color:var(--red);font-size:12px;display:none;"></span>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <button class="btn btn-cyan btn-sm" onclick="callNextNumber()" id="btn-next">🎯 Next Auto</button>
+    <button class="btn btn-purple btn-sm" onclick="pauseGame()" id="btn-pause">⏸️ Pause</button>
+    <button class="btn btn-green btn-sm" onclick="resumeGame()" id="btn-resume">▶️ Resume</button>
+    <button class="btn btn-red btn-sm" onclick="endGame()">⏹️ End Game</button>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <span style="color:var(--muted);font-size:12px;">Mode:</span>
+    <button class="btn btn-outline btn-sm" onclick="setMode('auto')" id="btn-mode-auto">🤖 Auto</button>
+    <button class="btn btn-outline btn-sm" onclick="setMode('manual')" id="btn-mode-manual">👆 Manual</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">🎯 Called Numbers <span id="called-count" style="font-weight:400;color:var(--muted);">({{ history.numbers_called|length }})</span></div>
+  <div class="live-numbers" id="called-numbers-display">
+    {% for n in history.numbers_called %}
+    <div class="live-ball">{{ n }}</div>
+    {% empty %}
+    <span style="color:var(--muted);font-size:12px;">None yet</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">📊 Game State</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;" id="game-state-info">
+    <div><span style="color:var(--muted);">Called:</span> <span id="gs-called">{{ history.numbers_called|length }}</span>/75</div>
+    <div><span style="color:var(--muted);">Remaining:</span> <span id="gs-remaining">—</span></div>
+    <div><span style="color:var(--muted);">Mode:</span> <span id="gs-mode">{{ room.game_mode|default:'auto' }}</span></div>
+    <div><span style="color:var(--muted);">Paused:</span> <span id="gs-paused">{{ room.game_state.paused|yesno:"Yes,No" }}</span></div>
+  </div>
+</div>
+{% endif %}
 
 <div class="card">
   <div class="card-header">👥 Players in Room</div>
@@ -48,15 +95,6 @@
   </table>
 </div>
 
-{% if history and history.numbers_called %}
-<div class="card">
-  <div class="card-header">🎯 Called Numbers ({{ history.numbers_called|length }})</div>
-  <div class="live-numbers">
-    {% for n in history.numbers_called %}<div class="live-ball">{{ n }}</div>{% endfor %}
-  </div>
-</div>
-{% endif %}
-
 <div class="card">
   <div class="card-header">ℹ️ Room Info</div>
   <table>
@@ -72,10 +110,132 @@
 
 {% block scripts %}
 <script>
+var ROOM_CODE = '{{ room.room_code }}';
+var POLL = null;
+
+{% if room.status == 'active' %}
+POLL = setInterval(refreshState, 2000);
+{% endif %}
+
+function refreshState() {
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/live-state/')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      document.getElementById('room-status').textContent = d.status === 'active' ? 'Active' : (d.status === 'finished' ? 'Finished' : 'Waiting');
+      document.getElementById('player-count').textContent = d.player_count + '/' + d.max_players;
+      document.getElementById('prize-pool').textContent = d.prize_pool;
+
+      var mode = d.game_mode || 'auto';
+      document.getElementById('game-mode-badge').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+      document.getElementById('gs-mode').textContent = mode;
+      document.getElementById('gs-called').textContent = (d.called_numbers || []).length;
+      document.getElementById('gs-remaining').textContent = 75 - (d.called_numbers || []).length;
+      document.getElementById('gs-paused').textContent = (d.game_state && d.game_state.paused) ? 'Yes' : 'No';
+      document.getElementById('called-count').textContent = '(' + (d.called_numbers || []).length + ')';
+
+      var balls = document.getElementById('called-numbers-display');
+      if (balls && d.called_numbers) {
+        balls.innerHTML = d.called_numbers.map(function(n) {
+          return '<div class="live-ball">' + n + '</div>';
+        }).join('');
+      }
+
+      if (d.status === 'finished') {
+        if (POLL) clearInterval(POLL);
+        location.reload();
+      }
+    });
+}
+
+function csrfBody() {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  return fd;
+}
+
+function callNextNumber() {
+  var btn = document.getElementById('btn-next');
+  btn.disabled = true; btn.textContent = 'Calling...';
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/next-number/', { method: 'POST', body: csrfBody() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert(d.error); btn.disabled = false; btn.textContent = '🎯 Next Auto'; return; }
+      refreshState();
+      btn.disabled = false; btn.textContent = '🎯 Next Auto';
+    });
+}
+
+function callSpecificNumber() {
+  var input = document.getElementById('manual-number');
+  var num = parseInt(input.value);
+  var err = document.getElementById('call-error');
+  err.style.display = 'none';
+
+  if (isNaN(num) || num < 1 || num > 75) {
+    err.textContent = 'Enter a number 1-75';
+    err.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('btn-call-specific');
+  btn.disabled = true; btn.textContent = 'Calling ' + num + '...';
+
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('number', num);
+
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/call-number/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) {
+        err.textContent = d.error;
+        err.style.display = 'block';
+        btn.disabled = false; btn.textContent = '📞 Call Number';
+        return;
+      }
+      input.value = '';
+      err.style.display = 'none';
+      refreshState();
+      btn.disabled = false; btn.textContent = '📞 Call Number';
+    })
+    .catch(function() {
+      err.textContent = 'Network error';
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = '📞 Call Number';
+    });
+}
+
+function pauseGame() {
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/pause/', { method: 'POST', body: csrfBody() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { refreshState(); });
+}
+
+function resumeGame() {
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/resume/', { method: 'POST', body: csrfBody() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { refreshState(); });
+}
+
+function setMode(mode) {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('mode', mode);
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/set-mode/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { refreshState(); });
+}
+
+function endGame() {
+  if (!confirm('Force end this game?')) return;
+  fetch('/dashboard/api/rooms/' + ROOM_CODE + '/close/', { method: 'POST', body: csrfBody() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); });
+}
+
 function kickPlayer(pid, name) {
   if (!confirm('Kick ' + name + ' from this room?')) return;
-  var fd = new FormData(); fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-  fetch('/dashboard/api/players/' + pid + '/kick/{{ room.room_code }}/', { method: 'POST', body: fd })
+  fetch('/dashboard/api/players/' + pid + '/kick/' + ROOM_CODE + '/', { method: 'POST', body: csrfBody() })
     .then(function(r) { return r.json(); })
     .then(function(d) { if (d.success) location.reload(); });
 }

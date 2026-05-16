@@ -20,4 +20,9 @@ urlpatterns = [
     path('api/players/<int:player_id>/kick/<str:room_code>/', views.api_kick_player, name='api_kick_player'),
     path('api/rooms/<str:room_code>/close/', views.api_force_close_room, name='api_force_close'),
     path('api/rooms/<str:room_code>/live-state/', views.api_room_live_state, name='api_live_state'),
+    path('api/rooms/<str:room_code>/next-number/', views.api_game_next_number, name='api_next_number'),
+    path('api/rooms/<str:room_code>/call-number/', views.api_game_call_number, name='api_call_number'),
+    path('api/rooms/<str:room_code>/pause/', views.api_game_pause, name='api_pause'),
+    path('api/rooms/<str:room_code>/resume/', views.api_game_resume, name='api_resume'),
+    path('api/rooms/<str:room_code>/set-mode/', views.api_game_set_mode, name='api_set_mode'),
 ]

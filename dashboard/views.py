@@ -354,4 +354,120 @@ def api_room_live_state(request, room_code):
         'called_numbers': history.numbers_called if history else [],
         'winner_name': room.winner.first_name if room.winner else None,
         'started_at': room.started_at.isoformat() if room.started_at else None,
+        'game_mode': room.game_mode,
+        'game_state': room.game_state,
     })
+
+
+# ═══ Game Control Endpoints (Admin Only) ═══
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_game_next_number(request, room_code):
+    from webapp.engine import trigger_next_number
+    room = get_object_or_404(GameRoom, room_code=room_code)
+    if room.status != 'active':
+        return JsonResponse({'error': 'Game not active'}, status=400)
+    if room.game_mode != 'manual':
+        return JsonResponse({'error': 'Switch to manual mode first'}, status=400)
+
+    ok = trigger_next_number(room_code)
+    if not ok:
+        return JsonResponse({'error': 'Game engine not running for this room'}, status=400)
+
+    room.refresh_from_db()
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        target_room=room, detail=f'Manual next number triggered'
+    )
+    logger.info(f'ADMIN: {request.user} triggered next number in room {room_code}')
+    return JsonResponse({'success': True, 'game_state': room.game_state})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_game_call_number(request, room_code):
+    try:
+        number = int(request.POST.get('number', ''))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid number'}, status=400)
+
+    from webapp.engine import call_specific_number
+
+    ok, error = call_specific_number(room_code, number)
+    if not ok:
+        logger.warning(f'ADMIN CALL FAIL: room={room_code} number={number} error={error}')
+        return JsonResponse({'error': error}, status=400)
+
+    room = get_object_or_404(GameRoom, room_code=room_code)
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        target_room=room,
+        detail=f'Manual call: number {number}'
+    )
+    logger.info(f'ADMIN: {request.user} called number {number} in room {room_code}')
+    return JsonResponse({
+        'success': True,
+        'number': number,
+        'game_state': room.game_state,
+    })
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_game_pause(request, room_code):
+    from webapp.engine import pause_game
+    room = get_object_or_404(GameRoom, room_code=room_code)
+    if room.status != 'active':
+        return JsonResponse({'error': 'Game not active'}, status=400)
+
+    pause_game(room_code)
+    room.game_state = {**(room.game_state or {}), 'paused': True}
+    room.save(update_fields=['game_state'])
+
+    logger.info(f'ADMIN: {request.user} paused game room {room_code}')
+    return JsonResponse({'success': True, 'paused': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_game_resume(request, room_code):
+    from webapp.engine import resume_game
+    room = get_object_or_404(GameRoom, room_code=room_code)
+    if room.status != 'active':
+        return JsonResponse({'error': 'Game not active'}, status=400)
+
+    resume_game(room_code)
+    room.game_state = {**(room.game_state or {}), 'paused': False}
+    room.save(update_fields=['game_state'])
+
+    logger.info(f'ADMIN: {request.user} resumed game room {room_code}')
+    return JsonResponse({'success': True, 'paused': False})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_game_set_mode(request, room_code):
+    mode = request.POST.get('mode', 'auto')
+    if mode not in ('auto', 'manual'):
+        return JsonResponse({'error': 'Invalid mode'}, status=400)
+
+    from webapp.engine import switch_game_mode
+    room = get_object_or_404(GameRoom, room_code=room_code)
+    if room.status != 'active':
+        return JsonResponse({'error': 'Game not active'}, status=400)
+
+    switch_game_mode(room_code, mode)
+
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        target_room=room, detail=f'Mode set to {mode}'
+    )
+    logger.info(f'ADMIN: {request.user} set mode {mode} for room {room_code}')
+    return JsonResponse({'success': True, 'game_mode': mode})

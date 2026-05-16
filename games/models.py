@@ -14,6 +14,10 @@ class GameRoom(models.Model):
         ACTIVE = 'active', 'Active'
         FINISHED = 'finished', 'Finished'
 
+    class GameMode(models.TextChoices):
+        AUTO = 'auto', 'Auto'
+        MANUAL = 'manual', 'Manual'
+
     room_code = models.CharField(max_length=8, unique=True, blank=True)
     room_type = models.CharField(max_length=10, choices=RoomType.choices, default=RoomType.PUBLIC)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.WAITING)
@@ -26,6 +30,8 @@ class GameRoom(models.Model):
         related_name='games_won'
     )
     players = models.ManyToManyField(Player, through='BingoCard', related_name='game_rooms')
+    game_mode = models.CharField(max_length=10, choices=GameMode.choices, default=GameMode.AUTO)
+    game_state = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
