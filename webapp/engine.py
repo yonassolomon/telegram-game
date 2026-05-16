@@ -8,6 +8,10 @@ from django.db import models as db_models, connection as db_connection, close_ol
 logger = logging.getLogger('bingo.engine')
 
 
+_active_games = set()
+_lock = threading.Lock()
+
+
 def run_game_engine(room_code):
     close_old_connections()
 
@@ -19,6 +23,7 @@ def run_game_engine(room_code):
         room = GameRoom.objects.get(room_code=room_code)
     except GameRoom.DoesNotExist:
         logger.error(f'ENGINE FAIL: room={room_code} not_found')
+        _active_games.discard(room_code)
         return
 
     cards = list(BingoCard.objects.filter(game_room=room).select_related('player'))
@@ -27,6 +32,7 @@ def run_game_engine(room_code):
         room.status = 'finished'
         room.finished_at = timezone.now()
         room.save(update_fields=['status', 'finished_at'])
+        _active_games.discard(room_code)
         return
 
     logger.info(f'ENGINE START: room={room_code} players={len(cards)} card_ids={[c.id for c in cards]}')
@@ -60,7 +66,8 @@ def run_game_engine(room_code):
         history.numbers_called = called
         history.save(update_fields=['numbers_called'])
 
-        time.sleep(2)
+        if not winner_card:
+            time.sleep(3)
 
     room.refresh_from_db()
     room.status = 'finished'
@@ -107,6 +114,21 @@ def run_game_engine(room_code):
 
 
 def start_game_thread(room_code):
+    with _lock:
+        if room_code in _active_games:
+            logger.warning(f'ENGINE DUPLICATE PREVENTED: room={room_code}')
+            return
+        _active_games.add(room_code)
+
     logger.info(f'ENGINE THREAD START: room={room_code}')
-    thread = threading.Thread(target=run_game_engine, args=(room_code,), daemon=True)
+    thread = threading.Thread(target=_run_and_cleanup, args=(room_code,), daemon=True)
     thread.start()
+
+
+def _run_and_cleanup(room_code):
+    try:
+        run_game_engine(room_code)
+    finally:
+        _active_games.discard(room_code)
+        db_connection.close()
+        logger.info(f'ENGINE THREAD END: room={room_code}')

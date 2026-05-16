@@ -104,7 +104,7 @@
     <div style="color:var(--neon-gold);font-size:24px;font-weight:800;">
       {{ room.prize_pool }} 💰
     </div>
-    <a id="find-room-btn" class="btn btn-primary" style="margin-top:16px;">🔄 Find New Room</a>
+    <a id="find-room-btn" href="{% url 'webapp:rooms' %}" class="btn btn-primary" style="margin-top:16px;">🔄 Find New Room</a>
   </div>
 
   {% elif not joined %}
@@ -122,7 +122,7 @@
     <h2 id="winner-name"></h2>
     <div class="prize" id="winner-prize"></div>
     <p style="color:var(--text-secondary);font-size:13px;margin:8px 0;" id="winner-sub"></p>
-    <a id="play-again-btn" class="btn btn-primary">🔄 Play Again</a>
+    <a id="play-again-btn" href="{% url 'webapp:rooms' %}" class="btn btn-primary">🔄 Play Again</a>
   </div>
 </div>
 {% endblock %}
