@@ -1,0 +1,173 @@
+import json
+import logging
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.db import transaction as db_transaction
+from django.db.models import F
+from django.utils import timezone
+from arena.models import GameRound, CardSelection
+from arena.cards import generate_card_by_number, format_card_grid
+from arena.engine import ensure_round_running
+from webapp.views import get_player_from_request
+from wallets.models import Transaction
+from users.models import Player
+
+logger = logging.getLogger('bingo.arena')
+
+
+def _get_card_grid(card_number, marked_set):
+    from arena.cards import generate_card_by_number, format_card_grid
+    numbers = generate_card_by_number(card_number)
+    return format_card_grid(numbers, marked_set)
+
+
+def lobby(request):
+    player = get_player_from_request(request)
+    if not player:
+        return redirect('webapp:home')
+
+    ensure_round_running()
+
+    current = GameRound.objects.filter(status__in=('waiting', 'active', 'cooldown')).order_by('-created_at').first()
+    if not current:
+        current = GameRound.objects.order_by('-created_at').first()
+
+    selections = list(CardSelection.objects.filter(round=current).select_related('player'))
+    taken_cards = {s.card_number: s.player.first_name for s in selections}
+
+    selected_card = None
+    if current:
+        sel = CardSelection.objects.filter(round=current, player=player).first()
+        if sel:
+            selected_card = sel.card_number
+
+    return render(request, 'arena/lobby.html', {
+        'player': player,
+        'round': current,
+        'selected_card': selected_card,
+        'taken_cards_json': json.dumps(taken_cards),
+        'my_card_grid': selected_card and _get_card_grid(selected_card, set()) or None,
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_select_card(request, round_id):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    try:
+        card_num = int(request.POST.get('card_number', 0))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid card number'}, status=400)
+
+    if card_num < 1 or card_num > 300:
+        return JsonResponse({'error': 'Card must be 1-300'}, status=400)
+
+    game_round = get_object_or_404(GameRound, id=round_id)
+
+    if game_round.status != 'waiting':
+        return JsonResponse({'error': 'Card selection is closed. Game already started.'}, status=400)
+
+    with db_transaction.atomic():
+        existing_player = CardSelection.objects.select_for_update().filter(round=game_round, player=player).first()
+        if existing_player:
+            old_card = existing_player.card_number
+            existing_player.card_number = card_num
+            existing_player.save(update_fields=['card_number'])
+            logger.info(f'CARD CHANGED: round={game_round.round_number} player={player.telegram_id} {old_card}→{card_num}')
+            return JsonResponse({'success': True, 'card_number': card_num, 'changed': True, 'old_card': old_card})
+
+        existing_card = CardSelection.objects.filter(round=game_round, card_number=card_num).first()
+        if existing_card:
+            return JsonResponse({'error': f'Card {card_num} already chosen by another player'}, status=409)
+
+        try:
+            CardSelection.objects.create(round=game_round, player=player, card_number=card_num)
+        except Exception:
+            return JsonResponse({'error': 'Card already taken'}, status=409)
+
+    Transaction.objects.create(
+        player=player, amount=-game_round.entry_fee,
+        transaction_type='game_entry',
+        description=f'Arena Round #{game_round.round_number} entry'
+    )
+    from django.db.models import F
+    Player.objects.filter(id=player.id).update(coins=F('coins') - game_round.entry_fee)
+
+    logger.info(f'CARD SELECTED: round={game_round.round_number} player={player.telegram_id} card={card_num} fee={game_round.entry_fee}')
+
+    return JsonResponse({'success': True, 'card_number': card_num})
+
+
+def api_round_state(request, round_id):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    game_round = get_object_or_404(GameRound, id=round_id)
+    selections = list(CardSelection.objects.filter(round=game_round).select_related('player'))
+
+    taken_cards = {s.card_number: s.player.first_name for s in selections}
+    player_count = len(selections)
+
+    my_card = None
+    my_card_grid = None
+    my_marked = set()
+
+    sel = next((s for s in selections if s.player_id == player.id), None)
+    if sel:
+        my_card = sel.card_number
+        numbers = generate_card_by_number(my_card)
+        my_marked = {n for n in game_round.numbers_called if n in numbers}
+        my_card_grid = format_card_grid(numbers, my_marked)
+
+    my_win = False
+    if my_card and game_round.status == 'active':
+        numbers = generate_card_by_number(my_card)
+        my_win = _check_win(numbers, my_marked)
+
+    return JsonResponse({
+        'status': game_round.status,
+        'round_number': game_round.round_number,
+        'player_count': player_count,
+        'prize_pool': game_round.prize_pool,
+        'entry_fee': game_round.entry_fee,
+        'taken_cards': taken_cards,
+        'my_card': my_card,
+        'my_card_grid': my_card_grid,
+        'my_marked': list(my_marked),
+        'called_numbers': game_round.numbers_called,
+        'waiting_seconds_left': game_round.waiting_seconds_left,
+        'winner_name': game_round.winner.first_name if game_round.winner else None,
+        'winner_card': game_round.winner_card_number,
+        'is_winner': my_win,
+    })
+
+
+def _check_win(numbers_list, marked_set):
+    size = 5
+    free_idx = 12
+    grid = []
+    for i in range(size):
+        row = []
+        for j in range(size):
+            idx = i * size + j
+            if idx == free_idx:
+                row.append(1)
+            else:
+                row.append(1 if numbers_list[idx] in marked_set else 0)
+        grid.append(row)
+    for i in range(size):
+        if sum(grid[i]) == size:
+            return True
+        if sum(grid[j][i] for j in range(size)) == size:
+            return True
+    if sum(grid[i][i] for i in range(size)) == size:
+        return True
+    if sum(grid[i][size - 1 - i] for i in range(size)) == size:
+        return True
+    return False

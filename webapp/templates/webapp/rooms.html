@@ -13,6 +13,26 @@
     <button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Refresh</button>
   </div>
 
+  {% if arena_round %}
+  <div class="room-item" onclick="location.href='{% url 'arena:lobby' %}?tg_id={{ player.telegram_id }}'" style="border:2px solid rgba(180,77,255,0.5);background:linear-gradient(135deg,rgba(180,77,255,0.08),rgba(0,229,255,0.05));">
+    <div class="room-left">
+      <div class="room-icon">🏟️</div>
+      <div class="room-info">
+        <div class="room-code" style="background:linear-gradient(135deg,#b44dff,#00e5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">ARENA MODE</div>
+        <div class="room-meta">
+          {% if arena_round.status == 'waiting' %}🟢 Card Selection · {{ arena_round.waiting_seconds_left }}s
+          {% elif arena_round.status == 'active' %}🔴 Live · Round #{{ arena_round.round_number }}
+          {% else %}🟡 Cooldown · Next round soon{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="room-right">
+      <div class="room-fee">10 💰</div>
+      <div class="room-players">{{ arena_round.player_count }}/300</div>
+    </div>
+  </div>
+  {% endif %}
+
   {% for room in rooms %}
   <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
     <div class="room-left">

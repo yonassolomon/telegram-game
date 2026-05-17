@@ -105,9 +105,19 @@ def rooms(request):
     for room in rooms_qs:
         room.active_players = BingoCard.objects.filter(game_room=room).count()
 
+    arena_round = None
+    try:
+        from arena.models import GameRound as ArenaRound
+        arena_round = ArenaRound.objects.filter(
+            status__in=('waiting', 'active', 'cooldown')
+        ).order_by('-created_at').first()
+    except Exception:
+        pass
+
     return render(request, 'webapp/rooms.html', {
         'player': player,
         'rooms': rooms_qs,
+        'arena_round': arena_round,
     })
 
 

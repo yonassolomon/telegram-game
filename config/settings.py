@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'bot',
     'webapp',
     'dashboard',
+    'arena',
 ]
 
 MIDDLEWARE = [
