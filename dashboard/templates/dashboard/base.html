@@ -26,6 +26,9 @@
       <a href="{% url 'dashboard:live' %}" class="{% if request.resolver_match.url_name == 'live' %}active{% endif %}">
         <span class="icon">🔴</span> Live Games
       </a>
+      <a href="{% url 'dashboard:arena' %}" class="{% if request.resolver_match.url_name == 'arena' %}active{% endif %}">
+        <span class="icon">🏟️</span> Arena
+      </a>
       <a href="{% url 'dashboard:transactions' %}" class="{% if request.resolver_match.url_name == 'transactions' %}active{% endif %}">
         <span class="icon">💎</span> Transactions
       </a>

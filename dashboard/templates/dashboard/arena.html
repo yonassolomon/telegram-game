@@ -1,0 +1,255 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header">
+  <h1>🏟️ Arena Mode</h1>
+  <div class="header-actions">
+    {% if current_round and current_round.status != 'finished' %}
+    <button class="btn btn-red btn-sm" onclick="forceEnd()">⏹️ End Round</button>
+    <button class="btn btn-red btn-sm" onclick="refundAll()">💸 Refund All</button>
+    {% endif %}
+  </div>
+</div>
+
+{% if current_round and current_round.status == 'active' %}
+<div class="card" style="border-color:rgba(0,230,118,0.3);">
+  <div class="card-header">🎮 Arena Game Controls</div>
+
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="color:var(--muted);font-size:12px;">Mode:</span>
+    <span id="mode-badge" class="badge {% if current_round.call_mode == 'manual' %}badge-purple{% else %}badge-info{% endif %}">
+      {{ current_round.call_mode|default:'auto'|upper }}
+    </span>
+    <button class="btn btn-outline btn-sm" onclick="setMode('auto')" id="btn-auto">🤖 Auto</button>
+    <button class="btn btn-outline btn-sm" onclick="setMode('manual')" id="btn-manual">👆 Manual</button>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:var(--bg);border-radius:8px;">
+    <input type="number" id="arena-manual-number" min="1" max="75" placeholder="1-75"
+      style="width:80px;background:var(--card-bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-size:18px;font-weight:700;text-align:center;outline:none;">
+    <button class="btn btn-cyan" onclick="callArenaNumber()">📞 Call Number</button>
+    <span id="arena-call-error" style="color:var(--red);font-size:12px;display:none;"></span>
+  </div>
+</div>
+{% endif %}
+
+{% if current_round %}
+<div class="stats-grid" id="arena-stats">
+  <div class="stat-card {% if current_round.status == 'waiting' %}orange{% elif current_round.status == 'active' %}green{% else %}cyan{% endif %}">
+    <div class="stat-value" id="stat-status">{{ current_round.get_status_display }}</div>
+    <div class="stat-label">Status · Round #{{ current_round.round_number }}</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-value" id="stat-players">{{ current_round.player_count }}</div>
+    <div class="stat-label">Players</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-value" id="stat-prize">{{ current_round.prize_pool }}</div>
+    <div class="stat-label">Prize Pool 💰</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-value" id="stat-timer">{{ current_round.waiting_seconds_left }}s</div>
+    <div class="stat-label">Timer</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-value" id="stat-called">{{ current_round.numbers_called|length }}</div>
+    <div class="stat-label">Numbers Called</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-value">{{ current_round.winner.first_name|default:"—" }}</div>
+    <div class="stat-label">Winner</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">🎯 Called Numbers</div>
+  <div class="live-numbers" id="called-numbers">
+    {% for n in current_round.numbers_called %}
+    <div class="live-ball">{{ n }}</div>
+    {% empty %}
+    <span style="color:var(--muted);font-size:12px;">None yet</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">🎴 Card Grid (1–300) <span style="font-weight:400;color:var(--muted);">🟢=Available 🟠=Taken</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:3px;" id="card-grid">
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">👥 Players</div>
+  <table>
+    <thead><tr><th>Player</th><th>Telegram ID</th><th>Card #</th><th>Coins</th><th>Action</th></tr></thead>
+    <tbody id="player-table-body">
+    {% for p in player_list %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.telegram_id }}</td>
+      <td style="color:var(--neon-gold);font-weight:700;">#{{ p.card_number }}</td>
+      <td>{{ p.coins }} 💰</td>
+      <td>
+        {% if current_round.status != 'finished' %}
+        <button class="btn btn-red btn-sm" onclick="removePlayer({{ p.id }})">Kick</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px;">No players</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="text-align:center;padding:40px;">
+  <div style="font-size:48px;">🏟️</div>
+  <div style="color:var(--text-secondary);">No active Arena rounds</div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">📜 Round History</div>
+  <table>
+    <thead><tr><th>Round #</th><th>Status</th><th>Players</th><th>Prize</th><th>Winner</th><th>Time</th></tr></thead>
+    <tbody>
+    {% for r in all_rounds %}
+    <tr>
+      <td>{{ r.round_number }}</td>
+      <td>{% if r.status == 'waiting' %}<span class="badge badge-warning">Waiting</span>
+        {% elif r.status == 'active' %}<span class="badge badge-success">Active</span>
+        {% else %}<span class="badge badge-info">Done</span>{% endif %}</td>
+      <td>{{ r.player_count }}</td>
+      <td>{{ r.prize_pool }} 💰</td>
+      <td>{{ r.winner.first_name|default:"—" }}</td>
+      <td>{{ r.created_at|date:"m/d H:i" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px;">No rounds</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var TAKEN = {{ taken_json|safe }};
+
+(function buildGrid() {
+  var grid = document.getElementById('card-grid');
+  if (!grid) return;
+  for (var i = 1; i <= 300; i++) {
+    var cell = document.createElement('div');
+    cell.id = 'card-' + i;
+    cell.style.cssText = 'border-radius:6px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;transition:.15s;';
+    cell.textContent = i;
+    if (TAKEN[i]) {
+      cell.style.background = 'rgba(255,145,0,0.15)';
+      cell.style.border = '1px solid rgba(255,145,0,0.4)';
+      cell.style.color = 'var(--orange)';
+    } else {
+      cell.style.background = 'rgba(0,230,118,0.08)';
+      cell.style.border = '1px solid rgba(0,230,118,0.3)';
+      cell.style.color = 'var(--green)';
+    }
+    grid.appendChild(cell);
+  }
+})();
+
+setInterval(refreshArena, 2000);
+
+function refreshArena() {
+  fetch('/dashboard/api/arena/state/')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) return;
+      document.getElementById('stat-status').textContent = d.status === 'waiting' ? 'Card Selection' : (d.status === 'active' ? 'Live' : 'Done');
+      document.getElementById('stat-players').textContent = d.player_count;
+      document.getElementById('stat-prize').textContent = d.prize_pool;
+      document.getElementById('stat-timer').textContent = d.waiting_seconds + 's';
+      document.getElementById('stat-called').textContent = (d.called_numbers || []).length;
+
+      var badge = document.getElementById('mode-badge');
+      if (badge && d.call_mode) {
+        badge.textContent = d.call_mode.toUpperCase();
+        badge.className = 'badge ' + (d.call_mode === 'manual' ? 'badge-purple' : 'badge-info');
+      }
+
+      var balls = document.getElementById('called-numbers');
+      if (balls && d.called_numbers) {
+        balls.innerHTML = d.called_numbers.slice(-15).reverse().map(function(n) {
+          return '<div class="live-ball">' + n + '</div>';
+        }).join('');
+      }
+
+      if (d.taken_cards) {
+        TAKEN = d.taken_cards;
+        for (var i = 1; i <= 300; i++) {
+          var cell = document.getElementById('card-' + i);
+          if (!cell) continue;
+          if (TAKEN[i]) {
+            cell.style.background = 'rgba(255,145,0,0.15)';
+            cell.style.border = '1px solid rgba(255,145,0,0.4)';
+            cell.style.color = 'var(--orange)';
+          } else {
+            cell.style.background = 'rgba(0,230,118,0.08)';
+            cell.style.border = '1px solid rgba(0,230,118,0.3)';
+            cell.style.color = 'var(--green)';
+          }
+        }
+      }
+    });
+}
+
+function csrf() {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  return fd;
+}
+
+function forceEnd() { if (confirm('Force end this Arena round?')) post('/dashboard/api/arena/force-end/'); }
+function refundAll() { if (confirm('Refund ALL players in this round?')) post('/dashboard/api/arena/refund/'); }
+function removePlayer(pid) { if (confirm('Remove this player?')) post('/dashboard/api/arena/remove-player/' + pid + '/'); }
+
+function callArenaNumber() {
+  var input = document.getElementById('arena-manual-number');
+  var num = parseInt(input.value);
+  var err = document.getElementById('arena-call-error');
+  err.style.display = 'none';
+  if (isNaN(num) || num < 1 || num > 75) {
+    err.textContent = 'Enter a number 1-75';
+    err.style.display = 'block';
+    return;
+  }
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('number', num);
+  fetch('/dashboard/api/arena/call-number/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { err.textContent = d.error; err.style.display = 'block'; return; }
+      input.value = '';
+      err.style.display = 'none';
+      refreshArena();
+    });
+}
+
+function setMode(mode) {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('mode', mode);
+  fetch('/dashboard/api/arena/set-mode/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert(d.error); return; }
+      refreshArena();
+    });
+}
+
+function post(url) {
+  fetch(url, { method: 'POST', body: csrf() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); else alert(d.error); });
+}
+</script>
+{% endblock %}

@@ -471,3 +471,203 @@ def api_game_set_mode(request, room_code):
     )
     logger.info(f'ADMIN: {request.user} set mode {mode} for room {room_code}')
     return JsonResponse({'success': True, 'game_mode': mode})
+
+
+# ═══ Arena Admin ═══
+
+
+@admin_required
+def arena_overview(request):
+    from arena.models import GameRound as ArenaRound, CardSelection
+    from arena.cards import generate_card_by_number, format_card_grid
+
+    current = ArenaRound.objects.filter(
+        status__in=('waiting', 'active', 'cooldown')
+    ).order_by('-created_at').first()
+
+    all_rounds = list(ArenaRound.objects.order_by('-created_at')[:20])
+
+    taken_cards = {}
+    player_list = []
+    if current:
+        selections = list(CardSelection.objects.filter(round=current).select_related('player'))
+        taken_cards = {s.card_number: s.player.first_name for s in selections}
+        player_list = [{
+            'id': s.player.id,
+            'name': s.player.first_name,
+            'telegram_id': s.player.telegram_id,
+            'card_number': s.card_number,
+            'coins': s.player.coins,
+        } for s in selections]
+
+    return render(request, 'dashboard/arena.html', {
+        'current_round': current,
+        'all_rounds': all_rounds,
+        'taken_cards': taken_cards,
+        'player_list': player_list,
+        'taken_json': json.dumps(taken_cards),
+    })
+
+
+@admin_required
+def api_arena_state(request):
+    from arena.models import GameRound as ArenaRound, CardSelection
+
+    current = ArenaRound.objects.filter(
+        status__in=('waiting', 'active', 'cooldown')
+    ).order_by('-created_at').first()
+
+    if not current:
+        return JsonResponse({'error': 'No active round'})
+
+    selections = list(CardSelection.objects.filter(round=current).select_related('player'))
+    taken_cards = {s.card_number: s.player.first_name for s in selections}
+
+    return JsonResponse({
+        'round_id': current.id,
+        'round_number': current.round_number,
+        'status': current.status,
+        'player_count': len(selections),
+        'prize_pool': current.prize_pool,
+        'entry_fee': current.entry_fee,
+        'called_numbers': current.numbers_called,
+        'waiting_seconds': current.waiting_seconds_left,
+        'taken_cards': taken_cards,
+        'winner_name': current.winner.first_name if current.winner else None,
+        'winner_card': current.winner_card_number,
+        'call_mode': current.call_mode,
+    })
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_arena_force_end(request):
+    from arena.models import GameRound as ArenaRound, CardSelection
+    current = ArenaRound.objects.filter(status__in=('waiting', 'active')).order_by('-created_at').first()
+    if not current:
+        return JsonResponse({'error': 'No active round'})
+
+    current.status = 'finished'
+    current.finished_at = timezone.now()
+    current.save(update_fields=['status', 'finished_at'])
+
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        detail=f'Force ended Arena Round #{current.round_number}'
+    )
+    logger.info(f'ADMIN: {request.user} force ended Arena Round #{current.round_number}')
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_arena_refund_all(request):
+    from arena.models import GameRound as ArenaRound, CardSelection
+    current = ArenaRound.objects.filter(status__in=('waiting', 'active')).order_by('-created_at').first()
+    if not current:
+        return JsonResponse({'error': 'No active round'})
+
+    selections = list(CardSelection.objects.filter(round=current).select_related('player'))
+    fee = current.entry_fee
+
+    for s in selections:
+        Player.objects.filter(id=s.player_id).update(coins=db_models.F('coins') + fee)
+        Transaction.objects.create(
+            player=s.player, amount=fee,
+            transaction_type='draw_refund',
+            description=f'Admin refund Arena Round #{current.round_number}'
+        )
+
+    current.status = 'finished'
+    current.finished_at = timezone.now()
+    current.save(update_fields=['status', 'finished_at'])
+
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        detail=f'Refunded all in Arena Round #{current.round_number} ({len(selections)} players, {fee * len(selections)} coins)'
+    )
+    logger.info(f'ADMIN: {request.user} refunded Arena Round #{current.round_number}')
+    return JsonResponse({'success': True, 'players_refunded': len(selections)})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_arena_remove_player(request, player_id):
+    from arena.models import GameRound as ArenaRound, CardSelection
+    current = ArenaRound.objects.filter(status__in=('waiting', 'active')).order_by('-created_at').first()
+    if not current:
+        return JsonResponse({'error': 'No active round'})
+
+    player = get_object_or_404(Player, id=player_id)
+    sel = CardSelection.objects.filter(round=current, player=player).first()
+    if sel:
+        Player.objects.filter(id=player_id).update(coins=db_models.F('coins') + current.entry_fee)
+        Transaction.objects.create(
+            player=player, amount=current.entry_fee,
+            transaction_type='draw_refund',
+            description=f'Admin removed from Arena Round #{current.round_number}'
+        )
+        sel.delete()
+
+    AdminLog.objects.create(
+        admin_user=request.user, action='player_kick',
+        target_player=player,
+        detail=f'Removed from Arena Round #{current.round_number}'
+    )
+    logger.info(f'ADMIN: {request.user} removed player {player.telegram_id} from Arena')
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_arena_call_number(request):
+    try:
+        number = int(request.POST.get('number', ''))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid number'}, status=400)
+
+    from arena.engine import call_specific_arena_number
+
+    ok, error = call_specific_arena_number(number)
+    if not ok:
+        return JsonResponse({'error': error}, status=400)
+
+    from arena.models import GameRound as ArenaRound
+    current = ArenaRound.objects.filter(status='active').order_by('-created_at').first()
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        detail=f'Arena manual call: number {number}'
+    )
+    logger.info(f'ADMIN: {request.user} called arena number {number}')
+    return JsonResponse({'success': True, 'number': number})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_arena_set_mode(request):
+    mode = request.POST.get('mode', 'auto')
+    if mode not in ('auto', 'manual'):
+        return JsonResponse({'error': 'Mode must be auto or manual'}, status=400)
+
+    from arena.models import GameRound as ArenaRound
+    current = ArenaRound.objects.filter(status='active').order_by('-created_at').first()
+    if not current:
+        return JsonResponse({'error': 'No active round'})
+
+    current.call_mode = mode
+    current.save(update_fields=['call_mode'])
+
+    from arena.engine import _arena_event
+    _arena_event.set()
+
+    AdminLog.objects.create(
+        admin_user=request.user, action='game_end',
+        detail=f'Arena mode set to {mode}'
+    )
+    logger.info(f'ADMIN: {request.user} set arena mode to {mode}')
+    return JsonResponse({'success': True, 'call_mode': mode})

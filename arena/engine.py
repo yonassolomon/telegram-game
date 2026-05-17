@@ -9,9 +9,44 @@ logger = logging.getLogger('bingo.arena')
 
 _active_rounds = set()
 _lock = threading.Lock()
+_next_arena_number = {}
+_arena_event = threading.Event()
 
 WAITING_DURATION = 45
 COOLDOWN_DURATION = 15
+
+
+def call_specific_arena_number(number):
+    from arena.models import GameRound
+    with _lock:
+        current = GameRound.objects.filter(status='active').order_by('-created_at').first()
+        if not current:
+            return False, 'No active Arena round'
+
+        if number < 1 or number > 75:
+            return False, 'Number must be 1–75'
+
+        if number in current.numbers_called:
+            return False, f'Number {number} already called'
+
+        _next_arena_number[current.id] = number
+
+        if current.call_mode != 'manual':
+            GameRound.objects.filter(id=current.id).update(call_mode='manual')
+            logger.info(f'ARENA MODE SWITCH: round={current.round_number} auto→manual')
+
+    _arena_event.set()
+    return True, None
+
+
+def _pop_arena_number(round_id):
+    with _lock:
+        return _next_arena_number.pop(round_id, None)
+
+
+def _clear_arena_round(round_id):
+    with _lock:
+        _next_arena_number.pop(round_id, None)
 
 
 def _check_win(numbers_list, marked_set):
@@ -103,12 +138,52 @@ def run_round_engine(round_id):
     called = []
     winner_tg_id = None
     winner_card_num = None
+    idx = 0
 
-    for number in numbers:
+    while idx < len(numbers):
         if winner_tg_id:
             break
 
+        room = GameRound.objects.get(id=round_id)
+        if room.status != 'active':
+            break
+
+        current_mode = room.call_mode
+        manual_number = None
+
+        if current_mode == 'manual':
+            manual_number = _pop_arena_number(game_round.id)
+            if manual_number is None:
+                logger.info(f'ARENA MANUAL WAIT: round={game_round.round_number}')
+                _arena_event.clear()
+                _arena_event.wait(timeout=300)
+                room = GameRound.objects.get(id=round_id)
+                if room.status != 'active':
+                    break
+                if room.call_mode == 'auto':
+                    logger.info(f'ARENA MODE SWITCHED TO AUTO: round={game_round.round_number}')
+                    continue
+                manual_number = _pop_arena_number(game_round.id)
+                if manual_number is None:
+                    continue
+        else:
+            manual_number = _pop_arena_number(game_round.id)
+
+        if manual_number is not None:
+            number = manual_number
+            if number in numbers:
+                try:
+                    pos = numbers.index(number)
+                    if pos >= idx:
+                        idx = pos
+                except ValueError:
+                    pass
+            logger.info(f'ARENA MANUAL CALL: round={game_round.round_number} number={number}')
+        else:
+            number = numbers[idx]
+
         called.append(number)
+        idx += 1
 
         for tg_id, data in player_cards.items():
             if number in data['numbers']:
@@ -123,8 +198,9 @@ def run_round_engine(round_id):
         game_round.numbers_called = called
         game_round.save(update_fields=['numbers_called'])
 
-        if not winner_tg_id:
-            time.sleep(3)
+        if not winner_tg_id and manual_number is None:
+            _arena_event.clear()
+            _arena_event.wait(timeout=3)
 
     game_round.refresh_from_db()
     game_round.status = 'finished'

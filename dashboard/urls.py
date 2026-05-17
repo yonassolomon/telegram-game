@@ -25,4 +25,11 @@ urlpatterns = [
     path('api/rooms/<str:room_code>/pause/', views.api_game_pause, name='api_pause'),
     path('api/rooms/<str:room_code>/resume/', views.api_game_resume, name='api_resume'),
     path('api/rooms/<str:room_code>/set-mode/', views.api_game_set_mode, name='api_set_mode'),
+    path('arena/', views.arena_overview, name='arena'),
+    path('api/arena/state/', views.api_arena_state, name='api_arena_state'),
+    path('api/arena/force-end/', views.api_arena_force_end, name='api_arena_force_end'),
+    path('api/arena/refund/', views.api_arena_refund_all, name='api_arena_refund'),
+    path('api/arena/remove-player/<int:player_id>/', views.api_arena_remove_player, name='api_arena_remove_player'),
+    path('api/arena/call-number/', views.api_arena_call_number, name='api_arena_call_number'),
+    path('api/arena/set-mode/', views.api_arena_set_mode, name='api_arena_set_mode'),
 ]

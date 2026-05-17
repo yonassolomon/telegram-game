@@ -10,8 +10,13 @@ class GameRound(models.Model):
         FINISHED = 'finished', 'Completed'
         COOLDOWN = 'cooldown', 'Between Rounds'
 
+    class CallMode(models.TextChoices):
+        AUTO = 'auto', 'Auto'
+        MANUAL = 'manual', 'Manual'
+
     round_number = models.IntegerField(default=1)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.WAITING)
+    call_mode = models.CharField(max_length=10, choices=CallMode.choices, default=CallMode.AUTO)
     entry_fee = models.BigIntegerField(default=10)
     prize_pool = models.BigIntegerField(default=0)
     platform_fee_percent = models.IntegerField(default=7)
