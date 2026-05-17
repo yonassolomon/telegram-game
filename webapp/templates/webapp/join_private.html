@@ -1,0 +1,34 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:rooms' %}" class="back-btn">← Back</a>
+  <div class="title">🔐 Join Private Room</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container" style="padding-top:40px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="font-size:48px;">🔐</div>
+    <div style="color:var(--text-secondary);font-size:14px;margin-top:8px;">Enter the room code shared by your friend</div>
+  </div>
+
+  {% if error %}
+  <div style="text-align:center;color:var(--red);font-size:13px;margin-bottom:12px;padding:8px;background:rgba(255,61,90,0.1);border-radius:8px;">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST">
+    {% csrf_token %}
+    <input type="text" name="room_code" placeholder="Enter code (e.g. X7K92A)" maxlength="8"
+      style="width:100%;background:var(--bg-card);border:2px solid var(--border);color:var(--text);padding:16px;border-radius:12px;font-size:22px;font-weight:700;text-align:center;text-transform:uppercase;letter-spacing:4px;outline:none;"
+      autocomplete="off" autofocus>
+    <button type="submit" class="btn btn-purple" style="margin-top:12px;">🔓 Join Room</button>
+  </form>
+</div>
+
+<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
+  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
+  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
+  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
+  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+</nav>
+{% endblock %}

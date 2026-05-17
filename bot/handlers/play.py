@@ -18,7 +18,7 @@ def _get_waiting_rooms():
     from games.models import GameRoom
     from django.db.models import Count
     return list(
-        GameRoom.objects.filter(status='waiting')
+        GameRoom.objects.filter(status='waiting', room_type='public')
         .annotate(active_players=Count('bingo_cards'))
         .order_by('-created_at')[:10]
     )

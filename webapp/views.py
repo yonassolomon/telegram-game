@@ -3,6 +3,7 @@ import logging
 from functools import wraps
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -23,8 +24,6 @@ def get_player_from_request(request):
         try:
             body = json.loads(request.body)
             tg_id = str(body.get('tg_id', ''))
-            if tg_id:
-                logger.info(f'Player identified from JSON body: tg_id={tg_id}')
         except (json.JSONDecodeError, ValueError):
             pass
 
@@ -32,35 +31,17 @@ def get_player_from_request(request):
         tg_id = request.session.get('tg_id', '')
 
     if not tg_id:
-        raw_init = request.GET.get('tgWebAppData', '')
-        if raw_init:
-            try:
-                from urllib.parse import unquote
-                pairs = {}
-                for pair in unquote(raw_init).split('&'):
-                    if '=' in pair:
-                        k, v = pair.split('=', 1)
-                        pairs[k] = v
-                user = json.loads(pairs.get('user', '{}'))
-                tg_id = str(user.get('id', ''))
-            except Exception:
-                pass
-
-    if not tg_id:
         return None
 
     try:
         tid = int(tg_id)
-        request.session['tg_id'] = str(tid)
         player, created = Player.objects.get_or_create(
             telegram_id=tid,
             defaults={'first_name': 'Player'}
         )
-        if created:
-            logger.info(f'New player auto-registered: tg_id={tid}')
+        request.session['tg_id'] = str(tid)
         return player
-    except (ValueError, TypeError) as e:
-        logger.error(f'Invalid tg_id: {tg_id} err={e}')
+    except (ValueError, TypeError):
         return None
 
 
@@ -117,7 +98,10 @@ def rooms(request):
     if not player:
         return redirect('webapp:home')
 
-    rooms_qs = list(GameRoom.objects.filter(status='waiting').order_by('-created_at')[:20])
+    rooms_qs = list(
+        GameRoom.objects.filter(status='waiting', room_type='public')
+        .order_by('-created_at')[:20]
+    )
     for room in rooms_qs:
         room.active_players = BingoCard.objects.filter(game_room=room).count()
 
@@ -135,6 +119,9 @@ def create_room(request):
     if request.method == 'POST':
         entry_fee = int(request.POST.get('entry_fee', 50))
         max_players = int(request.POST.get('max_players', 2))
+        room_type = request.POST.get('room_type', 'public')
+        if room_type not in ('public', 'private'):
+            room_type = 'public'
 
         with db_transaction.atomic():
             p = Player.objects.select_for_update().get(id=player.id)
@@ -147,6 +134,7 @@ def create_room(request):
             p.save(update_fields=['coins'])
 
             room = GameRoom.objects.create(
+                room_type=room_type,
                 entry_fee=entry_fee,
                 max_players=max_players,
                 prize_pool=entry_fee,
@@ -160,15 +148,42 @@ def create_room(request):
         Transaction.objects.create(
             player=p, amount=-entry_fee,
             transaction_type='game_entry',
-            description=f'Created room {room.room_code}'
+            description=f'Created {room_type} room {room.room_code}'
         )
 
-        logger.info(f'ROOM CREATE: room={room.room_code} creator={p.telegram_id} fee={entry_fee} max={max_players}')
+        logger.info(f'ROOM CREATE: room={room.room_code} type={room_type} creator={p.telegram_id} fee={entry_fee} max={max_players}')
 
-        return redirect('webapp:room', room_code=room.room_code)
+        url = reverse('webapp:room', kwargs={'room_code': room.room_code})
+        return redirect(f'{url}?tg_id={p.telegram_id}')
 
     return render(request, 'webapp/create_room.html', {
         'player': player,
+    })
+
+
+def join_private(request):
+    player = get_player_from_request(request)
+    if not player:
+        return redirect('webapp:home')
+
+    error = None
+    if request.method == 'POST':
+        room_code = request.POST.get('room_code', '').strip().upper()
+        if not room_code:
+            error = 'Enter a room code'
+        else:
+            try:
+                room = GameRoom.objects.get(
+                    room_code=room_code, status='waiting', room_type='private'
+                )
+                url = reverse('webapp:room', kwargs={'room_code': room.room_code})
+                return redirect(f'{url}?tg_id={player.telegram_id}')
+            except GameRoom.DoesNotExist:
+                error = 'Private room not found or already started'
+
+    return render(request, 'webapp/join_private.html', {
+        'player': player,
+        'error': error,
     })
 
 
@@ -179,9 +194,13 @@ def room(request, room_code):
 
     room_data = get_object_or_404(GameRoom, room_code=room_code)
 
-    cards = list(BingoCard.objects.filter(game_room=room_data).select_related('player'))
+    cards = list(BingoCard.objects.filter(game_room=room_data).select_related('player').order_by('created_at'))
     active_players = len(cards)
     joined = any(c.player_id == player.id for c in cards)
+
+    is_creator = joined and cards and cards[0].player_id == player.id
+
+    logger.info(f'ROOM VIEW: room={room_code} player_tg={player.telegram_id} joined={joined} is_creator={is_creator} active_players={active_players} card_owner_ids={[c.player_id for c in cards]}')
 
     card_data = None
     card_grid = None
@@ -204,6 +223,7 @@ def room(request, room_code):
         'cards': cards,
         'active_players': active_players,
         'joined': joined,
+        'is_creator': is_creator,
         'card_data': card_data,
         'card_grid': card_grid,
         'marked_numbers_json': marked_numbers_json,
@@ -437,13 +457,15 @@ def api_room_info(request, room_code):
     except GameRoom.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
 
-    cards = list(BingoCard.objects.filter(game_room=room).select_related('player'))
+    cards = list(BingoCard.objects.filter(game_room=room).select_related('player').order_by('created_at'))
     player_list = []
     for c in cards:
         player_list.append({
             'telegram_id': c.player.telegram_id,
             'first_name': c.player.first_name,
         })
+
+    is_creator = any(c.player_id == player.id for c in cards) and cards and cards[0].player_id == player.id
 
     return JsonResponse({
         'status': room.status,
@@ -454,6 +476,7 @@ def api_room_info(request, room_code):
         'prize_pool': room.prize_pool,
         'players': player_list,
         'winner_name': room.winner.first_name if room.winner else None,
+        'is_creator': is_creator,
     })
 
 

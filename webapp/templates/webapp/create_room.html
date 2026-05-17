@@ -10,6 +10,16 @@
   <form method="POST" action="{% url 'webapp:create_room' %}">
     {% csrf_token %}
     <div class="card">
+      <div class="card-header">🔒 Room Type</div>
+      <div class="tabs" id="room-type-tabs">
+        <button type="button" class="tab active" data-type="public" style="flex:1;">🌍 Public</button>
+        <button type="button" class="tab" data-type="private" style="flex:1;">🔐 Private</button>
+      </div>
+      <input type="hidden" name="room_type" id="room_type" value="public">
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:6px;" id="room-type-hint">Anyone can see and join this room</div>
+    </div>
+
+    <div class="card">
       <div class="card-header">💰 Entry Fee</div>
       <div class="tabs" id="fee-tabs">
         <button type="button" class="tab active" data-fee="50">50 💰</button>
@@ -62,6 +72,16 @@
       document.querySelectorAll('#size-tabs .tab').forEach(function(t){t.classList.remove('active')});
       e.target.classList.add('active');
       update();
+    }
+  });
+  document.getElementById('room-type-tabs').addEventListener('click', function(e) {
+    if (e.target.classList.contains('tab')) {
+      var type = e.target.dataset.type;
+      document.querySelectorAll('#room-type-tabs .tab').forEach(function(t){t.classList.remove('active')});
+      e.target.classList.add('active');
+      document.getElementById('room_type').value = type;
+      document.getElementById('room-type-hint').textContent =
+        type === 'private' ? 'Only players with the room code can join' : 'Anyone can see and join this room';
     }
   });
 })();

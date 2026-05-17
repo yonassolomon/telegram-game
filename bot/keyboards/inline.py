@@ -48,6 +48,7 @@ def play_menu_keyboard(rooms, tg_id=''):
         label = f"{emoji} Room {room.room_code} | {count}/{room.max_players} | {room.entry_fee}💰"
         buttons.append([InlineKeyboardButton(label, callback_data=f"join_{room.room_code}")])
     buttons.append([InlineKeyboardButton("➕ Create Room", callback_data="create_room")])
+    buttons.append([InlineKeyboardButton("🔐 Join by Code", callback_data="join_private_info")])
     buttons.append([InlineKeyboardButton("🔄 Refresh", callback_data="play")])
     buttons.append([InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu")])
     webapp_url = getattr(settings, 'WEBAPP_URL', '')

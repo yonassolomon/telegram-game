@@ -11,12 +11,15 @@
 
   {% if room.status == 'waiting' %}
   <div class="card" style="text-align:center;" id="waiting-card">
-    <div class="card-header">⏳ Waiting for Players</div>
+    <div class="card-header">
+      {% if room.room_type == 'private' %}🔐 Private Room{% else %}🌍 Public Room{% endif %} — ⏳ Waiting for Players
+    </div>
     <div style="font-size:48px;margin:8px 0;" id="player-count-display">
       {{ active_players }}/{{ room.max_players }}
     </div>
     <div style="color:var(--text-secondary);font-size:13px;">
       Fee: {{ room.entry_fee }} 💰 | Prize: <span id="prize-display">{{ room.prize_pool }}</span> 💰
+      {% if room.room_type == 'private' %}<br>🔐 Code: <strong style="color:var(--neon-purple);letter-spacing:2px;">{{ room.room_code }}</strong>{% endif %}
     </div>
   </div>
 
@@ -36,8 +39,14 @@
   </div>
 
   {% if joined %}
-  <button class="btn btn-primary" onclick="startGame()" id="start-btn">🚀 Start Game</button>
-  <button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>
+    {% if is_creator %}
+    <button class="btn btn-primary" onclick="startGame()" id="start-btn">🚀 Start Game</button>
+    {% else %}
+    <div class="card" style="text-align:center;border-color:rgba(255,215,0,0.2);">
+      <span style="color:var(--neon-gold);">✅ You're in! Waiting for host to start...</span>
+    </div>
+    {% endif %}
+    <button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>
   {% else %}
   <button class="btn btn-gold" onclick="joinRoom()" id="join-btn">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
   {% endif %}
@@ -132,6 +141,7 @@
 var ROOM_CODE = '{{ room.room_code }}';
 var STATUS = '{{ room.status }}';
 var JOINED = {{ joined|yesno:"true,false" }};
+var IS_CREATOR = {{ is_creator|yesno:"true,false" }};
 var TG_ID = '{{ player.telegram_id }}';
 var MAX_PLAYERS = {{ room.max_players }};
 var ENTRY_FEE = {{ room.entry_fee }};
@@ -214,8 +224,13 @@ function pollRoomInfo() {
           var joinBtn = document.getElementById('join-btn');
           var joinBtn2 = document.getElementById('join-btn-2');
           var joinCard = document.getElementById('join-card');
-          if (joinBtn) joinBtn.outerHTML = '<button class="btn btn-primary" onclick="startGame()" id="start-btn">🚀 Start Game</button><button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>';
-          if (joinBtn2) joinBtn2.outerHTML = '<button class="btn btn-primary" onclick="startGame()">🚀 Start Game</button><button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>';
+          if (data.is_creator) {
+            if (joinBtn) joinBtn.outerHTML = '<button class="btn btn-primary" onclick="startGame()" id="start-btn">🚀 Start Game</button><button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>';
+            if (joinBtn2) joinBtn2.outerHTML = '<button class="btn btn-primary" onclick="startGame()">🚀 Start Game</button><button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>';
+          } else {
+            if (joinBtn) joinBtn.outerHTML = '<div class="card" style="text-align:center;border-color:rgba(255,215,0,0.2);"><span style="color:var(--neon-gold);">✅ You\'re in! Waiting for host to start...</span></div><button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>';
+            if (joinBtn2) joinBtn2.outerHTML = '<div class="card" style="text-align:center;border-color:rgba(255,215,0,0.2);"><span style="color:var(--neon-gold);">✅ You\'re in! Waiting for host to start...</span></div><button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>';
+          }
           if (joinCard) joinCard.style.display = 'none';
           showToast('✅ Joined!');
         }

@@ -12,6 +12,7 @@ from bot.handlers.play import (
     confirm_create_room, join_room_callback, leave_room_callback
 )
 from bot.handlers.game import start_game_callback
+from bot.handlers.join_room import join_private_info_callback
 
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -29,6 +30,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'play': play_callback,
         'create_room': create_room_callback,
         'confirm_create': confirm_create_room,
+        'join_private_info': join_private_info_callback,
     }
 
     if data in handlers:
