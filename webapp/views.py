@@ -484,19 +484,29 @@ def _compute_winning_cells(numbers_list, marked):
     winning_cells = []
     size = 5
     marked_set = set(marked)
+    free_idx = 12
+
+    def is_marked(idx):
+        return idx == free_idx or numbers_list[idx] in marked_set
+
+    def cell_num(idx):
+        return 0 if idx == free_idx else numbers_list[idx]
+
     for i in range(size):
-        row_nums = [numbers_list[i * size + j] for j in range(size)]
-        if all(n in marked_set for n in row_nums):
+        row_nums = [cell_num(i * size + j) for j in range(size)]
+        if all(is_marked(i * size + j) for j in range(size)):
             winning_cells.extend(row_nums)
-        col_nums = [numbers_list[j * size + i] for j in range(size)]
-        if all(n in marked_set for n in col_nums):
+        col_nums = [cell_num(j * size + i) for j in range(size)]
+        if all(is_marked(j * size + i) for j in range(size)):
             winning_cells.extend(col_nums)
-    diag1 = [numbers_list[i * size + i] for i in range(size)]
-    if all(n in marked_set for n in diag1):
+
+    diag1 = [cell_num(i * size + i) for i in range(size)]
+    if all(is_marked(i * size + i) for i in range(size)):
         winning_cells.extend(diag1)
-    diag2 = [numbers_list[i * size + (size - 1 - i)] for i in range(size)]
-    if all(n in marked_set for n in diag2):
+    diag2 = [cell_num(i * size + (size - 1 - i)) for i in range(size)]
+    if all(is_marked(i * size + (size - 1 - i)) for i in range(size)):
         winning_cells.extend(diag2)
+
     return list(set(winning_cells))
 
 

@@ -84,11 +84,18 @@ class BingoCard(models.Model):
 
     def check_win(self):
         size = 5
+        marked_set = set(self.marked)
+        free_idx = 12
+
         grid = []
         for i in range(size):
             row = []
             for j in range(size):
-                row.append(1 if self.numbers[i * size + j] in self.marked else 0)
+                idx = i * size + j
+                if idx == free_idx:
+                    row.append(1)
+                else:
+                    row.append(1 if self.numbers[idx] in marked_set else 0)
             grid.append(row)
 
         for i in range(size):
