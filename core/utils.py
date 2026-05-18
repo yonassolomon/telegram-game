@@ -48,3 +48,11 @@ def async_db(func):
     async def wrapper(*args, **kwargs):
         return await sync_to_async(func)(*args, **kwargs)
     return wrapper
+
+
+HOUSE_FEE_PERCENT = 10
+
+
+def calculate_prize(total_pot):
+    fee = int(total_pot * HOUSE_FEE_PERCENT / 100)
+    return total_pot - fee, fee

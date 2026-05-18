@@ -49,6 +49,10 @@ def overview(request):
     total_coins_won = Transaction.objects.filter(
         transaction_type='game_win'
     ).aggregate(s=Sum('amount'))['s'] or 0
+    total_house_fees = Transaction.objects.filter(
+        transaction_type='house_fee'
+    ).aggregate(s=Sum('amount'))['s'] or 0
+    house_fees_abs = abs(total_house_fees) if total_house_fees else 0
 
     recent_rooms = list(GameRoom.objects.select_related('winner')
         .annotate(pc=Count('bingo_cards'))
@@ -67,6 +71,7 @@ def overview(request):
         'finished_games': finished_games,
         'total_coins_issued': total_coins_issued,
         'total_coins_won': total_coins_won,
+        'total_house_fees': abs(total_house_fees) if total_house_fees else 0,
         'recent_rooms': recent_rooms,
         'recent_logs': recent_logs,
         'top_winners': top_winners,

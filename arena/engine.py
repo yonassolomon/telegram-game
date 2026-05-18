@@ -127,13 +127,13 @@ def run_round_engine(round_id):
         }
 
     prize_pool = len(selections) * game_round.entry_fee
-    platform_fee = int(prize_pool * game_round.platform_fee_percent / 100)
-    winner_prize = prize_pool - platform_fee
+    from core.utils import calculate_prize
+    winner_prize, platform_fee = calculate_prize(prize_pool)
 
     game_round.prize_pool = winner_prize
     game_round.save(update_fields=['prize_pool'])
 
-    logger.info(f'ARENA ACTIVE: round={game_round.round_number} players={len(selections)} prize={winner_prize}')
+    logger.info(f'ARENA ACTIVE: round={game_round.round_number} players={len(selections)} pot={prize_pool} fee={platform_fee} prize={winner_prize}')
 
     numbers = list(range(1, 76))
     random.shuffle(numbers)
@@ -225,7 +225,12 @@ def run_round_engine(round_id):
             transaction_type='game_win',
             description=f'Arena Round #{game_round.round_number} win'
         )
-        logger.info(f'ARENA PRIZE: round={game_round.round_number} winner={winner_tg_id} prize={winner_prize}')
+        Transaction.objects.create(
+            player=winner, amount=-platform_fee,
+            transaction_type='house_fee',
+            description=f'Arena Round #{game_round.round_number} house fee'
+        )
+        logger.info(f'ARENA PRIZE: round={game_round.round_number} winner={winner_tg_id} prize={winner_prize} fee={platform_fee}')
     else:
         for tg_id, data in player_cards.items():
             p = data['player']

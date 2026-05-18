@@ -239,19 +239,26 @@ def run_game_engine(room_code):
 
     if winner_card:
         winner = winner_card.player
-        prize = room.prize_pool
-        winner.coins = db_models.F('coins') + prize
+        full_pot = room.prize_pool
+        from core.utils import calculate_prize
+        winner_prize, house_fee = calculate_prize(full_pot)
+        winner.coins = db_models.F('coins') + winner_prize
         winner.wins = db_models.F('wins') + 1
         winner.xp = db_models.F('xp') + 100
         winner.games_played = db_models.F('games_played') + 1
         winner.save(update_fields=['coins', 'wins', 'xp', 'games_played'])
         room.winner = winner
         Transaction.objects.create(
-            player=winner, amount=prize,
+            player=winner, amount=winner_prize,
             transaction_type='game_win',
             description=f'Won room {room_code}'
         )
-        logger.info(f'ENGINE PRIZE: room={room_code} winner={winner.telegram_id} prize={prize}')
+        Transaction.objects.create(
+            player=winner, amount=-house_fee,
+            transaction_type='house_fee',
+            description=f'House fee room {room_code}'
+        )
+        logger.info(f'ENGINE PRIZE: room={room_code} winner={winner.telegram_id} pot={full_pot} fee={house_fee} prize={winner_prize}')
     else:
         logger.info(f'ENGINE DRAW: room={room_code} no_winner — refunding all players')
         fee = room.entry_fee

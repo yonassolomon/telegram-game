@@ -63,16 +63,23 @@ def _finalize_game_sync(room_code, winner_tg_id):
     prize = 0
     if winner_tg_id:
         winner = Player.objects.get(telegram_id=winner_tg_id)
-        prize = room.prize_pool
-        winner.coins = models.F('coins') + prize
+        full_pot = room.prize_pool
+        from core.utils import calculate_prize
+        winner_prize, house_fee = calculate_prize(full_pot)
+        prize = winner_prize
+        winner.coins = models.F('coins') + winner_prize
         winner.wins = models.F('wins') + 1
         winner.xp = models.F('xp') + 100
         winner.games_played = models.F('games_played') + 1
         winner.save(update_fields=['coins', 'wins', 'xp', 'games_played'])
         room.winner = winner
         Transaction.objects.create(
-            player=winner, amount=prize,
+            player=winner, amount=winner_prize,
             transaction_type='game_win', description=f'Won room {room_code}'
+        )
+        Transaction.objects.create(
+            player=winner, amount=-house_fee,
+            transaction_type='house_fee', description=f'House fee room {room_code}'
         )
         winner_name = winner.first_name or winner.username
     else:
