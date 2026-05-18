@@ -1,0 +1,179 @@
+import json
+import logging
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.db import transaction as db_transaction
+from django.db.models import F
+from django.utils import timezone
+from finance.models import DepositRequest, WithdrawalRequest
+from users.models import Player
+from wallets.models import Transaction
+from dashboard.auth import admin_required
+from webapp.views import get_player_from_request
+
+logger = logging.getLogger('bingo.finance')
+
+PHONENUMBER = '0911121314'
+
+
+def deposit(request):
+    player = get_player_from_request(request)
+    if not player:
+        return redirect('webapp:home')
+
+    success = False
+    error = None
+    if request.method == 'POST':
+        text = request.POST.get('telebirr_text', '').strip()
+        if not text:
+            error = 'Please paste the Telebirr transaction text'
+        elif len(text) < 5:
+            error = 'Transaction text is too short'
+        else:
+            DepositRequest.objects.create(player=player, telebirr_text=text)
+            success = True
+
+    return render(request, 'finance/deposit.html', {
+        'player': player,
+        'phonenumber': PHONENUMBER,
+        'success': success,
+        'error': error,
+    })
+
+
+def withdrawal(request):
+    player = get_player_from_request(request)
+    if not player:
+        return redirect('webapp:home')
+
+    success = False
+    error = None
+    if request.method == 'POST':
+        try:
+            amount = int(request.POST.get('amount', 0))
+        except (ValueError, TypeError):
+            error = 'Invalid amount'
+        else:
+            if amount < 10:
+                error = 'Minimum withdrawal is 10 coins'
+            elif amount > player.coins:
+                error = f'Insufficient coins. You have {player.coins}'
+            else:
+                WithdrawalRequest.objects.create(player=player, amount=amount)
+                success = True
+
+    return render(request, 'finance/withdrawal.html', {
+        'player': player,
+        'success': success,
+        'error': error,
+    })
+
+
+# ═══ Admin Dashboard ═══
+
+
+@admin_required
+def admin_deposits(request):
+    deposits = DepositRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    return render(request, 'finance/admin_deposits.html', {
+        'deposits': deposits,
+        'status_filter': request.GET.get('status', 'all'),
+        'phonenumber': PHONENUMBER,
+    })
+
+
+@admin_required
+def admin_withdrawals(request):
+    withdrawals = WithdrawalRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    return render(request, 'finance/admin_withdrawals.html', {
+        'withdrawals': withdrawals,
+        'status_filter': request.GET.get('status', 'all'),
+    })
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_approve_deposit(request, request_id):
+    dep = get_object_or_404(DepositRequest, id=request_id)
+    if dep.status != 'pending':
+        return JsonResponse({'error': 'Already reviewed'})
+
+    with db_transaction.atomic():
+        dep.status = 'approved'
+        dep.reviewed_by = request.user
+        dep.reviewed_at = timezone.now()
+        dep.save()
+        Player.objects.filter(id=dep.player_id).update(coins=F('coins') + 100)
+        Transaction.objects.create(
+            player=dep.player, amount=100,
+            transaction_type='deposit',
+            description=f'Deposit approved by {request.user.username}'
+        )
+
+    logger.info(f'ADMIN: {request.user} approved deposit #{request_id} for player {dep.player.telegram_id}')
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_reject_deposit(request, request_id):
+    dep = get_object_or_404(DepositRequest, id=request_id)
+    if dep.status != 'pending':
+        return JsonResponse({'error': 'Already reviewed'})
+
+    dep.status = 'rejected'
+    dep.reviewed_by = request.user
+    dep.reviewed_at = timezone.now()
+    dep.save()
+
+    logger.info(f'ADMIN: {request.user} rejected deposit #{request_id}')
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_approve_withdrawal(request, request_id):
+    wd = get_object_or_404(WithdrawalRequest, id=request_id)
+    if wd.status != 'pending':
+        return JsonResponse({'error': 'Already reviewed'})
+
+    with db_transaction.atomic():
+        player = Player.objects.select_for_update().get(id=wd.player_id)
+        if player.coins < wd.amount:
+            return JsonResponse({'error': 'Insufficient coins'})
+        player.coins = F('coins') - wd.amount
+        player.save(update_fields=['coins'])
+        wd.status = 'approved'
+        wd.reviewed_by = request.user
+        wd.reviewed_at = timezone.now()
+        wd.save()
+        Transaction.objects.create(
+            player=player, amount=-wd.amount,
+            transaction_type='withdrawal',
+            description=f'Withdrawal approved by {request.user.username}'
+        )
+
+    logger.info(f'ADMIN: {request.user} approved withdrawal #{request_id} for {wd.amount} coins')
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_reject_withdrawal(request, request_id):
+    wd = get_object_or_404(WithdrawalRequest, id=request_id)
+    if wd.status != 'pending':
+        return JsonResponse({'error': 'Already reviewed'})
+
+    wd.status = 'rejected'
+    wd.reviewed_by = request.user
+    wd.reviewed_at = timezone.now()
+    wd.save()
+
+    logger.info(f'ADMIN: {request.user} rejected withdrawal #{request_id}')
+    return JsonResponse({'success': True})

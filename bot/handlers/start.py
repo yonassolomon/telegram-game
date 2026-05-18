@@ -53,7 +53,7 @@ def _handle_start(telegram_id, username, first_name, args):
     if created:
         text = (
             f"🎉 *Welcome to Bingo2Bingo, {player.first_name or player.username}!*\n\n"
-            f"🪙 You received *500 starter coins*!\n"
+            f"🪙 You received *10 starter coins*!\n"
             f"🎮 Play bingo, win big, and climb the leaderboard!\n\n"
             f"👇 Choose an option below:"
         )

@@ -32,4 +32,10 @@ urlpatterns = [
     path('api/arena/remove-player/<int:player_id>/', views.api_arena_remove_player, name='api_arena_remove_player'),
     path('api/arena/call-number/', views.api_arena_call_number, name='api_arena_call_number'),
     path('api/arena/set-mode/', views.api_arena_set_mode, name='api_arena_set_mode'),
+    path('deposits/', views.finance_deposits, name='admin_deposits'),
+    path('withdrawals/', views.finance_withdrawals, name='admin_withdrawals'),
+    path('api/deposits/<int:request_id>/approve/', views.api_finance_approve_deposit, name='api_approve_deposit'),
+    path('api/deposits/<int:request_id>/reject/', views.api_finance_reject_deposit, name='api_reject_deposit'),
+    path('api/withdrawals/<int:request_id>/approve/', views.api_finance_approve_withdrawal, name='api_approve_withdrawal'),
+    path('api/withdrawals/<int:request_id>/reject/', views.api_finance_reject_withdrawal, name='api_reject_withdrawal'),
 ]

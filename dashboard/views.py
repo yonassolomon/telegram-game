@@ -671,3 +671,50 @@ def api_arena_set_mode(request):
     )
     logger.info(f'ADMIN: {request.user} set arena mode to {mode}')
     return JsonResponse({'success': True, 'call_mode': mode})
+
+
+# ═══ Finance Admin ═══
+
+
+@admin_required
+def finance_deposits(request):
+    from finance.views import admin_deposits
+    return admin_deposits(request)
+
+
+@admin_required
+def finance_withdrawals(request):
+    from finance.views import admin_withdrawals
+    return admin_withdrawals(request)
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_finance_approve_deposit(request, request_id):
+    from finance.views import api_approve_deposit
+    return api_approve_deposit(request, request_id)
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_finance_reject_deposit(request, request_id):
+    from finance.views import api_reject_deposit
+    return api_reject_deposit(request, request_id)
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_finance_approve_withdrawal(request, request_id):
+    from finance.views import api_approve_withdrawal
+    return api_approve_withdrawal(request, request_id)
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_finance_reject_withdrawal(request, request_id):
+    from finance.views import api_reject_withdrawal
+    return api_reject_withdrawal(request, request_id)

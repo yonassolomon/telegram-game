@@ -22,4 +22,5 @@ urlpatterns = [
     path('webapp/', include('webapp.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('arena/', include('arena.urls')),
+    path('finance/', include('finance.urls')),
 ]

@@ -35,6 +35,12 @@
       <a href="{% url 'dashboard:logs' %}" class="{% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
         <span class="icon">📋</span> Audit Logs
       </a>
+      <a href="{% url 'dashboard:admin_deposits' %}" class="{% if request.resolver_match.url_name == 'admin_deposits' %}active{% endif %}">
+        <span class="icon">💰</span> Deposits
+      </a>
+      <a href="{% url 'dashboard:admin_withdrawals' %}" class="{% if request.resolver_match.url_name == 'admin_withdrawals' %}active{% endif %}">
+        <span class="icon">💸</span> Withdrawals
+      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="user">{{ request.user.username }}</div>

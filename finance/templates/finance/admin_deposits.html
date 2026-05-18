@@ -1,0 +1,48 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header"><h1>💰 Deposit Requests</h1></div>
+<div class="card">
+  <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Phone: <strong style="color:var(--neon-gold);">{{ phonenumber }}</strong></div>
+  <table>
+    <thead><tr><th>Player</th><th>TG ID</th><th>Coins</th><th>Telebirr Text</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for d in deposits %}
+    <tr>
+      <td>{{ d.player.first_name }}</td>
+      <td>{{ d.player.telegram_id }}</td>
+      <td>{{ d.player.coins }} 💰</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--text-secondary);">{{ d.telebirr_text }}</td>
+      <td>{% if d.status == 'pending' %}<span class="badge badge-warning">Pending</span>
+        {% elif d.status == 'approved' %}<span class="badge badge-success">Approved</span>
+        {% else %}<span class="badge badge-danger">Rejected</span>{% endif %}</td>
+      <td>{{ d.created_at|date:"m/d H:i" }}</td>
+      <td>
+        {% if d.status == 'pending' %}
+        <button class="btn btn-green btn-sm" onclick="act({{ d.id }},'approve')">✅ Approve</button>
+        <button class="btn btn-red btn-sm" onclick="act({{ d.id }},'reject')">❌ Reject</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">No deposit requests</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function act(id, action) {
+  var url = '/dashboard/api/deposits/' + id + '/' + (action === 'approve' ? 'approve/' : 'reject/');
+  fetch(url, { method: 'POST', body: csrf() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); else alert(d.error); });
+}
+function csrf() {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  return fd;
+}
+</script>
+{% endblock %}

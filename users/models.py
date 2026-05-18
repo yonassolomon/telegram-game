@@ -7,7 +7,7 @@ class Player(models.Model):
     telegram_id = models.BigIntegerField(unique=True, db_index=True)
     username = models.CharField(max_length=255, blank=True, default='')
     first_name = models.CharField(max_length=255, blank=True, default='')
-    coins = models.BigIntegerField(default=500)
+    coins = models.BigIntegerField(default=10)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
     games_played = models.IntegerField(default=0)

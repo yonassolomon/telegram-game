@@ -31,6 +31,11 @@
 
   <a href="{% url 'webapp:rooms' %}" class="btn btn-primary">🎮 Play Bingo</a>
 
+  <div style="display:flex;gap:8px;margin:8px 0;">
+    <a href="{% url 'finance:deposit' %}" class="btn btn-gold btn-sm" style="flex:1;">💰 Deposit</a>
+    <a href="{% url 'finance:withdrawal' %}" class="btn btn-purple btn-sm" style="flex:1;">💸 Withdraw</a>
+  </div>
+
   <div class="card" style="cursor:pointer" onclick="location.href='{% url 'webapp:daily' %}'">
     <div class="card-header">🎁 Daily Bonus</div>
     <div style="font-size:13px;color:var(--text-secondary);">
