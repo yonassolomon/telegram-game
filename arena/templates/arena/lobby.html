@@ -53,6 +53,9 @@
     <div class="card-header">🎯 Choose Your Card <span style="font-weight:400;color:var(--muted);">(<span id="hdr-player-count">{{ round.player_count }}</span> players)</span></div>
     <div class="card-grid" id="card-grid"></div>
   </div>
+  {% if selected_card %}
+  <button class="btn btn-outline" onclick="leaveArena()" style="margin:8px 0;color:var(--red);border-color:rgba(255,61,90,0.3);">🚪 Leave Arena (Refund {{ round.entry_fee }} 💰)</button>
+  {% endif %}
   {% elif round.status == 'active' %}
   {% if my_card_grid %}
   <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:8px auto;">
@@ -258,6 +261,25 @@ function selectCard(num) {
       showToast('Card #' + d.card_number + ' selected!');
     });
 }
+
+function leaveArena() {
+  if (!confirm('Leave Arena? Your entry fee will be refunded.')) return;
+  fetch('/arena/api/' + ROUND_ID + '/leave/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+    body: JSON.stringify({tg_id: TG_ID})
+  }).then(function(r){return r.json()}).then(function(d){
+    if (d.error) { showToast(d.error); return; }
+    showToast('Left Arena. ' + d.refunded + ' coins refunded.');
+    setTimeout(function() { location.href = '/webapp/rooms/'; }, 1000);
+  });
+}
+
+window.addEventListener('beforeunload', function() {
+  if (STATUS === 'waiting' && MY_CARD) {
+    navigator.sendBeacon('/arena/api/' + ROUND_ID + '/leave/', JSON.stringify({tg_id: TG_ID}));
+  }
+});
 
 function showToast(msg) {
   var el = document.createElement('div');

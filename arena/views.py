@@ -103,6 +103,37 @@ def api_select_card(request, round_id):
     return JsonResponse({'success': True, 'card_number': card_num})
 
 
+@csrf_exempt
+@require_POST
+def api_leave_arena(request, round_id):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    game_round = get_object_or_404(GameRound, id=round_id)
+    if game_round.status != 'waiting':
+        return JsonResponse({'error': 'Game already started. Cannot leave.'}, status=400)
+
+    sel = CardSelection.objects.filter(round=game_round, player=player).first()
+    if not sel:
+        return JsonResponse({'error': 'Not in this round'}, status=400)
+
+    card_num = sel.card_number
+    fee = game_round.entry_fee
+
+    with db_transaction.atomic():
+        sel.delete()
+        Player.objects.filter(id=player.id).update(coins=F('coins') + fee)
+        Transaction.objects.create(
+            player=player, amount=fee,
+            transaction_type='draw_refund',
+            description=f'Left Arena Round #{game_round.round_number} before start'
+        )
+
+    logger.info(f'ARENA LEAVE: round={game_round.round_number} player={player.telegram_id} card={card_num} refunded={fee}')
+    return JsonResponse({'success': True, 'refunded': fee, 'card_number': card_num})
+
+
 def api_round_state(request, round_id):
     player = get_player_from_request(request)
     if not player:
