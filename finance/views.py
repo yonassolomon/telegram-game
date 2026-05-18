@@ -27,12 +27,21 @@ def deposit(request):
     error = None
     if request.method == 'POST':
         text = request.POST.get('telebirr_text', '').strip()
+        try:
+            amount = int(request.POST.get('amount', 0))
+        except (ValueError, TypeError):
+            amount = 0
+
         if not text:
             error = 'Please paste the Telebirr transaction text'
         elif len(text) < 5:
             error = 'Transaction text is too short'
+        elif amount < 10:
+            error = 'Minimum deposit amount is 10 coins'
+        elif amount <= 0:
+            error = 'Please enter a valid deposit amount'
         else:
-            DepositRequest.objects.create(player=player, telebirr_text=text)
+            DepositRequest.objects.create(player=player, telebirr_text=text, amount=amount)
             success = True
 
     return render(request, 'finance/deposit.html', {
@@ -106,11 +115,11 @@ def api_approve_deposit(request, request_id):
         dep.reviewed_by = request.user
         dep.reviewed_at = timezone.now()
         dep.save()
-        Player.objects.filter(id=dep.player_id).update(coins=F('coins') + 100)
+        Player.objects.filter(id=dep.player_id).update(coins=F('coins') + dep.amount)
         Transaction.objects.create(
-            player=dep.player, amount=100,
+            player=dep.player, amount=dep.amount,
             transaction_type='deposit',
-            description=f'Deposit approved by {request.user.username}'
+            description=f'Deposit {dep.amount} approved by {request.user.username}'
         )
 
     logger.info(f'ADMIN: {request.user} approved deposit #{request_id} for player {dep.player.telegram_id}')

@@ -11,6 +11,7 @@ class DepositRequest(models.Model):
         REJECTED = 'rejected', 'Rejected'
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='deposit_requests')
+    amount = models.BigIntegerField(default=0)
     telebirr_text = models.TextField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     reviewed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)

@@ -4,7 +4,7 @@
 <div class="card">
   <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Phone: <strong style="color:var(--neon-gold);">{{ phonenumber }}</strong></div>
   <table>
-    <thead><tr><th>Player</th><th>TG ID</th><th>Phone</th><th>Coins</th><th>Telebirr Text</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+    <thead><tr><th>Player</th><th>TG ID</th><th>Phone</th><th>Coins</th><th>Amount</th><th>Telebirr Text</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
     <tbody>
     {% for d in deposits %}
     <tr>
@@ -12,6 +12,7 @@
       <td>{{ d.player.telegram_id }}</td>
       <td style="font-size:12px;">{{ d.player.phone_number|default:"—" }}</td>
       <td>{{ d.player.coins }} 💰</td>
+      <td style="color:var(--neon-gold);font-weight:700;">{{ d.amount }} 💰</td>
       <td style="max-width:250px;">
         <div style="max-height:80px;overflow-y:auto;white-space:pre-wrap;font-size:11px;color:var(--text-secondary);background:var(--bg);padding:6px 8px;border-radius:6px;word-break:break-all;" class="tx-text">{{ d.telebirr_text }}</div>
       </td>
@@ -27,7 +28,7 @@
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No deposit requests</td></tr>
+    <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px;">No deposit requests</td></tr>
     {% endfor %}
     </tbody>
   </table>
