@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/deposits/<int:request_id>/reject/', views.api_finance_reject_deposit, name='api_reject_deposit'),
     path('api/withdrawals/<int:request_id>/approve/', views.api_finance_approve_withdrawal, name='api_approve_withdrawal'),
     path('api/withdrawals/<int:request_id>/reject/', views.api_finance_reject_withdrawal, name='api_reject_withdrawal'),
+    path('house-fees/', views.house_fees, name='house_fees'),
 ]

@@ -1,0 +1,56 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header">
+  <h1>🏦 House Fees</h1>
+  <div class="header-actions">
+    <span style="font-size:12px;color:var(--muted);">10% on every game</span>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card purple">
+    <div class="stat-value">{{ total_all }}</div>
+    <div class="stat-label">Total Fees Collected</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-value">{{ total_rooms }}</div>
+    <div class="stat-label">Room Fees</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-value">{{ total_arena }}</div>
+    <div class="stat-label">Arena Fees</div>
+  </div>
+</div>
+
+<div class="card">
+  <form class="toolbar" method="GET">
+    <select name="type">
+      <option value="all" {% if game_filter == 'all' %}selected{% endif %}>All Games</option>
+      <option value="public" {% if game_filter == 'public' %}selected{% endif %}>Rooms</option>
+      <option value="arena" {% if game_filter == 'arena' %}selected{% endif %}>Arena</option>
+    </select>
+    <button type="submit" class="btn btn-cyan btn-sm">Filter</button>
+  </form>
+
+  <table>
+    <thead><tr><th>Game</th><th>Type</th><th>Fee (10%)</th><th>Winner</th><th>Time</th></tr></thead>
+    <tbody>
+    {% for t in transactions %}
+    <tr>
+      <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">{{ t.tx.description }}</td>
+      <td>
+        {% if t.game_type == 'Arena' %}<span class="badge badge-purple">Arena</span>
+        {% elif 'Public' in t.game_type %}<span class="badge badge-info">{{ t.game_type }}</span>
+        {% else %}<span class="badge badge-warning">{{ t.game_type }}</span>{% endif %}
+      </td>
+      <td style="color:var(--purple);font-weight:700;">{{ t.tx.amount }} 💰</td>
+      <td>{{ t.winner }}</td>
+      <td style="font-size:11px;">{{ t.tx.created_at|date:"m/d H:i" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px;">No house fees collected yet</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

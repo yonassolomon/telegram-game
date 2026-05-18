@@ -723,3 +723,60 @@ def api_finance_approve_withdrawal(request, request_id):
 def api_finance_reject_withdrawal(request, request_id):
     from finance.views import api_reject_withdrawal
     return api_reject_withdrawal(request, request_id)
+
+
+# ═══ House Fee Dashboard ═══
+
+
+@admin_required
+def house_fees(request):
+    from wallets.models import Transaction
+    from games.models import GameRoom
+    from arena.models import GameRound as ArenaRound
+    from django.db.models import Q, Sum
+
+    game_filter = request.GET.get('type', 'all')
+
+    tx_qs = Transaction.objects.filter(transaction_type='house_fee').select_related('player')
+
+    if game_filter == 'public':
+        tx_qs = tx_qs.exclude(description__startswith='Arena')
+    elif game_filter == 'arena':
+        tx_qs = tx_qs.filter(description__startswith='Arena')
+
+    total_all = Transaction.objects.filter(transaction_type='house_fee').aggregate(s=Sum('amount'))['s'] or 0
+    total_rooms = Transaction.objects.filter(transaction_type='house_fee').exclude(description__startswith='Arena').aggregate(s=Sum('amount'))['s'] or 0
+    total_arena = Transaction.objects.filter(transaction_type='house_fee', description__startswith='Arena').aggregate(s=Sum('amount'))['s'] or 0
+
+    transactions = list(tx_qs.order_by('-created_at')[:200])
+
+    rich_txns = []
+    for tx in transactions:
+        info = {
+            'tx': tx,
+            'game_type': 'Arena' if 'Arena' in tx.description else 'Room',
+            'pot': tx.amount * -10,
+            'winner': tx.player.first_name,
+        }
+        desc = tx.description
+        if 'room' in desc.lower() and not desc.startswith('Arena'):
+            try:
+                code = desc.replace('House fee room ', '').strip()
+                room = GameRoom.objects.filter(room_code=code).first()
+                if room:
+                    info['game_type'] = room.get_room_type_display()
+                    info['players'] = room.bingo_cards.count()
+                    info['pot'] = room.prize_pool + abs(tx.amount)
+            except Exception:
+                pass
+        elif 'Arena' in desc:
+            info['players'] = '—'
+        rich_txns.append(info)
+
+    return render(request, 'dashboard/house_fees.html', {
+        'total_all': abs(total_all),
+        'total_rooms': abs(total_rooms),
+        'total_arena': abs(total_arena),
+        'transactions': rich_txns,
+        'game_filter': game_filter,
+    })
