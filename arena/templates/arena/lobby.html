@@ -43,7 +43,7 @@
       <div class="stat-label">Prize 💰</div>
     </div>
     <div class="stat-card purple" style="flex:1;">
-      <div class="stat-value"><span id="timer">{{ round.waiting_seconds_left|default:45 }}</span>s</div>
+      <div class="stat-value"><span id="timer">{{ round.waiting_seconds_left|default:30 }}</span>s</div>
       <div class="stat-label" id="status-label">{{ round.get_status_display|default:'Waiting' }}</div>
     </div>
   </div>

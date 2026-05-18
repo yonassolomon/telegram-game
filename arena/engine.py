@@ -12,7 +12,7 @@ _lock = threading.Lock()
 _next_arena_number = {}
 _arena_event = threading.Event()
 
-WAITING_DURATION = 45
+WAITING_DURATION = 30
 COOLDOWN_DURATION = 15
 
 

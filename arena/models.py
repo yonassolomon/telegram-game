@@ -45,7 +45,7 @@ class GameRound(models.Model):
         if self.status != self.Status.WAITING or not self.waiting_started_at:
             return 0
         elapsed = (timezone.now() - self.waiting_started_at).total_seconds()
-        return max(0, 45 - int(elapsed))
+        return max(0, 30 - int(elapsed))
 
 
 class CardSelection(models.Model):
