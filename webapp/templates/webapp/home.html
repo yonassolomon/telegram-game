@@ -7,7 +7,14 @@
     </div>
     <div class="user-name">{{ player.first_name }}</div>
     <div class="user-level">⭐ Level {{ player.level }} · {{ player.xp }} XP</div>
+    <div style="margin-top:4px;font-size:12px;color:var(--text-secondary);">ID: {{ player.telegram_id }}</div>
   </div>
+
+  {% if not player.phone_number %}
+  <a href="{% url 'webapp:submit_phone' %}" class="card" style="display:block;text-decoration:none;border-color:rgba(255,145,0,0.4);text-align:center;">
+    <div style="font-size:12px;color:var(--orange);">⚠️ ስልክ ቁጥር ያስገቡ — Enter your phone number</div>
+  </a>
+  {% endif %}
 
   <div class="coin-balance">
     <div class="coin-amount">{{ player.coins }}</div>

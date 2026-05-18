@@ -3,27 +3,28 @@
 <div class="header"><h1>💸 Withdrawal Requests</h1></div>
 <div class="card">
   <table>
-    <thead><tr><th>Player</th><th>TG ID</th><th>Balance</th><th>Requested</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+    <thead><tr><th>Player</th><th>TG ID</th><th>Phone</th><th>Balance</th><th>Requested</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
     <tbody>
     {% for w in withdrawals %}
     <tr>
       <td>{{ w.player.first_name }}</td>
       <td>{{ w.player.telegram_id }}</td>
+      <td style="font-size:12px;">{{ w.player.phone_number|default:"—" }}</td>
       <td>{{ w.player.coins }} 💰</td>
       <td style="color:var(--neon-pink);font-weight:700;">-{{ w.amount }} 💰</td>
       <td>{% if w.status == 'pending' %}<span class="badge badge-warning">Pending</span>
         {% elif w.status == 'approved' %}<span class="badge badge-success">Approved</span>
         {% else %}<span class="badge badge-danger">Rejected</span>{% endif %}</td>
-      <td>{{ w.created_at|date:"m/d H:i" }}</td>
+      <td style="font-size:11px;">{{ w.created_at|date:"m/d H:i" }}</td>
       <td>
         {% if w.status == 'pending' %}
-        <button class="btn btn-green btn-sm" onclick="act({{ w.id }},'approve')">✅ Approve</button>
-        <button class="btn btn-red btn-sm" onclick="act({{ w.id }},'reject')">❌ Reject</button>
+        <button class="btn btn-green btn-sm" onclick="act({{ w.id }},'approve')">✅</button>
+        <button class="btn btn-red btn-sm" onclick="act({{ w.id }},'reject')">❌</button>
         {% endif %}
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">No withdrawal requests</td></tr>
+    <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No withdrawal requests</td></tr>
     {% endfor %}
     </tbody>
   </table>

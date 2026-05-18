@@ -4,27 +4,30 @@
 <div class="card">
   <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Phone: <strong style="color:var(--neon-gold);">{{ phonenumber }}</strong></div>
   <table>
-    <thead><tr><th>Player</th><th>TG ID</th><th>Coins</th><th>Telebirr Text</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+    <thead><tr><th>Player</th><th>TG ID</th><th>Phone</th><th>Coins</th><th>Telebirr Text</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
     <tbody>
     {% for d in deposits %}
     <tr>
       <td>{{ d.player.first_name }}</td>
       <td>{{ d.player.telegram_id }}</td>
+      <td style="font-size:12px;">{{ d.player.phone_number|default:"—" }}</td>
       <td>{{ d.player.coins }} 💰</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--text-secondary);">{{ d.telebirr_text }}</td>
+      <td style="max-width:250px;">
+        <div style="max-height:80px;overflow-y:auto;white-space:pre-wrap;font-size:11px;color:var(--text-secondary);background:var(--bg);padding:6px 8px;border-radius:6px;word-break:break-all;" class="tx-text">{{ d.telebirr_text }}</div>
+      </td>
       <td>{% if d.status == 'pending' %}<span class="badge badge-warning">Pending</span>
         {% elif d.status == 'approved' %}<span class="badge badge-success">Approved</span>
         {% else %}<span class="badge badge-danger">Rejected</span>{% endif %}</td>
-      <td>{{ d.created_at|date:"m/d H:i" }}</td>
+      <td style="font-size:11px;">{{ d.created_at|date:"m/d H:i" }}</td>
       <td>
         {% if d.status == 'pending' %}
-        <button class="btn btn-green btn-sm" onclick="act({{ d.id }},'approve')">✅ Approve</button>
-        <button class="btn btn-red btn-sm" onclick="act({{ d.id }},'reject')">❌ Reject</button>
+        <button class="btn btn-green btn-sm" onclick="act({{ d.id }},'approve')">✅</button>
+        <button class="btn btn-red btn-sm" onclick="act({{ d.id }},'reject')">❌</button>
         {% endif %}
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px;">No deposit requests</td></tr>
+    <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No deposit requests</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -33,6 +36,12 @@
 
 {% block scripts %}
 <script>
+document.querySelectorAll('.tx-text').forEach(function(el) {
+  el.innerHTML = el.textContent.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" style="color:var(--cyan);">$1</a>'
+  );
+});
 function act(id, action) {
   var url = '/dashboard/api/deposits/' + id + '/' + (action === 'approve' ? 'approve/' : 'reject/');
   fetch(url, { method: 'POST', body: csrf() })

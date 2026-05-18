@@ -1,0 +1,22 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <div class="title">📱 Phone Number</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container" style="padding-top:40px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="font-size:48px;">📱</div>
+    <h2 style="margin:12px 0;">ስልክ ቁጥር ያስገቡ</h2>
+    <p style="color:var(--text-secondary);font-size:13px;">Please enter your Ethiopian phone number for transactions</p>
+  </div>
+  {% if error %}<div style="color:var(--red);text-align:center;margin-bottom:12px;">{{ error }}</div>{% endif %}
+  <form method="POST">
+    {% csrf_token %}
+    <input type="tel" name="phone" placeholder="0911121314" value="{{ player.phone_number }}"
+      style="width:100%;background:var(--bg-card);border:2px solid var(--border);color:var(--text);padding:16px;border-radius:12px;font-size:22px;font-weight:700;text-align:center;letter-spacing:2px;outline:none;"
+      autocomplete="tel" autofocus>
+    <button type="submit" class="btn btn-primary" style="margin-top:12px;">💾 Save</button>
+  </form>
+</div>
+{% endblock %}

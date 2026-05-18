@@ -240,6 +240,31 @@ def room(request, room_code):
     })
 
 
+def submit_phone(request):
+    player = get_player_from_request(request)
+    if not player:
+        return redirect('webapp:home')
+
+    error = None
+    if request.method == 'POST':
+        phone = request.POST.get('phone', '').strip()
+        if not phone:
+            error = 'Please enter your phone number'
+        elif not phone.startswith('09') and not phone.startswith('+251'):
+            error = 'Enter valid Ethiopian phone (09... or +251...)'
+        elif len(phone) < 10:
+            error = 'Phone number too short'
+        else:
+            player.phone_number = phone
+            player.save(update_fields=['phone_number'])
+            return redirect('webapp:home')
+
+    return render(request, 'webapp/phone.html', {
+        'player': player,
+        'error': error,
+    })
+
+
 def leaderboard(request):
     player = get_player_from_request(request)
     if not player:
