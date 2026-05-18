@@ -107,7 +107,18 @@ def run_round_engine(round_id):
 
     selections = list(CardSelection.objects.filter(round=game_round).select_related('player'))
     if len(selections) < 2:
-        logger.info(f'ARENA CANCELLED: round={game_round.round_number} not_enough_players')
+        logger.info(f'ARENA CANCELLED: round={game_round.round_number} not_enough_players count={len(selections)}')
+        from wallets.models import Transaction
+        fee = game_round.entry_fee
+        for sel in selections:
+            sel.player.coins = db_models.F('coins') + fee
+            sel.player.save(update_fields=['coins'])
+            Transaction.objects.create(
+                player=sel.player, amount=fee,
+                transaction_type='draw_refund',
+                description=f'Arena Round #{game_round.round_number} cancelled — not enough players'
+            )
+        logger.info(f'ARENA REFUND: round={game_round.round_number} refunded {len(selections)} players x {fee} coins')
         game_round.status = 'finished'
         game_round.finished_at = timezone.now()
         game_round.save(update_fields=['status', 'finished_at'])

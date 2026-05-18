@@ -182,7 +182,11 @@ function pollState() {
       if (d.status === 'active' && STATUS !== 'active') { location.reload(); return; }
       if (d.status === 'finished' && STATUS !== 'finished' && STATUS !== 'cooldown') {
         clearInterval(POLL_TIMER);
-        if (d.winner_name) {
+        if (d.cancelled) {
+          document.getElementById('winner-overlay').style.display = 'flex';
+          document.getElementById('winner-name').textContent = '🚫 Arena Cancelled';
+          document.getElementById('winner-prize').textContent = 'Not enough players. Coins refunded.';
+        } else if (d.winner_name) {
           document.getElementById('winner-overlay').style.display = 'flex';
           document.getElementById('winner-name').textContent = '🏆 ' + d.winner_name + ' Wins!';
           document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰';

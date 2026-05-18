@@ -165,6 +165,7 @@ def api_round_state(request, round_id):
         'win_pattern': win_pattern,
         'win_cells': win_cells,
         'win_numbers': win_numbers,
+        'cancelled': game_round.status == 'finished' and not game_round.winner and game_round.player_count < 2,
     })
 
 
