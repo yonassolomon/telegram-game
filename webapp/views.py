@@ -288,7 +288,9 @@ def wallet(request):
     if not player:
         return redirect('webapp:home')
 
-    transactions = Transaction.objects.filter(player=player).order_by('-created_at')[:30]
+    transactions = Transaction.objects.filter(player=player).exclude(
+        transaction_type='house_fee'
+    ).order_by('-created_at')[:30]
 
     return render(request, 'webapp/wallet.html', {
         'player': player,

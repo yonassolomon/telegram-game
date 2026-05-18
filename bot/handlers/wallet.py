@@ -8,7 +8,9 @@ def _get_wallet_data(telegram_id):
     from users.models import Player
     from wallets.models import Transaction
     player = Player.objects.get(telegram_id=telegram_id)
-    txns = Transaction.objects.filter(player=player).order_by('-created_at')[:10]
+    txns = Transaction.objects.filter(player=player).exclude(
+        transaction_type='house_fee'
+    ).order_by('-created_at')[:10]
     txn_text = ''
     for tx in txns:
         sign = '+' if tx.amount > 0 else ''
