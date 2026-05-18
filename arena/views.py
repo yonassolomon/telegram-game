@@ -126,9 +126,26 @@ def api_round_state(request, round_id):
         my_card_grid = format_card_grid(numbers, my_marked)
 
     my_win = False
-    if my_card and game_round.status == 'active':
+    win_pattern = None
+    win_cells = None
+    win_numbers = None
+    if my_card:
         numbers = generate_card_by_number(my_card)
-        my_win = _check_win(numbers, my_marked)
+        if game_round.status == 'active':
+            result = _check_win(numbers, my_marked)
+            if result:
+                my_win = True
+                win_pattern = result['pattern']
+                win_cells = result['cells']
+                win_numbers = result['numbers']
+        elif game_round.status == 'finished' and game_round.winner_id == player.id:
+            marked_set = {n for n in game_round.numbers_called if n in numbers}
+            result = _check_win(numbers, marked_set)
+            if result:
+                my_win = True
+                win_pattern = result['pattern']
+                win_cells = result['cells']
+                win_numbers = result['numbers']
 
     return JsonResponse({
         'status': game_round.status,
@@ -145,29 +162,34 @@ def api_round_state(request, round_id):
         'winner_name': game_round.winner.first_name if game_round.winner else None,
         'winner_card': game_round.winner_card_number,
         'is_winner': my_win,
+        'win_pattern': win_pattern,
+        'win_cells': win_cells,
+        'win_numbers': win_numbers,
     })
 
 
 def _check_win(numbers_list, marked_set):
     size = 5
     free_idx = 12
-    grid = []
-    for i in range(size):
-        row = []
-        for j in range(size):
-            idx = i * size + j
-            if idx == free_idx:
-                row.append(1)
-            else:
-                row.append(1 if numbers_list[idx] in marked_set else 0)
-        grid.append(row)
+
+    def cell(idx):
+        return 1 if (idx == free_idx or numbers_list[idx] in marked_set) else 0
+
+    grid = [[cell(i * size + j) for j in range(size)] for i in range(size)]
+
     for i in range(size):
         if sum(grid[i]) == size:
-            return True
+            return {'pattern': 'horizontal', 'cells': [[i, j] for j in range(size)],
+                    'numbers': [0 if (i*size+j)==free_idx else numbers_list[i*size+j] for j in range(size)]}
         if sum(grid[j][i] for j in range(size)) == size:
-            return True
+            return {'pattern': 'vertical', 'cells': [[j, i] for j in range(size)],
+                    'numbers': [0 if (j*size+i)==free_idx else numbers_list[j*size+i] for j in range(size)]}
+
     if sum(grid[i][i] for i in range(size)) == size:
-        return True
+        return {'pattern': 'diagonal', 'cells': [[i, i] for i in range(size)],
+                'numbers': [0 if (i*size+i)==free_idx else numbers_list[i*size+i] for i in range(size)]}
     if sum(grid[i][size - 1 - i] for i in range(size)) == size:
-        return True
-    return False
+        return {'pattern': 'diagonal_rev', 'cells': [[i, size-1-i] for i in range(size)],
+                'numbers': [0 if (i*size+size-1-i)==free_idx else numbers_list[i*size+size-1-i] for i in range(size)]}
+
+    return None

@@ -106,6 +106,8 @@
     <div class="trophy">🏆</div>
     <h2 id="winner-name"></h2>
     <div class="prize" id="winner-prize"></div>
+    <div id="winner-card" style="color:var(--text-secondary);font-size:13px;margin:4px 0;"></div>
+    <div id="winner-pattern" style="color:var(--neon-cyan);font-size:14px;font-weight:700;margin:4px 0;"></div>
     <p style="color:var(--text-secondary);font-size:13px;margin:8px 0;">Next round starting soon...</p>
     <button class="btn btn-primary" onclick="location.reload()">🔄 Continue</button>
   </div>
@@ -162,8 +164,17 @@ function pollState() {
       if (d.is_winner) {
         clearInterval(POLL_TIMER);
         document.getElementById('winner-overlay').style.display = 'flex';
-        document.getElementById('winner-name').textContent = '🎉 ' + (d.winner_name || 'You') + ' Wins!';
+        var pname = d.winner_name || 'You';
+        var pattern = d.win_pattern || '';
+        var patternLabel = pattern === 'horizontal' ? 'Horizontal Row' :
+                          pattern === 'vertical' ? 'Vertical Column' :
+                          pattern === 'diagonal' ? 'Diagonal ↘' :
+                          pattern === 'diagonal_rev' ? 'Diagonal ↙' : '';
+        document.getElementById('winner-name').textContent = '🎉 ' + pname + ' Wins!';
         document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰';
+        document.getElementById('winner-pattern').textContent = patternLabel;
+        document.getElementById('winner-card').textContent = 'Card #' + (d.my_card || '');
+        if (d.win_cells) highlightWinCells(d.win_cells);
         launchConfetti();
         return;
       }
@@ -264,6 +275,22 @@ function launchConfetti() {
     document.body.appendChild(el);
     setTimeout(function() { el.remove(); }, 3500);
   }
+}
+
+function highlightWinCells(cells) {
+  var cardEl = document.getElementById('my-bingo-card');
+  if (!cardEl) return;
+  var rows = cardEl.querySelectorAll('.bingo-row');
+  cells.forEach(function(rc) {
+    var r = rc[0], c = rc[1];
+    var rowEl = rows[r + 1];
+    if (rowEl) {
+      var cellEl = rowEl.querySelectorAll('.bingo-cell')[c];
+      if (cellEl) {
+        cellEl.classList.add('bingo-row-win');
+      }
+    }
+  });
 }
 </script>
 {% endblock %}

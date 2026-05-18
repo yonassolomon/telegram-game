@@ -52,26 +52,28 @@ def _clear_arena_round(round_id):
 def _check_win(numbers_list, marked_set):
     size = 5
     free_idx = 12
-    grid = []
-    for i in range(size):
-        row = []
-        for j in range(size):
-            idx = i * size + j
-            if idx == free_idx:
-                row.append(1)
-            else:
-                row.append(1 if numbers_list[idx] in marked_set else 0)
-        grid.append(row)
+
+    def cell(idx):
+        return 1 if (idx == free_idx or numbers_list[idx] in marked_set) else 0
+
+    grid = [[cell(i * size + j) for j in range(size)] for i in range(size)]
+
     for i in range(size):
         if sum(grid[i]) == size:
-            return True
+            return {'pattern': 'horizontal', 'cells': [[i, j] for j in range(size)],
+                    'numbers': [0 if (i*size+j)==free_idx else numbers_list[i*size+j] for j in range(size)]}
         if sum(grid[j][i] for j in range(size)) == size:
-            return True
+            return {'pattern': 'vertical', 'cells': [[j, i] for j in range(size)],
+                    'numbers': [0 if (j*size+i)==free_idx else numbers_list[j*size+i] for j in range(size)]}
+
     if sum(grid[i][i] for i in range(size)) == size:
-        return True
+        return {'pattern': 'diagonal', 'cells': [[i, i] for i in range(size)],
+                'numbers': [0 if (i*size+i)==free_idx else numbers_list[i*size+i] for i in range(size)]}
     if sum(grid[i][size - 1 - i] for i in range(size)) == size:
-        return True
-    return False
+        return {'pattern': 'diagonal_rev', 'cells': [[i, size-1-i] for i in range(size)],
+                'numbers': [0 if (i*size+size-1-i)==free_idx else numbers_list[i*size+size-1-i] for i in range(size)]}
+
+    return None
 
 
 def run_round_engine(round_id):
@@ -189,11 +191,11 @@ def run_round_engine(round_id):
             if number in data['numbers']:
                 data['marked'].add(number)
 
-            if _check_win(data['numbers'], data['marked']):
+            win_info = _check_win(data['numbers'], data['marked'])
+            if win_info:
                 winner_tg_id = tg_id
                 winner_card_num = data['card_number']
-                logger.info(f'ARENA WINNER: round={game_round.round_number} player={tg_id} card={winner_card_num}')
-                break
+                logger.info(f'ARENA WINNER: round={game_round.round_number} player={tg_id} card={winner_card_num} pattern={win_info["pattern"]}')
 
         game_round.numbers_called = called
         game_round.save(update_fields=['numbers_called'])
