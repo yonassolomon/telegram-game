@@ -40,10 +40,16 @@
 
   {% if joined %}
     {% if is_creator %}
-    <button class="btn btn-primary" onclick="startGame()" id="start-btn">🚀 Start Game</button>
+      {% if active_players >= room.max_players %}
+      <button class="btn btn-primary" onclick="startGame()" id="start-btn">🚀 Start Game</button>
+      {% else %}
+      <div class="card" style="text-align:center;border-color:rgba(255,145,0,0.2);">
+        <span style="color:var(--orange);">⏳ Waiting for {{ room.max_players }} players... ({{ active_players }}/{{ room.max_players }})</span>
+      </div>
+      {% endif %}
     {% else %}
     <div class="card" style="text-align:center;border-color:rgba(255,215,0,0.2);">
-      <span style="color:var(--neon-gold);">✅ You're in! Waiting for host to start...</span>
+      <span style="color:var(--neon-gold);">✅ You're in! Waiting for host to start... ({{ active_players }}/{{ room.max_players }})</span>
     </div>
     {% endif %}
     <button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>
@@ -218,6 +224,21 @@ function pollRoomInfo() {
         }
 
         var isInRoom = data.players.some(function(p) { return p.telegram_id == TG_ID; });
+
+        if (data.is_creator && data.player_count >= data.max_players) {
+          var existingBtn = document.getElementById('start-btn');
+          if (!existingBtn && JOINED) {
+            var leaveBtn = document.querySelector('button[onclick*="leaveRoom"]');
+            if (leaveBtn) {
+              var btn = document.createElement('button');
+              btn.className = 'btn btn-primary'; btn.id = 'start-btn'; btn.textContent = '🚀 Start Game';
+              btn.onclick = startGame;
+              leaveBtn.parentNode.insertBefore(btn, leaveBtn);
+              var waitMsg = leaveBtn.parentNode.querySelector('.card');
+              if (waitMsg && waitMsg.textContent.indexOf('Waiting') !== -1) waitMsg.style.display = 'none';
+            }
+          }
+        }
 
         if (!JOINED && isInRoom) {
           JOINED = true;

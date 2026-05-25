@@ -14,8 +14,8 @@ def _start_game_sync(room_code):
     if room.status != 'waiting':
         return None, 'Game already started or finished!'
     cards = list(BingoCard.objects.filter(game_room=room).select_related('player'))
-    if len(cards) < 2:
-        return None, 'Need at least 2 players to start!'
+    if len(cards) < room.max_players:
+        return None, f'Need {room.max_players} players. Currently {len(cards)}/{room.max_players}.'
     room.status = 'active'
     room.started_at = timezone.now()
     room.save(update_fields=['status', 'started_at'])

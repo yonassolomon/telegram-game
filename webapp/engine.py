@@ -116,8 +116,8 @@ def run_game_engine(room_code):
         return
 
     cards = list(BingoCard.objects.filter(game_room=room).select_related('player'))
-    if len(cards) < 2:
-        logger.error(f'ENGINE FAIL: room={room_code} not_enough_players count={len(cards)}')
+    if len(cards) < room.max_players:
+        logger.error(f'ENGINE FAIL: room={room_code} not_full count={len(cards)}/{room.max_players}')
         room.status = 'finished'
         room.finished_at = timezone.now()
         room.save(update_fields=['status', 'finished_at'])

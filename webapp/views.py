@@ -468,9 +468,9 @@ def api_start_game(request, room_code):
         return JsonResponse({'error': 'Game already started'})
 
     cards = list(BingoCard.objects.filter(game_room=room))
-    if len(cards) < 2:
-        logger.warning(f'START FAIL: room={room_code} player={player.telegram_id} reason=not_enough_players count={len(cards)}')
-        return JsonResponse({'error': 'Need at least 2 players'})
+    if len(cards) < room.max_players:
+        logger.warning(f'START FAIL: room={room_code} player={player.telegram_id} reason=not_full count={len(cards)}/{room.max_players}')
+        return JsonResponse({'error': f'Need {room.max_players} players. Currently {len(cards)}/{room.max_players}.'})
 
     room.status = 'active'
     room.started_at = timezone.now()
