@@ -603,6 +603,22 @@ def api_room_state(request, room_code):
         })
 
     if room.status == 'finished':
+        marked = card.marked if isinstance(card.marked, list) else []
+        numbers_list = card.numbers if isinstance(card.numbers, list) else []
+        marked_set = set(marked)
+        size = 5
+        free_idx = 12
+        max_line = 0
+        for i in range(size):
+            row_filled = sum(1 for j in range(size) if (i*size+j)==free_idx or numbers_list[i*size+j] in marked_set)
+            col_filled = sum(1 for j in range(size) if (j*size+i)==free_idx or numbers_list[j*size+i] in marked_set)
+            if row_filled > max_line: max_line = row_filled
+            if col_filled > max_line: max_line = col_filled
+        diag1 = sum(1 for i in range(size) if (i*size+i)==free_idx or numbers_list[i*size+i] in marked_set)
+        diag2 = sum(1 for i in range(size) if (i*size+size-1-i)==free_idx or numbers_list[i*size+size-1-i] in marked_set)
+        if diag1 > max_line: max_line = diag1
+        if diag2 > max_line: max_line = diag2
+        closeness = min(100, int(max_line / size * 100))
         return JsonResponse({
             'status': 'finished',
             'marked': marked,
@@ -612,6 +628,8 @@ def api_room_state(request, room_code):
             'next_in': 0,
             'winner_name': room.winner.first_name if room.winner else None,
             'prize': room.prize_pool,
+            'closeness': closeness,
+            'draw': not room.winner,
         })
 
     winning_cells = _compute_winning_cells(numbers_list, marked)

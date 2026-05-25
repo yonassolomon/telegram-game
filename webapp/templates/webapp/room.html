@@ -136,9 +136,18 @@
     <div class="trophy" id="winner-trophy">🏆</div>
     <h2 id="winner-name"></h2>
     <div class="prize" id="winner-prize"></div>
-    <p style="color:var(--text-secondary);font-size:13px;margin:8px 0;" id="winner-sub"></p>
-    <a id="play-again-btn" href="{% url 'webapp:rooms' %}" class="btn btn-primary">🔄 Play Again</a>
+    <div class="winner-pattern-label" id="winner-pattern"></div>
+    <div class="winner-detail" id="winner-sub"></div>
+    <div class="closeness" id="closeness-text" style="display:none;"></div>
+    <div class="closeness-bar" id="closeness-bar" style="display:none;">
+      <div class="closeness-fill" id="closeness-fill" style="width:0;"></div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn btn-primary" onclick="location.reload()">🔄 Play Again</button>
+      <a id="play-again-link" href="{% url 'webapp:rooms' %}" class="btn btn-outline">🏠 Lobby</a>
+    </div>
   </div>
+</div>
 </div>
 {% endblock %}
 
@@ -327,18 +336,54 @@ function showWinner(data) {
   var overlay = document.getElementById('winner-overlay');
   if (!overlay) return;
   overlay.style.display = 'flex';
+
+  var trophy = document.getElementById('winner-trophy');
+  var nameEl = document.getElementById('winner-name');
+  var prizeEl = document.getElementById('winner-prize');
+  var patternEl = document.getElementById('winner-pattern');
+  var subEl = document.getElementById('winner-sub');
+  var closeText = document.getElementById('closeness-text');
+  var closeBar = document.getElementById('closeness-bar');
+  var closeFill = document.getElementById('closeness-fill');
+
   if (data.winner_name) {
-    document.getElementById('winner-trophy').textContent = '🏆';
-    document.getElementById('winner-name').textContent = '🎉 ' + data.winner_name + ' Wins!';
-    document.getElementById('winner-prize').textContent = data.prize + ' 💰';
-    document.getElementById('winner-sub').textContent = 'Numbers called: ' + (data.called_numbers || []).length;
+    trophy.textContent = '🏆';
+    nameEl.textContent = '🎉 ' + data.winner_name + ' Wins!';
+    prizeEl.textContent = data.prize + ' 💰';
+    subEl.textContent = 'Numbers called: ' + (data.called_numbers || []).length;
+
+    var patternLabel = '';
+    if (data.win_pattern === 'horizontal') patternLabel = 'Horizontal Row';
+    else if (data.win_pattern === 'vertical') patternLabel = 'Vertical Column';
+    else if (data.win_pattern === 'diagonal') patternLabel = 'Diagonal ↘';
+    else if (data.win_pattern === 'diagonal_rev') patternLabel = 'Diagonal ↙';
+
+    if (patternLabel) {
+      patternEl.textContent = patternLabel;
+      patternEl.className = 'winner-pattern-label ' + (
+        data.win_pattern === 'horizontal' ? 'pattern-horizontal' :
+        data.win_pattern === 'vertical' ? 'pattern-vertical' :
+        data.win_pattern === 'diagonal' ? 'pattern-diagonal' : 'pattern-diagonal_rev'
+      );
+      patternEl.style.display = 'inline-block';
+    }
+
+    closeText.style.display = 'none';
+    closeBar.style.display = 'none';
     launchConfetti();
   } else {
-    document.getElementById('winner-trophy').textContent = '🤝';
-    document.getElementById('winner-name').textContent = 'Game Over';
-    document.getElementById('winner-prize').textContent = "It's a Draw!";
+    trophy.textContent = data.draw ? '🤝' : '🔥';
+    nameEl.textContent = data.draw ? 'Game Over — Draw!' : 'Round Complete';
+    prizeEl.textContent = data.draw ? 'All players refunded' : 'Better luck next time!';
+    subEl.textContent = '';
+
+    if (data.closeness !== undefined) {
+      closeText.style.display = 'block';
+      closeText.textContent = 'You were ' + data.closeness + '% close to winning!';
+      closeBar.style.display = 'block';
+      closeFill.style.width = data.closeness + '%';
+    }
   }
-  patchLink('play-again-btn');
 }
 
 function launchConfetti() {
