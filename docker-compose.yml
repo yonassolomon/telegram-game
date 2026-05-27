@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bingo2bingo
+      POSTGRES_USER: bingo
+      POSTGRES_PASSWORD: bingo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bingo -d bingo2bingo']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    command: >
+      sh -c "
+        python manage.py migrate --noinput &&
+        gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
+      "
+    ports:
+      - '8000:8000'
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - DATABASE_URL=postgres://bingo:bingo@db:5432/bingo2bingo
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - BOT_USERNAME=${BOT_USERNAME}
+      - WEBAPP_URL=${WEBAPP_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/staticfiles
+
+  bot:
+    build: .
+    restart: unless-stopped
+    command: python manage.py runbot
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - DATABASE_URL=postgres://bingo:bingo@db:5432/bingo2bingo
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - BOT_USERNAME=${BOT_USERNAME}
+      - WEBAPP_URL=${WEBAPP_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  static_volume:
