@@ -33,7 +33,7 @@
 </div>
 
 <div class="container">
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+  <div id="arena-refresh-btn" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
     <button class="btn btn-outline btn-sm" onclick="location.reload()" style="margin-left:auto;">🔄 Refresh</button>
   </div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
@@ -212,6 +212,8 @@ function pollState() {
         document.getElementById('status-label').textContent = 'Game Live';
         var w = document.getElementById('arena-waiting-ui');
         if (w) w.style.display = 'none';
+        var r = document.getElementById('arena-refresh-btn');
+        if (r) r.style.display = 'none';
         var g = document.getElementById('arena-game-ui');
         if (g) g.style.display = '';
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
