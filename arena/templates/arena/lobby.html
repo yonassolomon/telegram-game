@@ -33,6 +33,9 @@
 </div>
 
 <div class="container">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <button class="btn btn-outline btn-sm" onclick="location.reload()" style="margin-left:auto;">🔄 Refresh</button>
+  </div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
     <div class="stat-card cyan" style="flex:1;">
       <div class="stat-value" id="player-count">{{ round.player_count|default:0 }}</div>
@@ -48,7 +51,8 @@
     </div>
   </div>
 
-  {% if round.status == 'waiting' %}
+  <div id="arena-waiting-ui"
+    {% if round.status == 'active' or round.status == 'finished' %}style="display:none;"{% endif %}>
   <div class="card">
     <div class="card-header">🎯 Choose Your Card <span style="font-weight:400;color:var(--muted);">(<span id="hdr-player-count">{{ round.player_count }}</span> players)</span></div>
     <div class="card-grid" id="card-grid"></div>
@@ -56,7 +60,10 @@
   {% if selected_card %}
   <button class="btn btn-outline" onclick="leaveArena()" style="margin:8px 0;color:var(--red);border-color:rgba(255,61,90,0.3);">🚪 Leave Arena (Refund {{ round.entry_fee }} 💰)</button>
   {% endif %}
-  {% elif round.status == 'active' %}
+  </div>
+
+  <div id="arena-game-ui"
+    {% if round.status != 'active' %}style="display:none;"{% endif %}>
   {% if my_card_grid %}
   <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:8px auto;">
     <div class="bingo-row">
@@ -72,14 +79,15 @@
   </div>
   <div style="text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;">Your card: #<span id="my-card-num">{{ selected_card }}</span></div>
   {% endif %}
-
   <div class="card">
     <div class="card-header">🎯 Called Numbers <span id="called-count">({{ round.numbers_called|length }})</span></div>
     <div class="arena-numbers" id="called-numbers-display">
       {% for n in round.numbers_called %}<div class="arena-ball">{{ n }}</div>{% endfor %}
     </div>
   </div>
-  {% elif round.status == 'finished' or round.status == 'cooldown' %}
+  </div>
+
+  {% if round.status == 'finished' or round.status == 'cooldown' %}
   <div class="card" style="text-align:center;padding:40px;">
     <div style="font-size:64px;">{% if round.winner %}🏆{% else %}🤝{% endif %}</div>
     <h2>{% if round.winner %}{{ round.winner.first_name }} Won!{% else %}Draw!{% endif %}</h2>
@@ -150,6 +158,14 @@ function startPolling() {
   POLL_TIMER = setInterval(pollState, 1500);
 }
 
+var countdownGuard = setInterval(function() {
+  var t = document.getElementById('timer');
+  if (t && t.textContent === '0' && STATUS === 'waiting') {
+    STATUS = 'checking';
+    pollState();
+  }
+}, 2000);
+
 function pollState() {
   if (!ROUND_ID) return;
   fetch('/arena/api/' + ROUND_ID + '/state/?tg_id=' + TG_ID)
@@ -191,7 +207,17 @@ function pollState() {
         return;
       }
 
-      if (d.status === 'active' && STATUS !== 'active') { location.reload(); return; }
+      if (d.status === 'active' && STATUS !== 'active') {
+        STATUS = 'active'; document.getElementById('timer').textContent = '0';
+        document.getElementById('status-label').textContent = 'Game Live';
+        var w = document.getElementById('arena-waiting-ui');
+        if (w) w.style.display = 'none';
+        var g = document.getElementById('arena-game-ui');
+        if (g) g.style.display = '';
+        if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
+        if (d.called_numbers) updateCalledNumbers(d.called_numbers);
+        return;
+      }
       if (d.status === 'finished' && STATUS !== 'finished' && STATUS !== 'cooldown') {
         clearInterval(POLL_TIMER);
         if (d.cancelled) {
@@ -247,6 +273,46 @@ function updateCalledNumbers(nums) {
   }).join('');
   var cnt = document.getElementById('called-count');
   if (cnt) cnt.textContent = '(' + nums.length + ')';
+}
+
+function renderBingoCard(grid, cardNum) {
+  var g = document.getElementById('arena-game-ui');
+  if (!g) return;
+  var existing = g.querySelector('.bingo-card');
+  if (existing) existing.remove();
+  var existingNum = g.querySelector('[style*="Your card"]');
+  if (existingNum) existingNum.remove();
+
+  var numDiv = document.createElement('div');
+  numDiv.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;';
+  numDiv.textContent = 'Your card: #' + (cardNum || '');
+  g.insertBefore(numDiv, g.firstChild);
+
+  var card = document.createElement('div');
+  card.className = 'bingo-card'; card.id = 'my-bingo-card';
+  card.style.cssText = 'max-width:320px;margin:8px auto;';
+  var header = ['B','I','N','G','O'];
+  var hRow = document.createElement('div'); hRow.className = 'bingo-row';
+  header.forEach(function(l) {
+    var c = document.createElement('div'); c.className = 'bingo-cell bingo-cell-header'; c.textContent = l; hRow.appendChild(c);
+  });
+  card.appendChild(hRow);
+  grid.forEach(function(row) {
+    var r = document.createElement('div'); r.className = 'bingo-row';
+    row.forEach(function(cell) {
+      var c = document.createElement('div');
+      c.className = 'bingo-cell';
+      if (cell.free) c.classList.add('free');
+      if (cell.marked) c.classList.add('marked');
+      c.dataset.num = cell.num;
+      c.textContent = cell.display;
+      r.appendChild(c);
+    });
+    card.appendChild(r);
+  });
+  var calledDiv = g.querySelector('#called-numbers-display');
+  if (calledDiv) g.insertBefore(card, calledDiv.parentNode);
+  else g.insertBefore(card, g.querySelector('.card'));
 }
 
 function updateBingoCard(grid) {

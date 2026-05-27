@@ -81,22 +81,23 @@ def api_select_card(request, round_id):
             logger.info(f'CARD CHANGED: round={game_round.round_number} player={player.telegram_id} {old_card}→{card_num}')
             return JsonResponse({'success': True, 'card_number': card_num, 'changed': True, 'old_card': old_card})
 
+        p = Player.objects.select_for_update().get(id=player.id)
+        if p.coins < game_round.entry_fee:
+            return JsonResponse({'error': f'❌ Insufficient coins. Need {game_round.entry_fee}, have {p.coins}.'}, status=400)
+
         existing_card = CardSelection.objects.filter(round=game_round, card_number=card_num).first()
         if existing_card:
             return JsonResponse({'error': f'Card {card_num} already chosen by another player'}, status=409)
 
-        try:
-            CardSelection.objects.create(round=game_round, player=player, card_number=card_num)
-        except Exception:
-            return JsonResponse({'error': 'Card already taken'}, status=409)
+        CardSelection.objects.create(round=game_round, player=p, card_number=card_num)
+        p.coins = F('coins') - game_round.entry_fee
+        p.save(update_fields=['coins'])
 
-    Transaction.objects.create(
-        player=player, amount=-game_round.entry_fee,
-        transaction_type='game_entry',
-        description=f'Arena Round #{game_round.round_number} entry'
-    )
-    from django.db.models import F
-    Player.objects.filter(id=player.id).update(coins=F('coins') - game_round.entry_fee)
+        Transaction.objects.create(
+            player=p, amount=-game_round.entry_fee,
+            transaction_type='game_entry',
+            description=f'Arena Round #{game_round.round_number} entry'
+        )
 
     logger.info(f'CARD SELECTED: round={game_round.round_number} player={player.telegram_id} card={card_num} fee={game_round.entry_fee}')
 
