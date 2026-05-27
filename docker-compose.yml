@@ -58,6 +58,20 @@ services:
       db:
         condition: service_healthy
 
+  arena:
+    build: .
+    restart: unless-stopped
+    command: python manage.py runarena
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=False
+      - ALLOWED_HOSTS=*
+      - DATABASE_URL=postgres://bingo:bingo@db:5432/bingo2bingo
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:
   static_volume:
