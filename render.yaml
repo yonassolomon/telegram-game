@@ -1,0 +1,67 @@
+services:
+  - type: web
+    name: bingo2bingo-web
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate --noinput
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: WEBAPP_URL
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bingo2bingo-db
+          property: connectionString
+
+  - type: worker
+    name: bingo2bingo-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py runbot
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: SECRET_KEY
+        sync: false
+      - key: DEBUG
+        value: "False"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bingo2bingo-db
+          property: connectionString
+
+  - type: worker
+    name: bingo2bingo-arena
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py runarena
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: SECRET_KEY
+        sync: false
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bingo2bingo-db
+          property: connectionString
+
+databases:
+  - name: bingo2bingo-db
+    plan: free
