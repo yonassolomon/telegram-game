@@ -108,6 +108,8 @@ def rooms(request):
     arena_round = None
     try:
         from arena.models import GameRound as ArenaRound
+        from arena.engine import ensure_round_running
+        ensure_round_running()
         arena_round = ArenaRound.objects.filter(
             status__in=('waiting', 'active', 'cooldown')
         ).order_by('-created_at').first()
