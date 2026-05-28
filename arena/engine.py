@@ -96,12 +96,15 @@ def tick():
 
             numbers = list(range(1, 76))
             random.shuffle(numbers)
+            total_pot = len(selections) * r.entry_fee
+            winner_prize, _ = calculate_prize(total_pot)
             r.status = 'active'
             r.started_at = timezone.now()
+            r.prize_pool = winner_prize
             r.game_state = {'numbers': numbers, 'idx': 0}
             r.numbers_called = []
-            r.save(update_fields=['status', 'started_at', 'game_state', 'numbers_called'])
-            logger.info(f'ARENA STARTED: round={r.round_number} players={len(selections)}')
+            r.save(update_fields=['status', 'started_at', 'prize_pool', 'game_state', 'numbers_called'])
+            logger.info(f'ARENA STARTED: round={r.round_number} players={len(selections)} prize={winner_prize}')
 
     elif round.status == 'active':
         gs = round.game_state or {}
