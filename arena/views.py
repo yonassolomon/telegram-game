@@ -64,8 +64,8 @@ def api_select_card(request, round_id):
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Invalid card number'}, status=400)
 
-    if card_num < 1 or card_num > 300:
-        return JsonResponse({'error': 'Card must be 1-300'}, status=400)
+    if card_num < 1 or card_num > 100:
+        return JsonResponse({'error': 'Card must be 1-100'}, status=400)
 
     game_round = get_object_or_404(GameRound, id=round_id)
 

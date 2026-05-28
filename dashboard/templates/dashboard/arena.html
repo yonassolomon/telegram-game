@@ -72,7 +72,7 @@
 </div>
 
 <div class="card">
-  <div class="card-header">🎴 Card Grid (1–300) <span style="font-weight:400;color:var(--muted);">🟢=Available 🟠=Taken</span></div>
+  <div class="card-header">🎴 Card Grid (1–100) <span style="font-weight:400;color:var(--muted);">🟢=Available 🟠=Taken</span></div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:3px;" id="card-grid">
   </div>
 </div>
@@ -138,7 +138,7 @@ var TAKEN = {{ taken_json|safe }};
 (function buildGrid() {
   var grid = document.getElementById('card-grid');
   if (!grid) return;
-  for (var i = 1; i <= 300; i++) {
+  for (var i = 1; i <= 100; i++) {
     var cell = document.createElement('div');
     cell.id = 'card-' + i;
     cell.style.cssText = 'border-radius:6px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;transition:.15s;';
@@ -184,7 +184,7 @@ function refreshArena() {
 
       if (d.taken_cards) {
         TAKEN = d.taken_cards;
-        for (var i = 1; i <= 300; i++) {
+        for (var i = 1; i <= 100; i++) {
           var cell = document.getElementById('card-' + i);
           if (!cell) continue;
           if (TAKEN[i]) {
