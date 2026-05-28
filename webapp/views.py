@@ -134,6 +134,24 @@ def rooms(request):
     })
 
 
+def my_rooms(request):
+    player = get_player_from_request(request)
+    if not player:
+        return redirect('webapp:home')
+
+    rooms = list(
+        GameRoom.objects.filter(bingo_cards__player=player)
+        .distinct().order_by('-created_at')[:30]
+    )
+    for room in rooms:
+        room.active_players = BingoCard.objects.filter(game_room=room).count()
+
+    return render(request, 'webapp/my_rooms.html', {
+        'player': player,
+        'rooms': rooms,
+    })
+
+
 def create_room(request):
     player = get_player_from_request(request)
     if not player:

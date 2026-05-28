@@ -1,0 +1,52 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <div class="title">👤 My Rooms</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container">
+  {% for room in rooms %}
+  <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
+    <div class="room-left">
+      <div class="room-icon">{% if room.room_type == 'private' %}🔐{% else %}🏠{% endif %}</div>
+      <div class="room-info">
+        <div class="room-code">{{ room.room_code }}</div>
+        <div class="room-meta">
+          {% if room.status == 'waiting' %}🟢 Waiting{% elif room.status == 'active' %}🔴 Playing{% else %}⚫ Done{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="room-right">
+      <div class="room-fee">{{ room.entry_fee }} 💰</div>
+      <div class="room-players">{{ room.active_players|default:0 }}/{{ room.max_players }}</div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:48px;">👤</div>
+    <div style="color:var(--text-secondary);">No rooms yet. Create or join a room!</div>
+    <a href="{% url 'webapp:rooms' %}" class="btn btn-primary" style="margin-top:16px;">🎮 Find Rooms</a>
+  </div>
+  {% endfor %}
+</div>
+
+<nav class="bottom-nav">
+  <a href="{% url 'webapp:home' %}">
+    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+  </a>
+  <a href="{% url 'webapp:rooms' %}">
+    <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
+  </a>
+  <a href="{% url 'webapp:my_rooms' %}" class="active">
+    <span class="nav-icon">👤</span><span class="nav-label">Rooms</span>
+  </a>
+  <a href="{% url 'webapp:leaderboard' %}">
+    <span class="nav-icon">🏆</span><span class="nav-label">Board</span>
+  </a>
+  <a href="{% url 'webapp:wallet' %}">
+    <span class="nav-icon">👛</span><span class="nav-label">Wallet</span>
+  </a>
+</nav>
+{% endblock %}

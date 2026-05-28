@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('phone/', views.submit_phone, name='submit_phone'),
     path('rooms/', views.rooms, name='rooms'),
+    path('my-rooms/', views.my_rooms, name='my_rooms'),
     path('rooms/create/', views.create_room, name='create_room'),
     path('rooms/join/', views.join_private, name='join_private'),
     path('room/<str:room_code>/', views.room, name='room'),
