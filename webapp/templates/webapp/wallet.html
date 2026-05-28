@@ -45,10 +45,15 @@
   </div>
 </div>
 
-<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
-  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
-  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
-  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
-  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+<nav class="bottom-nav">
+  <a href="{% url 'webapp:home' %}">
+    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+  </a>
+  <a href="{% url 'webapp:rooms' %}">
+    <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
+  </a>
+  <a href="{% url 'webapp:wallet' %}" class="active">
+    <span class="nav-icon">👛</span><span class="nav-label">Wallet</span>
+  </a>
 </nav>
 {% endblock %}

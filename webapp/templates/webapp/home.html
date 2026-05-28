@@ -42,27 +42,27 @@
     <a href="{% url 'finance:deposit' %}" class="btn btn-gold btn-sm" style="flex:1;">💰 Deposit</a>
     <a href="{% url 'finance:withdrawal' %}" class="btn btn-purple btn-sm" style="flex:1;">💸 Withdraw</a>
   </div>
-
-  <div class="card">
-    <div class="card-header">🏆 Leaderboard</div>
-    {% for p in top_players %}
-    <div class="lb-item" onclick="location.href='{% url 'webapp:leaderboard' %}'">
-      <div class="lb-rank {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}default{% endif %}">
-        {{ forloop.counter }}
-      </div>
-      <div class="lb-name">{{ p.first_name }}</div>
-      <div class="lb-wins">{{ p.wins }} wins</div>
-    </div>
-    {% empty %}
-    <div style="font-size:13px;color:var(--text-secondary);padding:8px;">No players yet. Be the first!</div>
-    {% endfor %}
-  </div>
 </div>
 
-<nav style="position:fixed;bottom:0;left:0;right:0;background:var(--bg-secondary);border-top:1px solid var(--border);display:flex;padding:8px;z-index:100;">
-  <a href="{% url 'webapp:home' %}" style="flex:1;text-align:center;color:var(--neon-cyan);text-decoration:none;font-size:11px;font-weight:600;">🏠 Home</a>
-  <a href="{% url 'webapp:rooms' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🎮 Play</a>
-  <a href="{% url 'webapp:leaderboard' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">🏆 Board</a>
-  <a href="{% url 'webapp:wallet' %}" style="flex:1;text-align:center;color:var(--text-secondary);text-decoration:none;font-size:11px;font-weight:600;">👛 Wallet</a>
+<nav class="bottom-nav">
+  <a href="{% url 'webapp:home' %}" class="active">
+    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+  </a>
+  <a href="{% url 'webapp:rooms' %}">
+    <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
+  </a>
+  <a href="{% url 'webapp:wallet' %}">
+    <span class="nav-icon">👛</span><span class="nav-label">Wallet</span>
+  </a>
 </nav>
+<script>
+function setLang(lang) {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('lang', lang);
+  fetch('/webapp/api/set-language/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) location.reload(); });
+}
+</script>
 {% endblock %}
