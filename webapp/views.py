@@ -102,7 +102,17 @@ def rooms(request):
         GameRoom.objects.filter(status='waiting', room_type='public')
         .order_by('-created_at')[:20]
     )
+    from core.utils import calculate_prize
     for room in rooms_qs:
+        room.active_players = BingoCard.objects.filter(game_room=room).count()
+        room.winner_prize = calculate_prize(room.prize_pool)[0]
+
+    your_rooms = list(
+        GameRoom.objects.filter(
+            bingo_cards__player=player
+        ).distinct().order_by('-created_at')[:10]
+    )
+    for room in your_rooms:
         room.active_players = BingoCard.objects.filter(game_room=room).count()
 
     arena_round = None
@@ -119,6 +129,7 @@ def rooms(request):
     return render(request, 'webapp/rooms.html', {
         'player': player,
         'rooms': rooms_qs,
+        'your_rooms': your_rooms,
         'arena_round': arena_round,
     })
 

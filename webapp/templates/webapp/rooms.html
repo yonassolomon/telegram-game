@@ -33,6 +33,27 @@
   </div>
   {% endif %}
 
+  {% if your_rooms %}
+  <div class="card-header" style="padding:8px 0;color:var(--neon-purple);">👤 Your Rooms</div>
+  {% for room in your_rooms %}
+  <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
+    <div class="room-left">
+      <div class="room-icon">{% if room.room_type == 'private' %}🔐{% else %}🏠{% endif %}</div>
+      <div class="room-info">
+        <div class="room-code">{{ room.room_code }}</div>
+        <div class="room-meta">
+          {% if room.status == 'waiting' %}🟢 Waiting{% elif room.status == 'active' %}🔴 Playing{% else %}⚫ Done{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="room-right">
+      <div class="room-fee">{{ room.entry_fee }} 💰</div>
+      <div class="room-players">{{ room.active_players|default:0 }}/{{ room.max_players }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
   {% for room in rooms %}
   <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
     <div class="room-left">
