@@ -32,20 +32,13 @@ def _handle_start(telegram_id, username, first_name, args):
             if inviter.id != player.id:
                 _, ref_created = Referral.objects.get_or_create(inviter=inviter, invited=player)
                 if ref_created:
-                    inviter.coins += 100
+                    inviter.coins += 1
                     inviter.save(update_fields=['coins'])
                     from wallets.models import Transaction
                     Transaction.objects.create(
-                        player=inviter, amount=100,
+                        player=inviter, amount=1,
                         transaction_type='referral_bonus',
-                        description=f'Referral bonus for inviting {player.first_name}'
-                    )
-                    player.coins += 50
-                    player.save(update_fields=['coins'])
-                    Transaction.objects.create(
-                        player=player, amount=50,
-                        transaction_type='referral_bonus',
-                        description='Welcome bonus from referral'
+                        description=f'Referral join bonus for inviting {player.first_name}'
                     )
         except Player.DoesNotExist:
             pass

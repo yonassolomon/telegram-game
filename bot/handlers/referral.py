@@ -31,8 +31,8 @@ async def referral_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Share your link and earn rewards!\n\n"
         f"🔗 Your link:\n`{link}`\n\n"
         f"👤 Friends invited: *{count}*\n"
-        f"🎁 *+100 coins* per friend who joins!\n"
-        f"🎁 Friend gets *+50 coins* too!\n\n"
+        f"🎁 *+1 coin* when friend joins!\n"
+        f"💰 *+5 coins* when friend deposits (10+ coins)!\n\n"
         f"📋 Tap below to copy your link."
     )
     await query.edit_message_text(

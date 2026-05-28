@@ -121,6 +121,17 @@ def api_approve_deposit(request, request_id):
             transaction_type='deposit',
             description=f'Deposit {dep.amount} approved by {request.user.username}'
         )
+        from referrals.models import Referral
+        ref = Referral.objects.filter(invited=dep.player, reward_claimed=False).first()
+        if ref:
+            ref.inviter.coins = F('coins') + 5
+            ref.inviter.save(update_fields=['coins'])
+            Transaction.objects.create(
+                player=ref.inviter, amount=5,
+                transaction_type='referral_bonus',
+                description=f'Deposit referral bonus from {dep.player.first_name}')
+            ref.reward_claimed = True
+            ref.save(update_fields=['reward_claimed'])
 
     logger.info(f'ADMIN: {request.user} approved deposit #{request_id} for player {dep.player.telegram_id}')
     return JsonResponse({'success': True})
