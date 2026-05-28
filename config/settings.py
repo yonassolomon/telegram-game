@@ -75,19 +75,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 import dj_database_url
 _db_url = os.getenv('DATABASE_URL', '')
-if _db_url:
-    DATABASES = {'default': dj_database_url.parse(_db_url, conn_max_age=600)}
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'bingo2bingo'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-        }
-    }
+if not _db_url:
+    raise ValueError('DATABASE_URL environment variable is required')
+DATABASES = {'default': dj_database_url.parse(_db_url, conn_max_age=600)}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
