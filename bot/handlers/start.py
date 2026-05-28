@@ -1,5 +1,5 @@
 from asgiref.sync import sync_to_async
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes
 from bot.keyboards.inline import main_menu_keyboard
 
@@ -57,22 +57,59 @@ def _handle_start(telegram_id, username, first_name, args):
             f"🏆 Wins: *{player.wins}* | ❌ Losses: *{player.losses}*\n\n"
             f"👇 Choose an option below:"
         )
-    return text
+    return text, created, player.phone_number
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     args = context.args
 
-    text = await sync_to_async(_handle_start)(
+    text, created, phone = await sync_to_async(_handle_start)(
         user.id,
         user.username or '',
         user.first_name or '',
         args or []
     )
 
-    await update.message.reply_text(
-        text,
-        reply_markup=main_menu_keyboard(user.id),
-        parse_mode='Markdown'
-    )
+    if not phone:
+        kb = ReplyKeyboardMarkup(
+            [[KeyboardButton("📱 Share Contact", request_contact=True)]],
+            resize_keyboard=True, one_time_keyboard=True
+        )
+        await update.message.reply_text(
+            "📱 *Phone Number Required*\n\n"
+            "ስልክ ቁጥር ማስገባት ግዴታ ነው\n"
+            "Please share your contact to continue.",
+            reply_markup=kb,
+            parse_mode='Markdown'
+        )
+    else:
+        await update.message.reply_text(
+            text,
+            reply_markup=main_menu_keyboard(user.id),
+            parse_mode='Markdown'
+        )
+
+
+async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    contact = update.message.contact
+    if contact:
+        phone = contact.phone_number
+
+        def _save_phone():
+            from users.models import Player
+            p = Player.objects.get(telegram_id=update.effective_user.id)
+            p.phone_number = phone
+            p.save(update_fields=['phone_number'])
+            return p.first_name
+        name = await sync_to_async(_save_phone)()
+
+        await update.message.reply_text(
+            f"✅ Phone saved: *{phone}*\n\n"
+            f"🎉 *Welcome to Bingo2Bingo, {name}!*\n"
+            f"🪙 You received *10 starter coins*!\n"
+            f"🎮 Play bingo, win big!\n\n"
+            f"👇 Choose an option below:",
+            reply_markup=main_menu_keyboard(update.effective_user.id),
+            parse_mode='Markdown'
+        )

@@ -22,15 +22,17 @@ class Command(BaseCommand):
             self.stderr.write('TELEGRAM_BOT_TOKEN not set in environment!')
             return
 
-        from bot.handlers.start import start_command
+        from bot.handlers.start import start_command, contact_handler
         from bot.handlers.help import help_callback
         from bot.handlers.play import play_command
         from bot.handlers.join_room import join_command
         from bot.handlers.callbacks import callback_router
+        from telegram.ext import MessageHandler, filters
 
         app = ApplicationBuilder().token(token).build()
 
         app.add_handler(CommandHandler('start', start_command))
+        app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
         app.add_handler(CommandHandler('play', play_command))
         app.add_handler(CommandHandler('join', join_command))
         app.add_handler(CommandHandler('help', help_callback))
