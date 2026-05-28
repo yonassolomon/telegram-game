@@ -13,7 +13,6 @@ def main_menu_keyboard(tg_id=''):
             [InlineKeyboardButton("👛 Wallet", callback_data="wallet")],
             [InlineKeyboardButton("🏆 Leaderboard", callback_data="leaderboard")],
             [InlineKeyboardButton("👥 Invite Friends", callback_data="referral")],
-            [InlineKeyboardButton("🎁 Daily Bonus", callback_data="daily")],
             [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]
     else:
@@ -25,7 +24,6 @@ def main_menu_keyboard(tg_id=''):
             ],
             [
                 InlineKeyboardButton("👥 Invite Friends", callback_data="referral"),
-                InlineKeyboardButton("🎁 Daily Bonus", callback_data="daily"),
             ],
             [InlineKeyboardButton("ℹ️ Help", callback_data="help")],
         ]

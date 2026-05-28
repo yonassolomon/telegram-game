@@ -43,17 +43,6 @@
     <a href="{% url 'finance:withdrawal' %}" class="btn btn-purple btn-sm" style="flex:1;">💸 Withdraw</a>
   </div>
 
-  <div class="card" style="cursor:pointer" onclick="location.href='{% url 'webapp:daily' %}'">
-    <div class="card-header">🎁 Daily Bonus</div>
-    <div style="font-size:13px;color:var(--text-secondary);">
-      {% if can_claim %}
-        ✅ Ready to claim <strong style="color:var(--neon-gold)">+100 coins</strong>!
-      {% else %}
-        ⏳ Next bonus in <strong style="color:var(--neon-purple)">{{ next_daily }}</strong>
-      {% endif %}
-    </div>
-  </div>
-
   <div class="card">
     <div class="card-header">🏆 Leaderboard</div>
     {% for p in top_players %}

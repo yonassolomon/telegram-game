@@ -93,6 +93,11 @@ def api_select_card(request, round_id):
         p.coins = F('coins') - game_round.entry_fee
         p.save(update_fields=['coins'])
 
+        from core.utils import calculate_prize
+        total_pot = game_round.entry_fee * CardSelection.objects.filter(round=game_round).count()
+        winner_prize, _ = calculate_prize(total_pot)
+        GameRound.objects.filter(id=game_round.id).update(prize_pool=winner_prize)
+
         Transaction.objects.create(
             player=p, amount=-game_round.entry_fee,
             transaction_type='game_entry',
@@ -130,6 +135,10 @@ def api_leave_arena(request, round_id):
             transaction_type='draw_refund',
             description=f'Left Arena Round #{game_round.round_number} before start'
         )
+        from core.utils import calculate_prize
+        total_pot = game_round.entry_fee * CardSelection.objects.filter(round=game_round).count()
+        winner_prize, _ = calculate_prize(total_pot)
+        GameRound.objects.filter(id=game_round.id).update(prize_pool=winner_prize)
 
     logger.info(f'ARENA LEAVE: round={game_round.round_number} player={player.telegram_id} card={card_num} refunded={fee}')
     return JsonResponse({'success': True, 'refunded': fee, 'card_number': card_num})
