@@ -52,7 +52,7 @@
       <span style="color:var(--neon-gold);">✅ You're in! Waiting for host to start... ({{ active_players }}/{{ room.max_players }})</span>
     </div>
     {% endif %}
-    <button class="btn btn-outline" onclick="leaveRoom()">🚪 Leave Room</button>
+    <button class="btn btn-outline" onclick="leaveRoom()" style="width:100%;margin-top:8px;">🚪 Leave Room</button>
   {% else %}
   <button class="btn btn-gold" onclick="joinRoom()" id="join-btn">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
   {% endif %}
