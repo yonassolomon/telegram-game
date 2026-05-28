@@ -101,13 +101,14 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             p = Player.objects.get(telegram_id=update.effective_user.id)
             p.phone_number = phone
             p.save(update_fields=['phone_number'])
-            return p.first_name
-        name = await sync_to_async(_save_phone)()
+            return p.first_name, p.coins
+        name, coins = await sync_to_async(_save_phone)()
 
+        from telegram import ReplyKeyboardRemove
         await update.message.reply_text(
             f"✅ Phone saved: *{phone}*\n\n"
             f"🎉 *Welcome to Bingo2Bingo, {name}!*\n"
-            f"🪙 You received *10 starter coins*!\n"
+            f"🪙 Balance: *{coins} coins*\n"
             f"🎮 Play bingo, win big!\n\n"
             f"👇 Choose an option below:",
             reply_markup=main_menu_keyboard(update.effective_user.id),
