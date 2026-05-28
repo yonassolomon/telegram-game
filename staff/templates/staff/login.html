@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Login</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'dashboard/css/admin.css' %}">
+</head>
+<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f1119;">
+  <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:32px;width:360px;">
+    <h2 style="text-align:center;margin-bottom:24px;color:var(--text);">🔐 Staff Dashboard</h2>
+    {% if error %}<div style="color:var(--red);text-align:center;margin-bottom:12px;font-size:13px;">{{ error }}</div>{% endif %}
+    <form method="POST">
+      {% csrf_token %}
+      <input type="text" name="username" placeholder="Username" required
+        style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:6px;font-size:14px;margin-bottom:12px;outline:none;">
+      <input type="password" name="password" placeholder="Password" required
+        style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:6px;font-size:14px;margin-bottom:12px;outline:none;">
+      <button type="submit" class="btn btn-cyan" style="width:100%;padding:12px;">Sign In</button>
+    </form>
+  </div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Dashboard</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'dashboard/css/admin.css' %}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Bingo2Bingo</h2>
+      <span>Staff Panel</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'staff:deposits' %}" class="{% if request.resolver_match.url_name == 'deposits' %}active{% endif %}">
+        <span class="icon">💰</span> Deposits
+      </a>
+      <a href="{% url 'staff:withdrawals' %}" class="{% if request.resolver_match.url_name == 'withdrawals' %}active{% endif %}">
+        <span class="icon">💸</span> Withdrawals
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user">{{ request.user.username }}</div>
+      <a href="{% url 'staff:logout' %}">Logout</a>
+    </div>
+  </aside>
+  <main class="main">
+    {% csrf_token %}
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,52 @@
+{% extends 'staff/base.html' %}
+{% block content %}
+<div class="header"><h1>💰 Deposit Requests</h1></div>
+<div class="card">
+  <table>
+    <thead><tr><th>Player</th><th>TG ID</th><th>Phone</th><th>Amount</th><th>Telebirr Text</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for d in deposits %}
+    <tr>
+      <td>{{ d.player.first_name }}</td>
+      <td>{{ d.player.telegram_id }}</td>
+      <td style="font-size:12px;">{{ d.player.phone_number|default:"—" }}</td>
+      <td style="color:var(--neon-gold);font-weight:700;">{{ d.amount }} 💰</td>
+      <td style="max-width:200px;">
+        <div style="max-height:60px;overflow-y:auto;white-space:pre-wrap;font-size:11px;color:var(--text-secondary);background:var(--bg);padding:6px 8px;border-radius:6px;word-break:break-all;" class="tx-text">{{ d.telebirr_text }}</div>
+      </td>
+      <td>{% if d.status == 'pending' %}<span class="badge badge-warning">Pending</span>
+        {% elif d.status == 'approved' %}<span class="badge badge-success">Approved</span>
+        {% else %}<span class="badge badge-danger">Rejected</span>{% endif %}</td>
+      <td style="font-size:11px;">{{ d.created_at|date:"m/d H:i" }}</td>
+      <td>
+        {% if d.status == 'pending' %}
+        <button class="btn btn-green btn-sm" onclick="act({{ d.id }},'approve','deposit')">✅</button>
+        <button class="btn btn-red btn-sm" onclick="act({{ d.id }},'reject','deposit')">❌</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px;">No deposit requests</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('.tx-text').forEach(function(el) {
+  el.innerHTML = el.textContent.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" style="color:var(--cyan);">$1</a>');
+});
+function act(id, action, type) {
+  var url = '/staff/api/' + type + 's/' + id + '/' + (action === 'approve' ? 'approve/' : 'reject/');
+  fetch(url, { method: 'POST', body: csrf() }).then(function(r){return r.json()}).then(function(d){
+    if (d.success) location.reload(); else alert(d.error);
+  });
+}
+function csrf() {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  return fd;
+}
+</script>
+{% endblock %}
