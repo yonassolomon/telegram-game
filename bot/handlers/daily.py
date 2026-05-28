@@ -24,21 +24,23 @@ def _get_daily_data(telegram_id):
 def _claim_daily(telegram_id):
     from users.models import Player
     from wallets.models import Transaction
-    player = Player.objects.select_for_update().get(telegram_id=telegram_id)
-    if not player.can_claim_daily():
-        remaining = 86400 - (timezone.now() - player.last_daily_bonus).total_seconds()
-        hours = int(remaining // 3600)
-        mins = int((remaining % 3600) // 60)
-        return None, f'{hours}h {mins}m'
-    player.coins += DAILY_REWARD
-    player.xp += 25
-    player.last_daily_bonus = timezone.now()
-    player.save(update_fields=['coins', 'xp', 'last_daily_bonus'])
-    Transaction.objects.create(
-        player=player, amount=DAILY_REWARD,
-        transaction_type='daily_bonus', description='Daily bonus claimed'
-    )
-    return player.coins, None
+    from django.db import transaction
+    with transaction.atomic():
+        player = Player.objects.select_for_update().get(telegram_id=telegram_id)
+        if not player.can_claim_daily():
+            remaining = 86400 - (timezone.now() - player.last_daily_bonus).total_seconds()
+            hours = int(remaining // 3600)
+            mins = int((remaining % 3600) // 60)
+            return None, f'{hours}h {mins}m'
+        player.coins += DAILY_REWARD
+        player.xp += 25
+        player.last_daily_bonus = timezone.now()
+        player.save(update_fields=['coins', 'xp', 'last_daily_bonus'])
+        Transaction.objects.create(
+            player=player, amount=DAILY_REWARD,
+            transaction_type='daily_bonus', description='Daily bonus claimed'
+        )
+        return player.coins, None
 
 
 async def daily_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):

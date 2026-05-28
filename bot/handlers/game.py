@@ -10,7 +10,9 @@ from bot.keyboards.inline import game_over_keyboard
 
 def _start_game_sync(room_code):
     from games.models import GameRoom, BingoCard
-    room = GameRoom.objects.select_for_update().get(room_code=room_code)
+    from django.db import transaction
+    with transaction.atomic():
+        room = GameRoom.objects.select_for_update().get(room_code=room_code)
     if room.status != 'waiting':
         return None, 'Game already started or finished!'
     cards = list(BingoCard.objects.filter(game_room=room).select_related('player'))
