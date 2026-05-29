@@ -83,10 +83,10 @@ def api_approve_deposit(request, request_id):
         from referrals.models import Referral
         ref = Referral.objects.filter(invited=dep.player).first()
         if ref and not ref.reward_claimed:
-            ref.inviter.coins = F('coins') + 5
+            ref.inviter.coins = F('coins') + 3
             ref.inviter.save(update_fields=['coins'])
             Transaction.objects.create(
-                player=ref.inviter, amount=5,
+                player=ref.inviter, amount=3,
                 transaction_type='referral_bonus',
                 description=f'Deposit referral bonus from {dep.player.first_name}')
             ref.reward_claimed = True
