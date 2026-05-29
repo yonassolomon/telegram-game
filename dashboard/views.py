@@ -667,9 +667,6 @@ def api_arena_set_mode(request):
     current.call_mode = mode
     current.save(update_fields=['call_mode'])
 
-    from arena.engine import _arena_event
-    _arena_event.set()
-
     AdminLog.objects.create(
         admin_user=request.user, action='game_end',
         detail=f'Arena mode set to {mode}'

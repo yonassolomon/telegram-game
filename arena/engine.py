@@ -33,21 +33,17 @@ def _check_win(numbers_list, marked_set):
 
 def call_specific_arena_number(number):
     from arena.models import GameRound
-    try:
-        current = GameRound.objects.filter(status='active').order_by('-created_at').first()
-        if not current:
-            return False, 'No active Arena round'
-        if number < 1 or number > 75:
-            return False, 'Number must be 1–75'
-        if number in current.numbers_called:
-            return False, f'Number {number} already called'
-        called = list(current.numbers_called or [])
-        called.append(number)
-        GameRound.objects.filter(id=current.id, status='active').update(numbers_called=called)
-        return True, None
-    except Exception as e:
-        logger.error(f'ARENA CALL ERROR: {e}')
-        return False, 'Internal error'
+    current = GameRound.objects.filter(status='active').order_by('-created_at').first()
+    if not current:
+        return False, 'No active Arena round'
+    if number < 1 or number > 75:
+        return False, 'Number must be 1-75'
+    if number in current.numbers_called:
+        return False, f'Number {number} already called'
+    called = list(current.numbers_called or [])
+    called.append(number)
+    GameRound.objects.filter(id=current.id, status='active').update(numbers_called=called)
+    return True, None
 
 
 def tick():
@@ -58,25 +54,23 @@ def tick():
 
     close_old_connections()
 
-    round = GameRound.objects.filter(status='waiting').order_by('-created_at').first()
-    if not round:
-        round = GameRound.objects.filter(status='active').order_by('-created_at').first()
+    round_obj = GameRound.objects.filter(status='waiting').order_by('-created_at').first()
+    if not round_obj:
+        round_obj = GameRound.objects.filter(status='active').order_by('-created_at').first()
 
-    if not round or round.status == 'finished':
+    if not round_obj:
         return
 
-    if round.status == 'waiting':
-        if not round.waiting_started_at:
-            round.waiting_started_at = timezone.now()
-            round.save(update_fields=['waiting_started_at'])
+    if round_obj.status == 'waiting':
+        if not round_obj.waiting_started_at:
+            round_obj.waiting_started_at = timezone.now()
+            round_obj.save(update_fields=['waiting_started_at'])
             return
-
-        elapsed = (timezone.now() - round.waiting_started_at).total_seconds()
+        elapsed = (timezone.now() - round_obj.waiting_started_at).total_seconds()
         if elapsed < WAITING_DURATION:
             return
-
         with db_transaction.atomic():
-            r = GameRound.objects.select_for_update().get(id=round.id)
+            r = GameRound.objects.select_for_update().get(id=round_obj.id)
             if r.status != 'waiting':
                 return
             selections = list(CardSelection.objects.filter(round=r).select_related('player'))
@@ -84,16 +78,14 @@ def tick():
                 fee = r.entry_fee
                 for sel in selections:
                     Player.objects.filter(id=sel.player_id).update(coins=db_models.F('coins') + fee)
-                    Transaction.objects.create(
-                        player=sel.player, amount=fee, transaction_type='draw_refund',
-                        description=f'Arena Round #{r.round_number} cancelled')
+                    Transaction.objects.create(player=sel.player, amount=fee, transaction_type='draw_refund',
+                                               description=f'Arena Round #{r.round_number} cancelled')
                 r.status = 'finished'
                 r.finished_at = timezone.now()
                 r.save(update_fields=['status', 'finished_at'])
-                logger.info(f'ARENA CANCELLED: round={r.round_number} players={len(selections)}')
+                logger.info(f'ARENA CANCELLED: round={r.round_number}')
                 _start_next_round()
                 return
-
             numbers = list(range(1, 76))
             random.shuffle(numbers)
             total_pot = len(selections) * r.entry_fee
@@ -101,79 +93,101 @@ def tick():
             r.status = 'active'
             r.started_at = timezone.now()
             r.prize_pool = winner_prize
-            r.game_state = {'numbers': numbers, 'idx': 0}
+            r.game_state = {'numbers': numbers, 'idx': 0, 'last_call': 0}
             r.numbers_called = []
             r.save(update_fields=['status', 'started_at', 'prize_pool', 'game_state', 'numbers_called'])
             logger.info(f'ARENA STARTED: round={r.round_number} players={len(selections)} prize={winner_prize}')
+        return
 
-    elif round.status == 'active':
-        gs = round.game_state or {}
+    if round_obj.status == 'active':
+        if round_obj.call_mode == 'manual':
+            _check_manual_winner(round_obj)
+            return
+
+        gs = round_obj.game_state or {}
         numbers = gs.get('numbers', [])
         idx = gs.get('idx', 0)
-        called = list(round.numbers_called or [])
-        last_time = gs.get('last_call_time', 0)
         now = timezone.now().timestamp()
+        last_call = gs.get('last_call', 0)
 
-        if idx > 0 and now - last_time < 3:
+        if idx > 0 and now - last_call < 3:
             return
 
         if idx >= len(numbers):
-            round.status = 'finished'
-            round.finished_at = timezone.now()
-            round.save(update_fields=['status', 'finished_at'])
-            selections = CardSelection.objects.filter(round=round)
-            fee = round.entry_fee
-            for sel in selections:
-                Player.objects.filter(id=sel.player_id).update(coins=db_models.F('coins') + fee)
-                Transaction.objects.create(player=sel.player, amount=fee, transaction_type='draw_refund',
-                                           description=f'Arena Round #{round.round_number} draw')
-            logger.info(f'ARENA DRAW: round={round.round_number}')
-            _start_next_round()
+            _finish_draw(round_obj)
             return
 
         number = numbers[idx]
+        called = list(round_obj.numbers_called or [])
         called.append(number)
         gs['idx'] = idx + 1
-        gs['last_call_time'] = now
-        round.game_state = gs
-        round.numbers_called = called
-        round.save(update_fields=['game_state', 'numbers_called'])
+        gs['last_call'] = now
+        round_obj.numbers_called = called
+        round_obj.game_state = gs
+        round_obj.save(update_fields=['numbers_called', 'game_state'])
 
-        selections = CardSelection.objects.filter(round=round).select_related('player')
+        selections = CardSelection.objects.filter(round=round_obj).select_related('player')
         for sel in selections:
             numbers_list = generate_card_by_number(sel.card_number)
             marked = {n for n in called if n in numbers_list}
-            win_info = _check_win(numbers_list, marked)
-            if win_info:
-                with db_transaction.atomic():
-                    r = GameRound.objects.select_for_update().get(id=round.id)
-                    if r.status != 'active':
-                        return
-                    total_pot = len(selections) * r.entry_fee
-                    winner_prize, house_fee = calculate_prize(total_pot)
-                    r.prize_pool = winner_prize
-                    r.winner = sel.player
-                    sel.player.coins = db_models.F('coins') + winner_prize
-                    sel.player.wins = db_models.F('wins') + 1
-                    sel.player.games_played = db_models.F('games_played') + 1
-                    sel.player.xp = db_models.F('xp') + 200
-                    sel.player.save(update_fields=['coins', 'wins', 'games_played', 'xp'])
-                    Transaction.objects.create(
-                        player=sel.player, amount=winner_prize,
-                        transaction_type='game_win',
-                        description=f'Arena Round #{r.round_number} win')
-                    Transaction.objects.create(
-                        player=sel.player, amount=-house_fee,
-                        transaction_type='house_fee',
-                        description=f'Arena Round #{r.round_number} house fee')
-                    if round.game_state:
-                        round.game_state['winner_pattern'] = win_info
-                    r.status = 'finished'
-                    r.finished_at = timezone.now()
-                    r.save()
-                    logger.info(f'ARENA WINNER: round={r.round_number} player={sel.player.telegram_id} prize={winner_prize}')
-                    _start_next_round()
+            if _check_win(numbers_list, marked):
+                _award_winner(round_obj, sel, len(selections))
                 return
+
+
+def _check_manual_winner(round_obj):
+    from arena.models import CardSelection
+    from arena.cards import generate_card_by_number
+    selections = CardSelection.objects.filter(round=round_obj).select_related('player')
+    called = list(round_obj.numbers_called or [])
+    for sel in selections:
+        numbers_list = generate_card_by_number(sel.card_number)
+        marked = {n for n in called if n in numbers_list}
+        if _check_win(numbers_list, marked):
+            _award_winner(round_obj, sel, len(selections))
+            return
+
+
+def _award_winner(round_obj, sel, player_count):
+    from arena.models import GameRound
+    from wallets.models import Transaction
+    with db_transaction.atomic():
+        r = GameRound.objects.select_for_update().get(id=round_obj.id)
+        if r.status != 'active':
+            return
+        total_pot = player_count * r.entry_fee
+        winner_prize, house_fee = calculate_prize(total_pot)
+        r.prize_pool = winner_prize
+        r.winner = sel.player
+        sel.player.coins = db_models.F('coins') + winner_prize
+        sel.player.wins = db_models.F('wins') + 1
+        sel.player.games_played = db_models.F('games_played') + 1
+        sel.player.xp = db_models.F('xp') + 200
+        sel.player.save(update_fields=['coins', 'wins', 'games_played', 'xp'])
+        Transaction.objects.create(player=sel.player, amount=winner_prize, transaction_type='game_win',
+                                   description=f'Arena Round #{r.round_number} win')
+        Transaction.objects.create(player=sel.player, amount=-house_fee, transaction_type='house_fee',
+                                   description=f'Arena Round #{r.round_number} house fee')
+        r.status = 'finished'
+        r.finished_at = timezone.now()
+        r.save()
+        logger.info(f'ARENA WINNER: round={r.round_number} player={sel.player.telegram_id} prize={winner_prize}')
+    _start_next_round()
+
+
+def _finish_draw(round_obj):
+    from wallets.models import Transaction
+    fee = round_obj.entry_fee
+    for sel in round_obj.selections.all():
+        from users.models import Player
+        Player.objects.filter(id=sel.player_id).update(coins=db_models.F('coins') + fee)
+        Transaction.objects.create(player=sel.player, amount=fee, transaction_type='draw_refund',
+                                   description=f'Arena Round #{round_obj.round_number} draw')
+    round_obj.status = 'finished'
+    round_obj.finished_at = timezone.now()
+    round_obj.save(update_fields=['status', 'finished_at'])
+    logger.info(f'ARENA DRAW: round={round_obj.round_number}')
+    _start_next_round()
 
 
 def _start_next_round():
