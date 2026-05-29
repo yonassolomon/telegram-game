@@ -77,7 +77,6 @@
     </div>
     {% endfor %}
   </div>
-  <div style="text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;">Your card: #<span id="my-card-num">{{ selected_card }}</span></div>
   <div style="text-align:center;padding:8px 0;" id="live-called-row">
     {% with last=round.numbers_called|last %}
     {% if last %}
@@ -86,6 +85,9 @@
     {% endwith %}
   </div>
   {% endif %}
+  <div style="text-align:center;margin:4px 0;">
+    <button class="btn btn-outline btn-sm" id="manual-mark-btn" onclick="toggleManual()" style="font-size:11px;">🤖 Auto Mark</button>
+  </div>
   <div class="card">
     <div class="card-header">🎯 Called Numbers <span id="called-count">({{ round.numbers_called|length }})</span></div>
     <div class="arena-numbers" id="called-numbers-display">
@@ -143,6 +145,7 @@ var TG_ID = '{{ player.telegram_id }}';
 var POLL_TIMER = null;
 var TAKEN = {{ taken_cards_json|default:"{}"|safe }};
 var MY_CARD = {{ selected_card|default:"null" }};
+var MANUAL_MARK = false;
 
 startPolling();
 
@@ -334,7 +337,12 @@ function renderBingoCard(grid, cardNum) {
       var c = document.createElement('div');
       c.className = 'bingo-cell';
       if (cell.free) c.classList.add('free');
-      if (cell.marked) c.classList.add('marked');
+      if (cell.marked && !cell.free) {
+        c.classList.add(MANUAL_MARK ? 'pending-mark' : 'marked');
+        if (MANUAL_MARK) c.onclick = function() {
+          this.classList.toggle('marked'); this.classList.remove('pending-mark');
+        };
+      }
       c.dataset.num = cell.num;
       c.textContent = cell.display;
       r.appendChild(c);
@@ -354,7 +362,12 @@ function updateBingoCard(grid) {
     var cells = rows[r].querySelectorAll('.bingo-cell');
     for (var c = 0; c < cells.length; c++) {
       var cellData = grid[r-1][c];
-      if (cellData.marked) cells[c].classList.add('marked');
+      if (cellData.marked && !cellData.free) {
+        cells[c].classList.add(MANUAL_MARK ? 'pending-mark' : 'marked');
+        if (MANUAL_MARK) cells[c].onclick = function() {
+          this.classList.toggle('marked'); this.classList.remove('pending-mark');
+        };
+      }
     }
   }
 }
@@ -415,6 +428,20 @@ function launchConfetti() {
     el.style.height = (Math.random() * 8 + 6) + 'px';
     document.body.appendChild(el);
     setTimeout(function() { el.remove(); }, 3500);
+  }
+}
+
+function toggleManual() {
+  MANUAL_MARK = !MANUAL_MARK;
+  var btn = document.getElementById('manual-mark-btn');
+  if (MANUAL_MARK) {
+    btn.textContent = '👆 Manual Mark';
+    btn.style.borderColor = 'var(--neon-purple)';
+    btn.style.color = 'var(--neon-purple)';
+  } else {
+    btn.textContent = '🤖 Auto Mark';
+    btn.style.borderColor = '';
+    btn.style.color = '';
   }
 }
 

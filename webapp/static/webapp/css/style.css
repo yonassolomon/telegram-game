@@ -310,6 +310,12 @@ body::before {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
   transform: scale(1.05);
 }
+.bingo-cell.pending-mark {
+  background: linear-gradient(135deg, rgba(180,77,255,0.15), rgba(255,145,0,0.1));
+  border-color: var(--neon-purple);
+  color: var(--neon-purple);
+  cursor: pointer; animation: pulse 0.8s ease-in-out infinite alternate;
+}
 .bingo-cell.bingo-row-win {
   background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,140,0,0.2));
   border-color: var(--neon-gold);
