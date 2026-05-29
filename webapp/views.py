@@ -241,6 +241,9 @@ def room(request, room_code):
 
     is_creator = joined and cards and cards[0].player_id == player.id
 
+    from core.utils import calculate_prize
+    winner_prize, _ = calculate_prize(room_data.prize_pool)
+
     logger.info(f'ROOM VIEW: room={room_code} player_tg={player.telegram_id} joined={joined} is_creator={is_creator} active_players={active_players} card_owner_ids={[c.player_id for c in cards]}')
 
     card_data = None
@@ -265,6 +268,7 @@ def room(request, room_code):
         'active_players': active_players,
         'joined': joined,
         'is_creator': is_creator,
+        'winner_prize': winner_prize,
         'card_data': card_data,
         'card_grid': card_grid,
         'marked_numbers_json': marked_numbers_json,

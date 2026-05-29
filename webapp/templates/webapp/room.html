@@ -70,6 +70,17 @@
     <div class="ball" id="ball" style="display:none;"></div>
   </div>
 
+  <div style="display:flex;gap:8px;margin:8px 0;">
+    <div class="stat-card cyan" style="flex:1;">
+      <div class="stat-value">{{ cards|length }}</div>
+      <div class="stat-label">Players</div>
+    </div>
+    <div class="stat-card gold" style="flex:1;">
+      <div class="stat-value">{{ winner_prize }}</div>
+      <div class="stat-label">ደራሽ / Prize 💰</div>
+    </div>
+  </div>
+
   <div class="bingo-card" id="bingo-card">
     <div class="bingo-row">
       <div class="bingo-cell bingo-cell-header">B</div>
