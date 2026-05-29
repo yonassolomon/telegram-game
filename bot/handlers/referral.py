@@ -46,4 +46,8 @@ async def copy_ref_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from django.conf import settings
     bot_username = getattr(settings, 'BOT_USERNAME', 'Bingo2BingoBot')
     link = f"https://t.me/{bot_username}?start={code}"
-    await query.answer(f"Your link: {link}", show_alert=True)
+    await query.answer('Link copied! Share it with friends.')
+    await query.message.reply_text(
+        f"🔗 Share this link:\n`{link}`",
+        parse_mode='Markdown'
+    )
