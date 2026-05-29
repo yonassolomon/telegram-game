@@ -162,6 +162,10 @@ def tick():
                         player=sel.player, amount=winner_prize,
                         transaction_type='game_win',
                         description=f'Arena Round #{r.round_number} win')
+                    Transaction.objects.create(
+                        player=sel.player, amount=-house_fee,
+                        transaction_type='house_fee',
+                        description=f'Arena Round #{r.round_number} house fee')
                     if round.game_state:
                         round.game_state['winner_pattern'] = win_info
                     r.status = 'finished'
