@@ -233,5 +233,17 @@ def _check_win(numbers_list, marked_set):
     if sum(grid[i][size - 1 - i] for i in range(size)) == size:
         return {'pattern': 'diagonal_rev', 'cells': [[i, size-1-i] for i in range(size)],
                 'numbers': [0 if (i*size+size-1-i)==free_idx else numbers_list[i*size+size-1-i] for i in range(size)]}
-
     return None
+
+
+def api_card_preview(request, card_number):
+    from arena.cards import generate_card_by_number, format_card_grid
+    try:
+        num = int(card_number)
+        if num < 1 or num > 100:
+            return JsonResponse({'error': 'Invalid card'}, status=400)
+        numbers = generate_card_by_number(num)
+        grid = format_card_grid(numbers)
+        return JsonResponse({'card_number': num, 'grid': grid})
+    except ValueError:
+        return JsonResponse({'error': 'Invalid card'}, status=400)

@@ -130,9 +130,21 @@
     <div class="winner-detail" id="winner-card-info"></div>
     <div class="winner-detail" id="winner-sub"></div>
     <div class="modal-btn-row">
-      <button class="btn btn-primary" onclick="location.reload()">🔄 Continue</button>
-      <a href="/webapp/rooms/" class="btn btn-outline">🏠 Lobby</a>
+      <button class="btn btn-primary" onclick="location.href='/webapp/?tg_id=' + TG_ID">🎮 Play Again</button>
     </div>
+  </div>
+</div>
+
+<div id="preview-overlay" class="overlay" style="display:none;">
+  <div class="winner-popup" style="max-width:340px;">
+    <h2 style="font-size:16px;">Card #<span id="preview-card-num"></span></h2>
+    <div id="preview-card-container" style="margin:8px 0;"></div>
+    <div class="modal-btn-row">
+      <button class="btn btn-primary" onclick="confirmSelectCard()">✅ Select</button>
+      <button class="btn btn-outline" onclick="closePreview()">❌ Cancel</button>
+    </div>
+  </div>
+</div>
   </div>
 </div>
 {% endblock %}
@@ -378,6 +390,43 @@ function selectCard(num) {
     showToast('Card ' + num + ' already taken');
     return;
   }
+  document.getElementById('preview-card-num').textContent = num;
+  document.getElementById('preview-overlay').style.display = 'flex';
+  fetch('/arena/api/card/' + num + '/')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { showToast(d.error); closePreview(); return; }
+      renderPreviewCard(d.grid);
+    });
+  PREVIEW_NUM = num;
+}
+
+var PREVIEW_NUM = null;
+
+function renderPreviewCard(grid) {
+  var container = document.getElementById('preview-card-container');
+  var html = '<div class="bingo-card" style="max-width:260px;margin:0 auto;padding:4px;">';
+  html += '<div class="bingo-row">';
+  ['B','I','N','G','O'].forEach(function(l) {
+    html += '<div class="bingo-cell bingo-cell-header" style="width:44px;height:36px;font-size:11px;">' + l + '</div>';
+  });
+  html += '</div>';
+  grid.forEach(function(row) {
+    html += '<div class="bingo-row">';
+    row.forEach(function(cell) {
+      var cls = 'bingo-cell';
+      if (cell.free) cls += ' free';
+      html += '<div class="' + cls + '" style="width:44px;height:36px;font-size:12px;">' + cell.display + '</div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function confirmSelectCard() {
+  var num = PREVIEW_NUM;
+  closePreview();
   var fd = new FormData();
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   fd.append('card_number', num);
@@ -388,6 +437,11 @@ function selectCard(num) {
       MY_CARD = d.card_number;
       showToast('Card #' + d.card_number + ' selected!');
     });
+}
+
+function closePreview() {
+  document.getElementById('preview-overlay').style.display = 'none';
+  PREVIEW_NUM = null;
 }
 
 function leaveArena() {
