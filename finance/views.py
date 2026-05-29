@@ -70,8 +70,22 @@ def withdrawal(request):
             elif amount > player.coins:
                 error = f'Insufficient coins. You have {player.coins}'
             else:
-                WithdrawalRequest.objects.create(player=player, amount=amount)
-                success = True
+                from finance.models import DepositRequest
+                has_deposit = DepositRequest.objects.filter(player=player, status='approved').exists()
+                if not has_deposit:
+                    error = 'ያሎት ብር ማስወጣት የሚችሉት አስገብተው ካሸነፉ በሁአላ ተደምሮ ሙሉውን ያገኛሉ — Deposit first, then win before withdrawing'
+                else:
+                    from wallets.models import Transaction
+                    first_deposit = DepositRequest.objects.filter(player=player, status='approved').order_by('reviewed_at').first()
+                    has_win = Transaction.objects.filter(
+                        player=player, transaction_type='game_win',
+                        created_at__gte=first_deposit.reviewed_at
+                    ).exists()
+                    if not has_win:
+                        error = 'You must win after depositing before you can withdraw'
+                    else:
+                        WithdrawalRequest.objects.create(player=player, amount=amount)
+                        success = True
 
     return render(request, 'finance/withdrawal.html', {
         'player': player,
