@@ -78,6 +78,13 @@
     {% endfor %}
   </div>
   <div style="text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;">Your card: #<span id="my-card-num">{{ selected_card }}</span></div>
+  <div style="text-align:center;padding:8px 0;" id="live-called-row">
+    {% with last=round.numbers_called|last %}
+    {% if last %}
+    <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
+    {% endif %}
+    {% endwith %}
+  </div>
   {% endif %}
   <div class="card">
     <div class="card-header">🎯 Called Numbers <span id="called-count">({{ round.numbers_called|length }})</span></div>
@@ -138,6 +145,15 @@ var TAKEN = {{ taken_cards_json|default:"{}"|safe }};
 var MY_CARD = {{ selected_card|default:"null" }};
 
 startPolling();
+
+(function formatBalls() {
+  document.querySelectorAll('.arena-ball, #live-called-row span').forEach(function(ball) {
+    var n = parseInt(ball.textContent);
+    if (isNaN(n)) return;
+    var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+    ball.textContent = prefix + '-' + String(n).padStart(2, '0');
+  });
+})();
 
 (function buildGrid() {
   var grid = document.getElementById('card-grid');
@@ -268,11 +284,19 @@ function updateCardGrid(taken, myCard) {
 
 function updateCalledNumbers(nums) {
   var div = document.getElementById('called-numbers-display');
-  if (!div) return;
-  var last15 = nums.slice(-15).reverse();
-  div.innerHTML = last15.map(function(n) {
-    return '<div class="arena-ball">' + n + '</div>';
-  }).join('');
+  if (div) {
+    var last15 = nums.slice(-15).reverse();
+    div.innerHTML = last15.map(function(n) {
+      var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+      return '<div class="arena-ball">' + prefix + '-' + String(n).padStart(2,'0') + '</div>';
+    }).join('');
+  }
+  var row = document.getElementById('live-called-row');
+  if (row && nums.length > 0) {
+    var n = nums[nums.length - 1];
+    var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+    row.innerHTML = '<span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);animation:ballPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);">' + prefix + '-' + String(n).padStart(2,'0') + '</span>';
+  }
   var cnt = document.getElementById('called-count');
   if (cnt) cnt.textContent = '(' + nums.length + ')';
 }
@@ -289,6 +313,11 @@ function renderBingoCard(grid, cardNum) {
   numDiv.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;';
   numDiv.textContent = 'Your card: #' + (cardNum || '');
   g.insertBefore(numDiv, g.firstChild);
+
+  var liveRow = document.createElement('div');
+  liveRow.id = 'live-called-row';
+  liveRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding:4px 0;';
+  g.insertBefore(liveRow, numDiv.nextSibling);
 
   var card = document.createElement('div');
   card.className = 'bingo-card'; card.id = 'my-bingo-card';
