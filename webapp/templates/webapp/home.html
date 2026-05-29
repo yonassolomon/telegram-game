@@ -42,6 +42,16 @@
     <a href="{% url 'finance:deposit' %}" class="btn btn-gold btn-sm" style="flex:1;">💰 Deposit</a>
     <a href="{% url 'finance:withdrawal' %}" class="btn btn-purple btn-sm" style="flex:1;">💸 Withdraw</a>
   </div>
+
+  <div style="display:flex;gap:8px;margin:8px 0;">
+    <a href="{% url 'webapp:help_page' %}" class="btn btn-outline btn-sm" style="flex:1;">📖 አጠቃቀም ህጎች</a>
+  </div>
+
+  <div style="display:flex;gap:4px;margin:8px 0;align-items:center;justify-content:center;">
+    <span style="font-size:11px;color:var(--muted);">🌐</span>
+    <button class="btn btn-outline btn-sm" onclick="setLang('en')" style="padding:4px 10px;font-size:11px;">EN</button>
+    <button class="btn btn-outline btn-sm" onclick="setLang('am')" style="padding:4px 10px;font-size:11px;">አማ</button>
+  </div>
 </div>
 
 <nav class="bottom-nav">

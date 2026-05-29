@@ -1,0 +1,98 @@
+{% extends 'webapp/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <div class="title">🎮 አጠቃቀም ህጎች</div>
+  <div style="width:50px;"></div>
+</div>
+
+<div class="container" style="font-size:13px;line-height:1.7;">
+
+<div class="card">
+  <div class="card-header">🎮 አጠቃቀም ህጎች</div>
+</div>
+
+<div class="card">
+  <div class="card-header">1. 🎯 ለመጫወት</div>
+  <p><strong>1.1</strong> 🤖 ተጫዋቾች መጀመሪያ በ Telegram Bot መመዝገብ አለባቸው። 🚀 ምዝገባው ፈጣን እና ቀላል ነው!</p>
+  <p><strong>1.2</strong> 🎁 እያንዳንዱ አዲስ ተጫዋች 10 ኮይን በነፃ ያገኛል። 🔥 በነፃ ይጀምሩ እና ዕድልዎን ይሞክሩ!</p>
+  <p><strong>1.3</strong> 💰 ጨዋታ ለመጀመር በቂ ኮይን መኖር አለበት። ⚡ ኮይን ከሌለ Room መፍጠር ወይም ጨዋታ መቀላቀል አይቻልም።</p>
+  <p><strong>1.4</strong> 🎮 የጨዋታ መግቢያ ኮይን ከWallet በራስ-ሰር ይቀነሳል። 🔒 ሁሉም ክፍያዎች በደህንነት ይተካሉ።</p>
+  <p><strong>1.5</strong> 🏆 ተጫዋቾች እነዚህን የጨዋታ አይነቶች መምረጥ ይችላሉ:</p>
+  <p>🌍 <strong>Public Room</strong> — ከሁሉም ተጫዋቾች ጋር<br>
+  🔐 <strong>Private Room</strong> — ከጓደኞችዎ ጋር<br>
+  ⚔️ <strong>Arena Mode</strong> — እስከ 100 ተጫዋቾች ድረስ!</p>
+  <p style="color:var(--neon-gold);">🔥 የሚወዱትን mode ይምረጡ እና የBingo ጀብዱዎን ይጀምሩ! 🚀</p>
+</div>
+
+<div class="card">
+  <div class="card-header">2. 🌍 Public Room</div>
+  <p><strong>2.1</strong> 🎮 Public Room ላይ ማንኛውም ተጫዋች መቀላቀል ይችላል።</p>
+  <p><strong>2.2</strong> 👑 Room የፈጠረው Host ጨዋታውን Start ማድረግ ይችላል።</p>
+  <p><strong>2.3</strong> 👥 ጨዋታው የሚጀምረው የተወሰነው የተጫዋች ብዛት ሲሞላ ብቻ ነው። (ለምሳሌ 4/4)</p>
+</div>
+
+<div class="card">
+  <div class="card-header">3. 🔐 Private Room</div>
+  <p><strong>3.1</strong> 🔑 Private Room ለመግባት Room Code ያስፈልጋል።</p>
+  <p><strong>3.2</strong> 👑 Room የፈጠረው Host ብቻ Start Game ማድረግ ይችላል።</p>
+  <p><strong>3.3</strong> 🔥 ከጓደኞችዎ ጋር የራስዎን Bingo Tournament ይፍጠሩ! 🏆</p>
+</div>
+
+<div class="card">
+  <div class="card-header">4. ⚔️ Arena Mode</div>
+  <p><strong>4.1</strong> 🔥 Arena Mode ከ2 እስከ 100 ተጫዋቾችን ይደግፋል።</p>
+  <p><strong>4.2</strong> 🎴 እያንዳንዱ ተጫዋች 1 ካርድ ብቻ መምረጥ ይችላል።</p>
+  <p><strong>4.3</strong> 🚫 አንድ ካርድ በአንድ ተጫዋች ብቻ ሊመረጥ ይችላል።</p>
+  <p><strong>4.4</strong> ⏳ ተጫዋቾች 30 ሰከንድ ውስጥ ካርድ መምረጥ አለባቸው።</p>
+  <p><strong>4.5</strong> 🚀 30 ሰከንድ ካለፈ በኋላ ጨዋታው በራስ-ሰር ይጀምራል።</p>
+  <p><strong>4.6</strong> 🏠 ጨዋታው ከመጀመሩ በፊት Home ከተጫነ ከArena ይወጣል፣ 💰 Coin ይመለስለታል</p>
+</div>
+
+<div class="card">
+  <div class="card-header">5. 🏆 ሽልማት እና ክፍያ 💰</div>
+  <p><strong>5.1</strong> 🏆 አሸናፊው የተሰበሰበውን Prize Pool ያገኛል።</p>
+  <p><strong>5.2</strong> 🏦 ሲስተሙ 10% House Fee ይቀንሳል።</p>
+  <p><strong>5.3</strong> 💳 Wallet ውስጥ House Fee በተለየ አይታይም።</p>
+</div>
+
+<div class="card">
+  <div class="card-header">6. 💸 Deposit እና Withdrawal 🏧</div>
+  <p><strong>6.1</strong> 📲 Deposit ለማድረግ በተሰጠው ስልክ ቁጥር ገንዘብ መላክ አለበት።</p>
+  <p><strong>6.2</strong> 💰 Deposit Amount ከ10 በታች መሆን አይችልም።</p>
+  <p><strong>6.3</strong> 💸 Withdrawal Amount ከ10 በታች መሆን አይችልም።</p>
+  <p><strong>6.4</strong> 🛡️ Requests በStaff Dashboard ይፀድቃሉ።</p>
+</div>
+
+<div class="card">
+  <div class="card-header">7. 👥 የተጫዋች ህጎች 📜</div>
+  <p><strong>7.1</strong> 🚫 Cheat ማድረግ በጥብቅ ክልክል ነው።</p>
+  <p><strong>7.2</strong> 🛑 ህግ የጣሰ ተጫዋች Account ሊታገድ ይችላል።</p>
+  <p><strong>7.3</strong> 🤝 ጓደኞችዎን Invite ያድርጉ — 👤 Join = +1 Coin | 💰 Deposit = +5 Coins</p>
+  <p><strong>7.4</strong> 🏆 በየሳምንቱ ምርጥ ተጫዋቾች 🎁 Weekly Gift ከAdmin ይሰጣል!</p>
+</div>
+
+<div class="card">
+  <div class="card-header">8. ⚙️ የሲስተም ህጎች 🌐</div>
+  <p><strong>8.1</strong> 📶 የኔትወርክ ችግር ካለ ጨዋታው ሊዘገይ ይችላል።</p>
+  <p><strong>8.2</strong> 🛠️ ሲስተሙ Maintenance ላይ በሚሆንበት ጊዜ ለጊዜው ሊዘጋ ይችላል።</p>
+  <p><strong>8.3</strong> 👨‍💻 Admin አስፈላጊ ከሆነ ህጎቹን ማሻሻል ይችላል።</p>
+  <p><strong>8.4</strong> 🎉 ተሸንፈዋል? አትበሳጩ! 📈 "ምን ያህል ቀርበው እንደነበር" ያሳያል። 💪 ቀጣዩ ዙር የእርስዎ ሊሆን ይችላል!</p>
+</div>
+
+<div class="card" style="text-align:center;padding:24px;">
+  <p style="font-size:16px;color:var(--neon-gold);">🎉 ከጓደኞችዎ ጋር መጫወት ይፈልጋሉ?</p>
+  <p>እንግዲህ የራስዎን <strong>Room</strong> ይፍጠሩ! 🏆</p>
+  <a href="{% url 'webapp:rooms' %}" class="btn btn-primary" style="margin-top:12px;">🎮 ጨዋታ ጀምር</a>
+</div>
+
+</div>
+
+<nav class="bottom-nav">
+  <a href="{% url 'webapp:home' %}"><span class="nav-icon">🏠</span><span class="nav-label">Home</span></a>
+  <a href="{% url 'webapp:rooms' %}"><span class="nav-icon">🎮</span><span class="nav-label">Play</span></a>
+  <a href="{% url 'webapp:my_rooms' %}"><span class="nav-icon">👤</span><span class="nav-label">Rooms</span></a>
+  <a href="{% url 'webapp:leaderboard' %}"><span class="nav-icon">🏆</span><span class="nav-label">Board</span></a>
+  <a href="{% url 'webapp:wallet' %}"><span class="nav-icon">👛</span><span class="nav-label">Wallet</span></a>
+</nav>
+{% endblock %}

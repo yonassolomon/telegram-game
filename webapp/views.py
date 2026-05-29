@@ -673,3 +673,21 @@ def api_room_state(request, room_code):
         'current_number': called[-1] if called else None,
         'next_in': 2,
     })
+
+
+def help_page(request):
+    return render(request, 'webapp/help.html')
+
+
+@csrf_exempt
+@require_POST
+def set_language(request):
+    player = get_player_from_request(request)
+    lang = request.POST.get('lang', 'en')
+    if lang not in ('en', 'am'):
+        return JsonResponse({'error': 'Invalid language'}, status=400)
+    if player:
+        player.language = lang
+        player.save(update_fields=['language'])
+    request.session['lang'] = lang
+    return JsonResponse({'success': True, 'lang': lang})

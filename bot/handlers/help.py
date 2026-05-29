@@ -1,6 +1,6 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ContextTypes
-from bot.keyboards.inline import help_keyboard
+from django.conf import settings
 
 
 async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -11,22 +11,24 @@ async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         target = update.message.reply_text
 
+    webapp_url = getattr(settings, 'WEBAPP_URL', '')
     text = (
-        f"ℹ️ *How to Play Bingo2Bingo*\n\n"
-        f"🎮 *Bingo Rules:*\n"
-        f"1️⃣ Join or create a game room\n"
-        f"2️⃣ Get your 5×5 bingo card\n"
-        f"3️⃣ Numbers are called one by one\n"
-        f"4️⃣ Mark 5 in a row, column, or diagonal to win!\n\n"
-        f"🪙 *Coins:*\n"
-        f"- Start with 500 coins\n"
-        f"- Entry fee varies per room\n"
-        f"- Winner takes the prize pool!\n"
-        f"- Daily bonus: 100 coins\n\n"
-        f"👥 *Referrals:*\n"
-        f"- Invite friends, earn 100 coins each!\n\n"
-        f"🏆 *Leaderboard:*\n"
-        f"- Compete for top spots!\n\n"
-        f"❓ *Need help?* Contact @admin"
+        f"🎮 *አጠቃቀም ህጎች / How to Play*\n\n"
+        f"🏠 Room መፍጠር የማሸነፍ እድልዎን ይጨምራል!\n"
+        f"👥 ከጓደኞችዎ ጋር Private Room ፈጥረው ይጫወቱ!\n"
+        f"🔥 Arena Mode ትልቅ ሽልማት ያስገኛል!\n"
+        f"💰 Deposit በ Staff Dashboard ይፀድቃል\n"
+        f"🎁 ጓደኞችን ይጋብዙ +1/+5 Coin ያግኙ\n\n"
+        f"📖 ሙሉ መመሪያ ለማግኘት Mini App ይክፈቱ👇"
     )
-    await target(text, reply_markup=help_keyboard(), parse_mode='Markdown')
+    kb = None
+    if webapp_url and '127.0.0.1' not in webapp_url and 'localhost' not in webapp_url:
+        kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📖 ሙሉ መመሪያ / Full Guide", web_app=WebAppInfo(url=webapp_url + 'help/'))
+        ], [
+            InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu")
+        ]])
+    else:
+        from bot.keyboards.inline import help_keyboard
+        kb = help_keyboard()
+    await target(text, reply_markup=kb, parse_mode='Markdown')
