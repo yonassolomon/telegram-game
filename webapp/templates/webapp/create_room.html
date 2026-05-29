@@ -21,29 +21,35 @@
 
     <div class="card">
       <div class="card-header">💰 Entry Fee</div>
-      <div class="tabs" id="fee-tabs">
-        <button type="button" class="tab active" data-fee="50">50 💰</button>
+      <div class="tabs" id="fee-tabs" style="flex-wrap:wrap;">
+        <button type="button" class="tab active" data-fee="5">5 💰</button>
+        <button type="button" class="tab" data-fee="10">10 💰</button>
+        <button type="button" class="tab" data-fee="20">20 💰</button>
+        <button type="button" class="tab" data-fee="50">50 💰</button>
         <button type="button" class="tab" data-fee="100">100 💰</button>
         <button type="button" class="tab" data-fee="200">200 💰</button>
         <button type="button" class="tab" data-fee="500">500 💰</button>
       </div>
-      <input type="hidden" name="entry_fee" id="entry_fee" value="50">
+      <input type="hidden" name="entry_fee" id="entry_fee" value="5">
     </div>
 
     <div class="card">
       <div class="card-header">👥 Max Players</div>
       <div class="tabs" id="size-tabs">
         <button type="button" class="tab active" data-size="2">2</button>
+        <button type="button" class="tab" data-size="3">3</button>
         <button type="button" class="tab" data-size="4">4</button>
+        <button type="button" class="tab" data-size="5">5</button>
         <button type="button" class="tab" data-size="6">6</button>
+        <button type="button" class="tab" data-size="8">8</button>
         <button type="button" class="tab" data-size="10">10</button>
       </div>
       <input type="hidden" name="max_players" id="max_players" value="2">
     </div>
 
     <div class="card" style="text-align:center;">
-      <div style="color:var(--text-secondary);font-size:13px;">Total Prize Pool</div>
-      <div style="font-size:28px;font-weight:800;color:var(--neon-gold);" id="prize-display">100 💰</div>
+      <div style="color:var(--text-secondary);font-size:13px;">ደራሽ / Total Prize Pool</div>
+      <div style="font-size:28px;font-weight:800;color:var(--neon-gold);" id="prize-display">10 💰</div>
     </div>
 
     <button type="submit" class="btn btn-gold">🎯 Create Room</button>
@@ -52,7 +58,7 @@
 
 <script>
 (function() {
-  var feeVal = 50, sizeVal = 2;
+  var feeVal = 5, sizeVal = 2;
   function update() {
     document.getElementById('prize-display').textContent = (feeVal * sizeVal) + ' 💰';
     document.getElementById('entry_fee').value = feeVal;

@@ -60,20 +60,26 @@ def play_menu_keyboard(rooms, tg_id=''):
 def create_room_keyboard():
     buttons = [
         [
-            InlineKeyboardButton("50💰 Entry", callback_data="roomfee_50"),
-            InlineKeyboardButton("100💰 Entry", callback_data="roomfee_100"),
+            InlineKeyboardButton("5💰", callback_data="roomfee_5"),
+            InlineKeyboardButton("10💰", callback_data="roomfee_10"),
+            InlineKeyboardButton("20💰", callback_data="roomfee_20"),
+            InlineKeyboardButton("50💰", callback_data="roomfee_50"),
         ],
         [
-            InlineKeyboardButton("200💰 Entry", callback_data="roomfee_200"),
-            InlineKeyboardButton("500💰 Entry", callback_data="roomfee_500"),
+            InlineKeyboardButton("100💰", callback_data="roomfee_100"),
+            InlineKeyboardButton("200💰", callback_data="roomfee_200"),
+            InlineKeyboardButton("500💰", callback_data="roomfee_500"),
         ],
         [
-            InlineKeyboardButton("2 Players", callback_data="roomsize_2"),
-            InlineKeyboardButton("4 Players", callback_data="roomsize_4"),
+            InlineKeyboardButton("2P", callback_data="roomsize_2"),
+            InlineKeyboardButton("3P", callback_data="roomsize_3"),
+            InlineKeyboardButton("4P", callback_data="roomsize_4"),
+            InlineKeyboardButton("5P", callback_data="roomsize_5"),
         ],
         [
-            InlineKeyboardButton("6 Players", callback_data="roomsize_6"),
-            InlineKeyboardButton("10 Players", callback_data="roomsize_10"),
+            InlineKeyboardButton("6P", callback_data="roomsize_6"),
+            InlineKeyboardButton("8P", callback_data="roomsize_8"),
+            InlineKeyboardButton("10P", callback_data="roomsize_10"),
         ],
         [InlineKeyboardButton("🎯 Create Now!", callback_data="confirm_create")],
         [InlineKeyboardButton("⬅️ Back", callback_data="play")],
