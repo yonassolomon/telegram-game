@@ -51,6 +51,14 @@
     </div>
   </div>
 
+  {% if round.status == 'active' %}
+  <div class="card" style="text-align:center;padding:24px;border-color:rgba(255,215,0,0.3);">
+    <div style="font-size:36px;">⏳</div>
+    <div style="font-size:14px;color:var(--neon-gold);font-weight:700;margin:8px 0;">ጨዋታው እስከሚያልቅ ይጠብቁ</div>
+    <div style="font-size:12px;color:var(--text-secondary);">Game is live. Wait until the round finishes.</div>
+  </div>
+  {% endif %}
+
   <div id="arena-waiting-ui"
     {% if round.status == 'active' or round.status == 'finished' %}style="display:none;"{% endif %}>
   <div class="card">
@@ -63,7 +71,7 @@
   </div>
 
   <div id="arena-game-ui"
-    {% if round.status != 'active' %}style="display:none;"{% endif %}>
+    {% if round.status != 'active' or not selected_card %}style="display:none;"{% endif %}>
   {% if my_card_grid %}
   <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:8px auto;">
     <div class="bingo-row">
