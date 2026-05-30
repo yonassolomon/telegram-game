@@ -4,12 +4,13 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 def main_menu_keyboard(tg_id=''):
     webapp_url = getattr(settings, 'WEBAPP_URL', '')
-    is_public = bool(webapp_url) and '127.0.0.1' not in webapp_url and 'localhost' not in webapp_url
+    arena_url = webapp_url.replace('/webapp/', '/arena/') if webapp_url else ''
+    is_public = bool(arena_url) and '127.0.0.1' not in arena_url and 'localhost' not in arena_url
 
     if is_public and tg_id:
-        webapp_url += '?tg_id=' + str(tg_id)
+        arena_url += '?tg_id=' + str(tg_id)
         buttons = [
-            [InlineKeyboardButton("🎮 Play Bingo", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("🎮 Play Bingo", web_app=WebAppInfo(url=arena_url))],
             [InlineKeyboardButton("👛 Wallet", callback_data="wallet")],
             [InlineKeyboardButton("🏆 Leaderboard", callback_data="leaderboard")],
             [InlineKeyboardButton("👥 Invite Friends", callback_data="referral")],
