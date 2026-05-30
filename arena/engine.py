@@ -289,7 +289,12 @@ def ensure_bots_in_round(round_obj):
         CardSelection.objects.create(round=round_obj, player=bot, card_number=card_num)
 
     new_count = CardSelection.objects.filter(round=round_obj).count()
-    logger.info(f'BOTS JOINED WAITING: round={round_obj.round_number} bots={len(chosen)} total={new_count}')
+    new_pot = new_count * round_obj.entry_fee
+    new_prize, _ = calculate_prize(new_pot)
+    from arena.models import GameRound
+    GameRound.objects.filter(id=round_obj.id).update(prize_pool=new_prize)
+
+    logger.info(f'BOTS JOINED WAITING: round={round_obj.round_number} bots={len(chosen)} total={new_count} prize={new_prize}')
 
 
 def ensure_round_running():
