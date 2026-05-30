@@ -125,7 +125,8 @@ def referral_keyboard(referral_code):
     bot_username = getattr(settings, 'BOT_USERNAME', 'Bingo2BingoBot')
     link = f"https://t.me/{bot_username}?start={referral_code}"
     buttons = [
-        [InlineKeyboardButton("📋 Copy Referral Link", callback_data=f"copyref_{referral_code}")],
+        [InlineKeyboardButton("📤 Share Invite Link", url=link)],
+        [InlineKeyboardButton("📋 Copy Link", callback_data=f"copyref_{referral_code}")],
         [InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu")],
     ]
     return InlineKeyboardMarkup(buttons)
