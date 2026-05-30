@@ -15,7 +15,7 @@ from webapp.views import get_player_from_request
 
 logger = logging.getLogger('bingo.finance')
 
-PHONENUMBER = '0972606046'
+PHONENUMBER = '0972609046'
 
 
 def deposit(request):
