@@ -9,6 +9,18 @@
 <div class="container">
   <form method="POST" action="{% url 'webapp:create_room' %}">
     {% csrf_token %}
+    <div class="card" style="background:linear-gradient(135deg,rgba(180,77,255,0.08),rgba(0,229,255,0.05));border-color:rgba(180,77,255,0.3);">
+      <div class="card-header" style="color:var(--neon-purple);">📖 መመሪያ / Guide</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.6;">
+        <p style="margin:4px 0;"><strong style="color:var(--neon-cyan);">🔒 የክፍል አይነት (Room Type)</strong></p>
+        <p style="margin:2px 0 8px;">🌍 <strong>Public</strong> ከመረጡ ማንኛውም ሰው ክፍልዎን ተቀላቅሎ መጫወት ይችላል።<br>🔐 <strong>Private</strong> ከመረጡ ልዩ ኮድ ይሰጥዎታል። ለጓደኞችዎ ብቻ ያጋሩ።</p>
+        <p style="margin:4px 0;"><strong style="color:var(--neon-cyan);">💰 የመግቢያ ክፍያ (Entry Fee)</strong></p>
+        <p style="margin:2px 0 8px;">ተጫዋቾች ለመጫወት የሚያስገቡትን የውርርድ ገንዘብ ይምረጡ።</p>
+        <p style="margin:4px 0;"><strong style="color:var(--neon-cyan);">👥 ከፍተኛ ተጫዋቾች (Max Players)</strong></p>
+        <p style="margin:2px 0;">በክፍልዎ ውስጥ ስንት ተጫዋቾች እንዲጫወቱ እንደሚፈልጉ ይምረጡ።</p>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">🔒 Room Type</div>
       <div class="tabs" id="room-type-tabs">
