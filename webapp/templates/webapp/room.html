@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="top-bar">
-  <a href="{% url 'webapp:rooms' %}" class="back-btn">← Lobby</a>
+  <a href="{% url 'arena:lobby' %}" class="back-btn">← Lobby</a>
   <div class="title">Room {{ room.room_code }}</div>
   <div style="width:50px;"></div>
 </div>
@@ -130,7 +130,7 @@
     <div style="color:var(--neon-gold);font-size:24px;font-weight:800;">
       {{ room.prize_pool }} 💰
     </div>
-    <a id="find-room-btn" href="{% url 'webapp:rooms' %}" class="btn btn-primary" style="margin-top:16px;">🔄 Find New Room</a>
+    <a id="find-room-btn" href="{% url 'arena:lobby' %}" class="btn btn-primary" style="margin-top:16px;">🔄 Find New Room</a>
   </div>
 
   {% elif not joined %}
@@ -155,7 +155,7 @@
     </div>
     <div class="modal-btn-row">
       <button class="btn btn-primary" onclick="location.reload()">🔄 Play Again</button>
-      <a id="play-again-link" href="{% url 'webapp:rooms' %}" class="btn btn-outline">🏠 Lobby</a>
+      <a id="play-again-link" href="{% url 'arena:lobby' %}" class="btn btn-outline">🏠 Lobby</a>
     </div>
   </div>
 </div>

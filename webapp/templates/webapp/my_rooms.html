@@ -27,7 +27,7 @@
   <div class="card" style="text-align:center;padding:40px;">
     <div style="font-size:48px;">👤</div>
     <div style="color:var(--text-secondary);">No rooms yet. Create or join a room!</div>
-    <a href="{% url 'webapp:rooms' %}" class="btn btn-primary" style="margin-top:16px;">🎮 Find Rooms</a>
+    <a href="{% url 'arena:lobby' %}" class="btn btn-primary" style="margin-top:16px;">🎮 Find Rooms</a>
   </div>
   {% endfor %}
 </div>
@@ -36,7 +36,7 @@
   <a href="{% url 'webapp:home' %}">
     <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
   </a>
-  <a href="{% url 'webapp:rooms' %}">
+  <a href="{% url 'arena:lobby' %}">
     <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
   </a>
   <a href="{% url 'webapp:my_rooms' %}" class="active">

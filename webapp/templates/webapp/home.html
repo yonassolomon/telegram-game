@@ -36,7 +36,7 @@
     </div>
   </div>
 
-  <a href="{% url 'webapp:rooms' %}" class="btn btn-primary">🎮 Play Bingo</a>
+  <a href="{% url 'arena:lobby' %}" class="btn btn-primary">🎮 Play Bingo</a>
 
   <div style="display:flex;gap:8px;margin:8px 0;">
     <a href="{% url 'finance:deposit' %}" class="btn btn-gold btn-sm" style="flex:1;">💰 Deposit</a>
@@ -58,7 +58,7 @@
   <a href="{% url 'webapp:home' %}" class="active">
     <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
   </a>
-  <a href="{% url 'webapp:rooms' %}">
+  <a href="{% url 'arena:lobby' %}">
     <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
   </a>
   <a href="{% url 'webapp:my_rooms' %}">
