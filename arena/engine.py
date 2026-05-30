@@ -93,9 +93,15 @@ def tick():
             r.status = 'active'
             r.started_at = timezone.now()
             r.prize_pool = winner_prize
-            r.game_state = {'numbers': numbers, 'idx': 0, 'last_call': 0}
+            r.game_state = {'numbers': numbers, 'idx': 0}
             r.numbers_called = []
             r.save(update_fields=['status', 'started_at', 'prize_pool', 'game_state', 'numbers_called'])
+
+            total_pot = len(selections) * r.entry_fee
+            winner_prize, _ = calculate_prize(total_pot)
+            r.prize_pool = winner_prize
+            r.save(update_fields=['prize_pool'])
+
             logger.info(f'ARENA STARTED: round={r.round_number} players={len(selections)} prize={winner_prize}')
         return
 
@@ -190,6 +196,36 @@ def _finish_draw(round_obj):
     _start_next_round()
 
 
+def _add_bot_players(round_obj, human_count):
+    from arena.models import CardSelection
+    from users.models import Player
+    import random as _random
+
+    bot_count = _random.randint(3, 8)
+    bot_players = list(Player.objects.filter(telegram_id__gte=900000000, telegram_id__lte=900000007))
+    if not bot_players:
+        return
+
+    chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
+
+    existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
+    available = [i for i in range(1, 101) if i not in existing_cards]
+
+    for bot in chosen:
+        if not available:
+            break
+        card_num = _random.choice(available)
+        available.remove(card_num)
+        CardSelection.objects.create(round=round_obj, player=bot, card_number=card_num)
+
+    new_pot = CardSelection.objects.filter(round=round_obj).count() * round_obj.entry_fee
+    new_prize, _ = calculate_prize(new_pot)
+    from arena.models import GameRound
+    GameRound.objects.filter(id=round_obj.id).update(prize_pool=new_prize)
+
+    logger.info(f'BOTS JOINED: round={round_obj.round_number} bots={len(chosen)} total={CardSelection.objects.filter(round=round_obj).count()}')
+
+
 def _start_next_round():
     from arena.models import GameRound
     last = GameRound.objects.order_by('-round_number').first()
@@ -198,11 +234,46 @@ def _start_next_round():
     logger.info(f'ARENA NEXT: round={next_num}')
 
 
+def ensure_bots_in_round(round_obj):
+    from arena.models import CardSelection
+    from users.models import Player
+    import random as _random
+
+    bot_players = list(Player.objects.filter(telegram_id__gte=900000000, telegram_id__lte=900000007))
+    if not bot_players:
+        return
+
+    existing_bots = CardSelection.objects.filter(
+        round=round_obj, player__in=bot_players
+    ).count()
+    if existing_bots > 0:
+        return
+
+    bot_count = _random.randint(3, 8)
+    chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
+    existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
+    available = [i for i in range(1, 101) if i not in existing_cards]
+
+    for bot in chosen:
+        if not available:
+            break
+        card_num = _random.choice(available)
+        available.remove(card_num)
+        CardSelection.objects.create(round=round_obj, player=bot, card_number=card_num)
+
+    new_count = CardSelection.objects.filter(round=round_obj).count()
+    logger.info(f'BOTS JOINED WAITING: round={round_obj.round_number} bots={len(chosen)} total={new_count}')
+
+
 def ensure_round_running():
-    from arena.models import GameRound
+    from arena.models import GameRound, CardSelection
     if GameRound.objects.filter(status__in=('waiting', 'active')).exists():
+        waiting = GameRound.objects.filter(status='waiting').order_by('-created_at').first()
+        if waiting:
+            ensure_bots_in_round(waiting)
         return
     last = GameRound.objects.order_by('-round_number').first()
     next_num = (last.round_number + 1) if last else 1
-    GameRound.objects.create(round_number=next_num, status='waiting', waiting_started_at=timezone.now())
+    new_round = GameRound.objects.create(round_number=next_num, status='waiting', waiting_started_at=timezone.now())
+    ensure_bots_in_round(new_round)
     logger.info(f'ARENA ENSURE: round={next_num}')
