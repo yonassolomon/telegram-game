@@ -203,7 +203,7 @@ def _add_bot_players(round_obj, human_count):
     from users.models import Player
     import random as _random
 
-    bot_count = _random.randint(3, 8)
+    bot_count = _random.randint(15, 35)
     bot_players = list(Player.objects.filter(telegram_id__gte=900000000, telegram_id__lte=900000007))
     if not bot_players:
         return
@@ -248,7 +248,7 @@ def _randomize_bot_coins():
     for i, name in enumerate(bot_names):
         tg_id = 900000000 + i
         p, _ = Player.objects.get_or_create(
-            telegram_id=tg_id,
+            telegram_id=900000000 + i,
             defaults={'first_name': name, 'coins': _random.randint(20, 250)}
         )
         p.coins = _random.randint(20, 250)
@@ -260,12 +260,17 @@ def ensure_bots_in_round(round_obj):
     from users.models import Player
     import random as _random
 
-    bot_names = ['Alemayehu', 'NatiFaya', 'Robel', 'Moges', 'Kasahun', 'Mimi', 'Tages', 'Abushi']
+    bot_names = ['Alemayehu', 'NatiFaya', 'Robel', 'Moges', 'Kasahun', 'Mimi', 'Tages', 'Abushi',
+        'Bilisummaa', 'Carraa', 'Ifaa', 'Cimsa', 'Jaalalaa', 'Gammachuu', 'Wolene', 'Mesqan',
+        'Eyob Tadese', 'Dawit Bekele', 'Yonatan Alemu', 'Henok Getachew', 'Biruk Tadesse',
+        'Natnael Fikru', 'Yared Assefa', 'Abel Tesfaye', 'Bereket Demissie', 'Nahom Girma',
+        'Samuel Mekonnen', 'Biniyam Desta', 'Robel Kassahun', 'Surafel Abebe', 'Melaku Belay',
+        'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe']
     bot_players = []
     for i, name in enumerate(bot_names):
         tg_id = 900000000 + i
         p, _ = Player.objects.get_or_create(
-            telegram_id=tg_id,
+            telegram_id=900000000 + i,
             defaults={'first_name': name, 'coins': _random.randint(20, 250)}
         )
         bot_players.append(p)
@@ -276,7 +281,7 @@ def ensure_bots_in_round(round_obj):
     if existing_bots > 0:
         return
 
-    bot_count = _random.randint(3, 8)
+    bot_count = _random.randint(15, 35)
     chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
     existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
     available = [i for i in range(1, 101) if i not in existing_cards]
