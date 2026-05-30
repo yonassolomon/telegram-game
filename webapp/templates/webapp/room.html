@@ -54,7 +54,7 @@
     {% endif %}
     <button class="btn btn-outline" onclick="leaveRoom()" style="width:100%;margin-top:8px;">🚪 Leave Room</button>
   {% else %}
-  <button class="btn btn-gold" onclick="joinRoom()" id="join-btn">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
+  <button class="btn btn-gold" onclick="joinRoom()" id="join-btn" style="font-size:16px;padding:14px;">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
   {% endif %}
 
   <div style="text-align:center;margin-top:8px;" id="poll-status" data-polling="true">
@@ -137,7 +137,7 @@
   <div class="card" style="text-align:center;padding:40px;" id="join-card">
     <div style="font-size:48px;">🎮</div>
     <div style="color:var(--text-secondary);margin:12px 0;">Join this room to play!</div>
-    <button class="btn btn-gold" onclick="joinRoom()" id="join-btn-2">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
+    <button class="btn btn-gold" onclick="joinRoom()" id="join-btn-2" style="font-size:16px;padding:16px;">🎯 Join Room ({{ room.entry_fee }} 💰)</button>
   </div>
   {% endif %}
 </div>
