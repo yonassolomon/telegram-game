@@ -34,6 +34,10 @@ def lobby(request):
     if not current:
         current = GameRound.objects.order_by('-created_at').first()
 
+    if current and current.status == 'waiting':
+        from arena.engine import ensure_bots_in_round
+        ensure_bots_in_round(current)
+
     selections = list(CardSelection.objects.filter(round=current).select_related('player'))
     taken_cards = {s.card_number: s.player.first_name for s in selections}
 

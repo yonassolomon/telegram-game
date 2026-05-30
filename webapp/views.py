@@ -118,11 +118,13 @@ def rooms(request):
     arena_round = None
     try:
         from arena.models import GameRound as ArenaRound
-        from arena.engine import ensure_round_running
+        from arena.engine import ensure_round_running, ensure_bots_in_round
         ensure_round_running()
         arena_round = ArenaRound.objects.filter(
             status__in=('waiting', 'active', 'cooldown')
         ).order_by('-created_at').first()
+        if arena_round and arena_round.status == 'waiting':
+            ensure_bots_in_round(arena_round)
     except Exception:
         pass
 
