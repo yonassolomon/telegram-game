@@ -244,10 +244,15 @@ def _randomize_bot_coins():
     if last and (now - last).total_seconds() < 600:
         return
     _randomize_bot_coins._last_run = now
-    bots = Player.objects.filter(telegram_id__gte=900000000, telegram_id__lte=900000007)
-    for bot in bots:
-        bot.coins = _random.randint(20, 250)
-        bot.save(update_fields=['coins'])
+    bot_names = ['Alemayehu', 'NatiFaya', 'Robel', 'Moges', 'Kasahun', 'Mimi', 'Tages', 'Abushi']
+    for i, name in enumerate(bot_names):
+        tg_id = 900000000 + i
+        p, _ = Player.objects.get_or_create(
+            telegram_id=tg_id,
+            defaults={'first_name': name, 'coins': _random.randint(20, 250)}
+        )
+        p.coins = _random.randint(20, 250)
+        p.save(update_fields=['coins'])
 
 
 def ensure_bots_in_round(round_obj):
@@ -255,9 +260,15 @@ def ensure_bots_in_round(round_obj):
     from users.models import Player
     import random as _random
 
-    bot_players = list(Player.objects.filter(telegram_id__gte=900000000, telegram_id__lte=900000007))
-    if not bot_players:
-        return
+    bot_names = ['Alemayehu', 'NatiFaya', 'Robel', 'Moges', 'Kasahun', 'Mimi', 'Tages', 'Abushi']
+    bot_players = []
+    for i, name in enumerate(bot_names):
+        tg_id = 900000000 + i
+        p, _ = Player.objects.get_or_create(
+            telegram_id=tg_id,
+            defaults={'first_name': name, 'coins': _random.randint(20, 250)}
+        )
+        bot_players.append(p)
 
     existing_bots = CardSelection.objects.filter(
         round=round_obj, player__in=bot_players
