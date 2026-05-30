@@ -113,17 +113,6 @@
   </div>
   {% endif %}
 
-  <div class="card">
-    <div class="card-header">👥 Players ({{ round.player_count }})</div>
-    <div class="player-list" id="player-list">
-      {% for sel in round.selections.all %}
-      <div class="player-chip">
-        <div class="dot"></div>
-        {{ sel.player.first_name }} <span style="color:var(--neon-gold);font-size:10px;">#{{ sel.card_number }}</span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
 </div>
 
 <nav class="bottom-nav">
