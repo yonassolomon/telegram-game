@@ -54,6 +54,8 @@ def tick():
 
     close_old_connections()
 
+    _randomize_bot_coins()
+
     round_obj = GameRound.objects.filter(status='waiting').order_by('-created_at').first()
     if not round_obj:
         round_obj = GameRound.objects.filter(status='active').order_by('-created_at').first()
@@ -232,6 +234,20 @@ def _start_next_round():
     next_num = (last.round_number + 1) if last else 1
     GameRound.objects.create(round_number=next_num, status='waiting', waiting_started_at=timezone.now())
     logger.info(f'ARENA NEXT: round={next_num}')
+
+
+def _randomize_bot_coins():
+    from users.models import Player
+    import random as _random
+    now = timezone.now()
+    last = getattr(_randomize_bot_coins, '_last_run', None)
+    if last and (now - last).total_seconds() < 600:
+        return
+    _randomize_bot_coins._last_run = now
+    bots = Player.objects.filter(telegram_id__gte=900000000, telegram_id__lte=900000007)
+    for bot in bots:
+        bot.coins = _random.randint(20, 250)
+        bot.save(update_fields=['coins'])
 
 
 def ensure_bots_in_round(round_obj):
