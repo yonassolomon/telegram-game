@@ -312,15 +312,14 @@ function updateCardGrid(taken, myCard) {
   document.querySelectorAll('.card-cell').forEach(function(cell) {
     var num = parseInt(cell.dataset.card);
     cell.classList.remove('available', 'taken', 'selected');
+    cell.innerHTML = '';
+    cell.textContent = num;
     if (myCard && num === myCard) {
       cell.classList.add('selected');
-      cell.innerHTML = num + '<div class="taken-by">YOU</div>';
     } else if (taken[num]) {
       cell.classList.add('taken');
-      cell.innerHTML = num + '<div class="taken-by">' + taken[num].substring(0, 8) + '</div>';
     } else {
       cell.classList.add('available');
-      cell.textContent = num;
     }
   });
 }
