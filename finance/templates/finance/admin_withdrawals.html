@@ -1,6 +1,12 @@
 {% extends 'dashboard/base.html' %}
 {% block content %}
 <div class="header"><h1>💸 Withdrawal Requests</h1></div>
+<div class="stats-grid" style="margin-bottom:12px;">
+  <div class="stat-card purple">
+    <div class="stat-value">{{ total_approved }}</div>
+    <div class="stat-label">Total Approved 💰</div>
+  </div>
+</div>
 <div class="card">
   <table>
     <thead><tr><th>Player</th><th>TG ID</th><th>Phone</th><th>Balance</th><th>Requested</th><th>Status</th><th>Time</th><th>Action</th></tr></thead>

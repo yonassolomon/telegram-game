@@ -99,9 +99,12 @@ def withdrawal(request):
 
 @admin_required
 def admin_deposits(request):
+    from django.db.models import Sum
     deposits = DepositRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    total_approved = DepositRequest.objects.filter(status='approved').aggregate(s=Sum('amount'))['s'] or 0
     return render(request, 'finance/admin_deposits.html', {
         'deposits': deposits,
+        'total_approved': total_approved,
         'status_filter': request.GET.get('status', 'all'),
         'phonenumber': PHONENUMBER,
     })
@@ -109,9 +112,12 @@ def admin_deposits(request):
 
 @admin_required
 def admin_withdrawals(request):
+    from django.db.models import Sum
     withdrawals = WithdrawalRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    total_approved = WithdrawalRequest.objects.filter(status='approved').aggregate(s=Sum('amount'))['s'] or 0
     return render(request, 'finance/admin_withdrawals.html', {
         'withdrawals': withdrawals,
+        'total_approved': total_approved,
         'status_filter': request.GET.get('status', 'all'),
     })
 

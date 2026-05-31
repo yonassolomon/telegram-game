@@ -1,6 +1,12 @@
 {% extends 'dashboard/base.html' %}
 {% block content %}
 <div class="header"><h1>💰 Deposit Requests</h1></div>
+<div class="stats-grid" style="margin-bottom:12px;">
+  <div class="stat-card gold">
+    <div class="stat-value">{{ total_approved }}</div>
+    <div class="stat-label">Total Approved 💰</div>
+  </div>
+</div>
 <div class="card">
   <div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">Phone: <strong style="color:var(--neon-gold);">{{ phonenumber }}</strong></div>
   <table>

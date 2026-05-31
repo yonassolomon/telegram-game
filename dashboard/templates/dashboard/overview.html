@@ -3,8 +3,10 @@
 <div class="header">
   <h1>📊 Dashboard Overview</h1>
   <div class="header-actions">
-    <a href="{% url 'dashboard:live' %}" class="btn btn-cyan">🔴 Live Monitor</a>
+    <button class="btn btn-purple btn-sm" onclick="resetTotals()">🔄 Reset Totals</button>
+    <a href="{% url 'dashboard:live' %}" class="btn btn-cyan btn-sm">🔴 Live Monitor</a>
   </div>
+</div>
 </div>
 
 <div class="stats-grid">
@@ -36,7 +38,35 @@
     <div class="stat-value">{{ total_house_fees|floatformat:0 }}</div>
     <div class="stat-label">House Fees 🏦</div>
   </div>
+  <div class="stat-card orange">
+    <div class="stat-value">{{ total_withdrawn|default:0 }}</div>
+    <div class="stat-label">Withdrawn 💸</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-value">{{ total_coins_issued|default:0 }}</div>
+    <div class="stat-label">Deposited 💰</div>
+  </div>
 </div>
+
+{% if reset_history %}
+<div class="card">
+  <div class="card-header">📋 Reset History</div>
+  <table>
+    <thead><tr><th>Day</th><th>Deposits</th><th>Withdrawals</th><th>House Fees</th><th>Time</th></tr></thead>
+    <tbody>
+    {% for r in reset_history %}
+    <tr>
+      <td>Day {{ r.day_number }}</td>
+      <td>{{ r.deposit_total }} 💰</td>
+      <td>{{ r.withdrawal_total }} 💸</td>
+      <td>{{ r.house_fee_total }} 🏦</td>
+      <td>{{ r.created_at|date:"m/d H:i" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
 
 <div class="card">
   <div class="card-header">
@@ -102,4 +132,20 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function resetTotals() {
+  if (!confirm('Reset all totals? Current values will be saved as Day N.')) return;
+  fetch('/dashboard/api/reset-totals/', {
+    method: 'POST',
+    headers: {'X-CSRFToken': '{{ csrf_token }}'},
+  }).then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success) { alert('Reset complete — Day ' + d.day); location.reload(); }
+      else alert(d.error);
+    });
+}
+</script>
 {% endblock %}

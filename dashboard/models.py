@@ -29,3 +29,20 @@ class AdminLog(models.Model):
 
     def __str__(self):
         return f'[{self.created_at:%H:%M}] {self.admin_user} → {self.get_action_display()}'
+
+
+class DailyReset(models.Model):
+    admin_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    day_number = models.IntegerField(default=1)
+    deposit_total = models.BigIntegerField(default=0)
+    withdrawal_total = models.BigIntegerField(default=0)
+    house_fee_total = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = 'Daily Reset'
+        verbose_name_plural = 'Daily Resets'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Day {self.day_number} — D:{self.deposit_total} W:{self.withdrawal_total} H:{self.house_fee_total}'

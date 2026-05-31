@@ -12,7 +12,8 @@ from django.utils import timezone
 from users.models import Player
 from games.models import GameRoom, BingoCard, GameHistory
 from wallets.models import Transaction
-from dashboard.models import AdminLog
+from finance.models import DepositRequest, WithdrawalRequest
+from dashboard.models import AdminLog, DailyReset
 from dashboard.auth import admin_required
 
 logger = logging.getLogger('bingo.dashboard')
@@ -43,15 +44,19 @@ def overview(request):
     active_rooms = GameRoom.objects.filter(status='waiting').count()
     active_games = GameRoom.objects.filter(status='active').count()
     finished_games = GameRoom.objects.filter(status='finished').count()
-    total_coins_issued = Transaction.objects.filter(
-        transaction_type='deposit'
-    ).aggregate(s=Sum('amount'))['s'] or 0
-    total_coins_won = Transaction.objects.filter(
-        transaction_type='game_win'
-    ).aggregate(s=Sum('amount'))['s'] or 0
-    total_house_fees = Transaction.objects.filter(
-        transaction_type='house_fee'
-    ).aggregate(s=Sum('amount'))['s'] or 0
+
+    from dashboard.models import DailyReset
+    last_reset = DailyReset.objects.order_by('-created_at').first()
+    since = last_reset.created_at if last_reset else None
+
+    tx_qs = Transaction.objects.all()
+    if since:
+        tx_qs = tx_qs.filter(created_at__gte=since)
+
+    total_coins_issued = tx_qs.filter(transaction_type='deposit').aggregate(s=Sum('amount'))['s'] or 0
+    total_coins_won = tx_qs.filter(transaction_type='game_win').aggregate(s=Sum('amount'))['s'] or 0
+    total_house_fees = abs(tx_qs.filter(transaction_type='house_fee').aggregate(s=Sum('amount'))['s'] or 0)
+    total_withdrawn = abs(tx_qs.filter(transaction_type='withdrawal').aggregate(s=Sum('amount'))['s'] or 0)
     house_fees_abs = abs(total_house_fees) if total_house_fees else 0
 
     recent_rooms = list(GameRoom.objects.select_related('winner')
@@ -64,6 +69,8 @@ def overview(request):
     top_winners = list(Player.objects.filter(is_banned=False)
         .order_by('-wins')[:5])
 
+    reset_history = list(DailyReset.objects.order_by('-created_at')[:10])
+
     return render(request, 'dashboard/overview.html', {
         'total_players': total_players,
         'active_rooms': active_rooms,
@@ -72,6 +79,8 @@ def overview(request):
         'total_coins_issued': total_coins_issued,
         'total_coins_won': total_coins_won,
         'total_house_fees': abs(total_house_fees) if total_house_fees else 0,
+        'total_withdrawn': total_withdrawn,
+        'reset_history': reset_history,
         'recent_rooms': recent_rooms,
         'recent_logs': recent_logs,
         'top_winners': top_winners,
@@ -673,6 +682,38 @@ def api_arena_set_mode(request):
     )
     logger.info(f'ADMIN: {request.user} set arena mode to {mode}')
     return JsonResponse({'success': True, 'call_mode': mode})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_reset_totals(request):
+    from dashboard.models import DailyReset
+    from django.db.models import Sum
+
+    last_reset = DailyReset.objects.order_by('-created_at').first()
+    since = last_reset.created_at if last_reset else None
+
+    tx_qs = Transaction.objects.all()
+    if since:
+        tx_qs = tx_qs.filter(created_at__gte=since)
+
+    deposit_total = tx_qs.filter(transaction_type='deposit').aggregate(s=Sum('amount'))['s'] or 0
+    withdrawal_total = abs(tx_qs.filter(transaction_type='withdrawal').aggregate(s=Sum('amount'))['s'] or 0)
+    house_fee_total = abs(tx_qs.filter(transaction_type='house_fee').aggregate(s=Sum('amount'))['s'] or 0)
+
+    next_day = (last_reset.day_number + 1) if last_reset else 1
+
+    DailyReset.objects.create(
+        admin_user=request.user,
+        day_number=next_day,
+        deposit_total=deposit_total,
+        withdrawal_total=withdrawal_total,
+        house_fee_total=house_fee_total,
+    )
+
+    logger.info(f'ADMIN: {request.user} reset totals — Day {next_day}')
+    return JsonResponse({'success': True, 'day': next_day})
 
 
 # ═══ Finance Admin ═══
