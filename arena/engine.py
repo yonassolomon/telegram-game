@@ -241,18 +241,22 @@ def _randomize_bot_coins():
     import random as _random
     now = timezone.now()
     last = getattr(_randomize_bot_coins, '_last_run', None)
-    if last and (now - last).total_seconds() < 600:
+    if last and (now - last).total_seconds() < 120:
         return
     _randomize_bot_coins._last_run = now
-    bot_names = ['Alemayehu', 'NatiFaya', 'Robel', 'Moges', 'Kasahun', 'Mimi', 'Tages', 'Abushi']
+    bot_names = ['Alemayehu', 'NatiFaya', 'Robel', 'Moges', 'Kasahun', 'Mimi', 'Tages', 'Abushi',
+        'Bilisummaa', 'Carraa', 'Ifaa', 'Cimsa', 'Jaalalaa', 'Gammachuu', 'Wolene', 'Mesqan',
+        'Eyob Tadese', 'Dawit Bekele', 'Yonatan Alemu', 'Henok Getachew', 'Biruk Tadesse',
+        'Natnael Fikru', 'Yared Assefa', 'Abel Tesfaye', 'Bereket Demissie', 'Nahom Girma',
+        'Samuel Mekonnen', 'Biniyam Desta', 'Robel Kassahun', 'Surafel Abebe', 'Melaku Belay',
+        'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe']
     for i, name in enumerate(bot_names):
-        tg_id = 900000000 + i
         p, _ = Player.objects.get_or_create(
             telegram_id=900000000 + i,
-            defaults={'first_name': name, 'coins': _random.randint(20, 250)}
+            defaults={'first_name': name, 'coins': _random.randint(20, 350)}
         )
-        p.coins = _random.randint(20, 250)
-        p.save(update_fields=['coins'])
+        new_coins = _random.randint(20, 350)
+        Player.objects.filter(telegram_id=900000000 + i).update(coins=new_coins)
 
 
 def ensure_bots_in_round(round_obj):
@@ -271,7 +275,7 @@ def ensure_bots_in_round(round_obj):
         tg_id = 900000000 + i
         p, _ = Player.objects.get_or_create(
             telegram_id=900000000 + i,
-            defaults={'first_name': name, 'coins': _random.randint(20, 250)}
+            defaults={'first_name': name, 'coins': _random.randint(20, 350)}
         )
         bot_players.append(p)
 
