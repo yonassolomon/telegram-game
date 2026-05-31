@@ -251,12 +251,15 @@ def _randomize_bot_coins():
         'Samuel Mekonnen', 'Biniyam Desta', 'Robel Kassahun', 'Surafel Abebe', 'Melaku Belay',
         'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe']
     for i, name in enumerate(bot_names):
-        p, _ = Player.objects.get_or_create(
+        p, created = Player.objects.get_or_create(
             telegram_id=900000000 + i,
-            defaults={'first_name': name, 'coins': _random.randint(20, 350)}
+            defaults={'first_name': name, 'coins': _random.randint(20, 350), 'wins': _random.randint(5, 10)}
         )
         new_coins = _random.randint(20, 350)
-        Player.objects.filter(telegram_id=900000000 + i).update(coins=new_coins)
+        update_fields = {'coins': new_coins}
+        if created or p.wins < 5:
+            update_fields['wins'] = _random.randint(5, 10)
+        Player.objects.filter(telegram_id=900000000 + i).update(**update_fields)
 
 
 def ensure_bots_in_round(round_obj):
@@ -273,10 +276,12 @@ def ensure_bots_in_round(round_obj):
     bot_players = []
     for i, name in enumerate(bot_names):
         tg_id = 900000000 + i
-        p, _ = Player.objects.get_or_create(
+        p, created = Player.objects.get_or_create(
             telegram_id=900000000 + i,
-            defaults={'first_name': name, 'coins': _random.randint(20, 350)}
+            defaults={'first_name': name, 'coins': _random.randint(20, 350), 'wins': _random.randint(5, 10)}
         )
+        if created or p.wins < 5:
+            Player.objects.filter(telegram_id=900000000 + i).update(wins=_random.randint(5, 10))
         bot_players.append(p)
 
     existing_bots = CardSelection.objects.filter(
