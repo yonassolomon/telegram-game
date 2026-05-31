@@ -1,13 +1,15 @@
 {% extends 'webapp/base.html' %}
 {% block content %}
 <div class="top-bar">
-  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
-  <div class="title">👤 My Rooms</div>
+  <a href="{% url 'webapp:home' %}" class="back-btn">← Home</a>
+  <div class="title">👤 Rooms</div>
   <div style="width:50px;"></div>
 </div>
 
 <div class="container">
-  {% for room in rooms %}
+  {% if my_rooms %}
+  <div class="card-header" style="padding:8px 0;color:var(--neon-purple);">👤 My Rooms</div>
+  {% for room in my_rooms %}
   <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
     <div class="room-left">
       <div class="room-icon">{% if room.room_type == 'private' %}🔐{% else %}🏠{% endif %}</div>
@@ -23,13 +25,37 @@
       <div class="room-players">{{ room.active_players|default:0 }}/{{ room.max_players }}</div>
     </div>
   </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="card-header" style="padding:8px 0;color:var(--neon-cyan);">🌍 Public Rooms</div>
+  {% for room in public_rooms %}
+  <div class="room-item" onclick="location.href='{% url 'webapp:room' room.room_code %}'">
+    <div class="room-left">
+      <div class="room-icon">🏠</div>
+      <div class="room-info">
+        <div class="room-code">{{ room.room_code }}</div>
+        <div class="room-meta">🟢 Waiting</div>
+      </div>
+    </div>
+    <div class="room-right">
+      <div class="room-fee">{{ room.entry_fee }} 💰</div>
+      <div class="room-players">{{ room.active_players|default:0 }}/{{ room.max_players }}</div>
+    </div>
+  </div>
   {% empty %}
-  <div class="card" style="text-align:center;padding:40px;">
-    <div style="font-size:48px;">👤</div>
-    <div style="color:var(--text-secondary);">No rooms yet. Create or join a room!</div>
-    <a href="{% url 'arena:lobby' %}" class="btn btn-primary" style="margin-top:16px;">🎮 Find Rooms</a>
+  <div class="card" style="text-align:center;padding:24px;">
+    <div style="color:var(--text-secondary);">No public rooms available</div>
+    <a href="{% url 'webapp:create_room' %}" class="btn btn-primary btn-sm" style="margin-top:8px;">➕ Create Room</a>
   </div>
   {% endfor %}
+
+  {% if not my_rooms and not public_rooms %}
+  <div class="card" style="text-align:center;padding:40px;">
+    <div style="font-size:48px;">👤</div>
+    <div style="color:var(--text-secondary);">No rooms yet.</div>
+  </div>
+  {% endif %}
 </div>
 
 <nav class="bottom-nav">

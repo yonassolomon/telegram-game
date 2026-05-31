@@ -141,16 +141,25 @@ def my_rooms(request):
     if not player:
         return redirect('webapp:home')
 
-    rooms = list(
+    my_rooms_list = list(
         GameRoom.objects.filter(bingo_cards__player=player)
-        .distinct().order_by('-created_at')[:30]
+        .distinct().order_by('-created_at')[:10]
     )
-    for room in rooms:
+    for room in my_rooms_list:
+        room.active_players = BingoCard.objects.filter(game_room=room).count()
+
+    public_rooms = list(
+        GameRoom.objects.filter(status='waiting', room_type='public')
+        .exclude(bingo_cards__player=player)
+        .order_by('-created_at')[:20]
+    )
+    for room in public_rooms:
         room.active_players = BingoCard.objects.filter(game_room=room).count()
 
     return render(request, 'webapp/my_rooms.html', {
         'player': player,
-        'rooms': rooms,
+        'my_rooms': my_rooms_list,
+        'public_rooms': public_rooms,
     })
 
 
