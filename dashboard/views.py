@@ -106,11 +106,14 @@ def players(request):
 
     players_list = list(players_qs.order_by('-coins')[:100])
 
-    return render(request, 'dashboard/players.html', {
+    from django.views.decorators.cache import never_cache
+    response = render(request, 'dashboard/players.html', {
         'players': players_list,
         'search': search,
         'status_filter': status_filter,
     })
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 
 @admin_required
