@@ -27,6 +27,7 @@ class GameRound(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     game_state = models.JSONField(default=dict, blank=True)
+    bot_count = models.IntegerField(default=2)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

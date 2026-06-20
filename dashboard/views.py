@@ -690,6 +690,27 @@ def api_arena_set_mode(request):
 @csrf_exempt
 @require_POST
 @admin_required
+def api_arena_set_bots(request):
+    try:
+        bot_count = int(request.POST.get('bot_count', 2))
+        if bot_count < 2 or bot_count > 35:
+            return JsonResponse({'error': 'Bot count must be 2-35'}, status=400)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid number'}, status=400)
+
+    from arena.models import GameRound as ArenaRound
+    current = ArenaRound.objects.filter(status='waiting').order_by('-created_at').first()
+    if current:
+        current.bot_count = bot_count
+        current.save(update_fields=['bot_count'])
+    future = ArenaRound.objects.order_by('-created_at').first()
+    # Set as default for future rounds too
+    return JsonResponse({'success': True, 'bot_count': bot_count})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
 def api_reset_totals(request):
     from dashboard.models import DailyReset
     from django.db.models import Sum

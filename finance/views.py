@@ -70,9 +70,11 @@ def withdrawal(request):
             elif amount > player.coins:
                 error = f'Insufficient coins. You have {player.coins}'
             else:
-                player.refresh_from_db(fields=['games_played', 'coins'])
-                if player.games_played < 1:
-                    error = 'Please play at least one game before requesting a withdrawal.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ ይጫወቱ።'
+                player.refresh_from_db(fields=['wins', 'coins'])
+                from finance.models import DepositRequest
+                has_deposited = DepositRequest.objects.filter(player=player, status='approved').exists()
+                if player.wins < 1 and not has_deposited:
+                    error = 'You must win at least one game or deposit before withdrawing.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ አሸንፈው ወይም ገንዘብ አስገብተው መሆን አለበት።'
                 else:
                     WithdrawalRequest.objects.create(player=player, amount=amount)
                     success = True

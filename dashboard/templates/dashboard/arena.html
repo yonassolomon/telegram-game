@@ -15,6 +15,13 @@
   <div class="card-header">🎮 Arena Game Controls</div>
 
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+    <span style="color:var(--muted);font-size:12px;">Bots (2-35):</span>
+    <input type="number" id="bot-count-input" min="2" max="35" value="2"
+      style="width:60px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:13px;text-align:center;">
+    <button class="btn btn-outline btn-sm" onclick="setBotCount()">Set</button>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
     <span style="color:var(--muted);font-size:12px;">Mode:</span>
     <span id="mode-badge" class="badge {% if current_round.call_mode == 'manual' %}badge-purple{% else %}badge-info{% endif %}">
       {{ current_round.call_mode|default:'auto'|upper }}
@@ -239,6 +246,19 @@ function setMode(mode) {
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   fd.append('mode', mode);
   fetch('/dashboard/api/arena/set-mode/', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert(d.error); return; }
+      refreshArena();
+    });
+}
+
+function setBotCount() {
+  var count = document.getElementById('bot-count-input').value;
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('bot_count', count);
+  fetch('/dashboard/api/arena/set-bots/', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) { alert(d.error); return; }
