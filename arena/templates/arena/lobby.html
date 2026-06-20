@@ -222,7 +222,7 @@ function pollState() {
         TAKEN = d.taken_cards;
         updateCardGrid(d.taken_cards, d.my_card);
       }
-      if (d.called_numbers) updateCalledNumbers(d.called_numbers);
+      if (d.called_numbers) { updateCalledNumbers(d.called_numbers); updateMasterBoard(d.called_numbers); }
       if (d.my_card_grid && STATUS === 'active') updateBingoCard(d.my_card_grid);
 
       if (d.is_winner) {
