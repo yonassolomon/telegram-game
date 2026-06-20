@@ -14,6 +14,7 @@
 .card-cell.available:hover { background: rgba(0,230,118,0.1); border-color: var(--green); transform: scale(1.05); }
 .card-cell.taken { border-color: rgba(255,145,0,0.6); background: rgba(255,145,0,0.08); color: var(--orange); cursor: not-allowed; }
 .card-cell.selected { border-color: var(--cyan); background: rgba(0,229,255,0.15); color: var(--cyan); box-shadow: 0 0 10px rgba(0,229,255,0.3); }
+@keyframes popCell { 0%{transform:scale(0.7)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
 .timer-display { font-size: 36px; font-weight: 800; color: var(--neon-purple); text-align: center; }
 .arena-numbers { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .arena-ball {
@@ -258,6 +259,8 @@ function pollState() {
         if (r) r.style.display = 'none';
         var g = document.getElementById('arena-game-ui');
         if (g) g.style.display = '';
+        var mb = document.getElementById('master-board-container');
+        if (mb) { mb.style.display = ''; buildMasterBoard(); }
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
       if (d.called_numbers) {
         updateCalledNumbers(d.called_numbers);
@@ -314,10 +317,13 @@ function updateMasterBoard(called) {
   var cells = document.querySelectorAll('#master-bingo-board td[data-num]');
   cells.forEach(function(td) {
     var n = parseInt(td.dataset.num);
-    if (called.indexOf(n) !== -1) {
+    if (called.indexOf(n) !== -1 && !td.classList.contains('master-called')) {
+      td.classList.add('master-called');
       td.style.background = 'rgba(0,229,255,0.2)';
       td.style.color = 'var(--neon-cyan)';
       td.style.fontWeight = '700';
+      td.style.animation = 'none'; td.offsetHeight;
+      td.style.animation = 'popCell 0.4s cubic-bezier(0.175,0.885,0.32,1.275)';
     }
   });
 }
