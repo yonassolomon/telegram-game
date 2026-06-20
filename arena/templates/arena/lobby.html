@@ -29,7 +29,7 @@
 <div class="top-bar">
   <div style="width:50px;"></div>
   <div class="title">🏟️ Arena</div>
-  <a href="{% url 'webapp:wallet' %}" class="back-btn" style="color:var(--neon-gold);">👛 Wallet</a>
+  <a href="{% url 'webapp:wallet' %}" class="back-btn" style="color:var(--neon-gold);{% if selected_card %}display:none;{% endif %}" id="arena-wallet-btn">👛 Wallet</a>
 </div>
 
 <div class="container">
@@ -261,6 +261,8 @@ function pollState() {
         if (g) g.style.display = '';
         var mb = document.getElementById('master-board-container');
         if (mb) { mb.style.display = ''; buildMasterBoard(); }
+        var wb = document.getElementById('arena-wallet-btn');
+        if (wb && MY_CARD) wb.style.display = 'none';
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
       if (d.called_numbers) {
         updateCalledNumbers(d.called_numbers);
@@ -456,6 +458,8 @@ function confirmSelectCard() {
     .then(function(d) {
       if (d.error) { showToast(d.error); return; }
       MY_CARD = d.card_number;
+      var wb = document.getElementById('arena-wallet-btn');
+      if (wb) wb.style.display = 'none';
       showToast('Card #' + d.card_number + ' selected!');
     });
 }
