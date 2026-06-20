@@ -26,27 +26,4 @@
   </form>
 </div>
 
-<nav class="bottom-nav">
-  <a href="{% url 'webapp:home' %}">
-    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
-  </a>
-  <a href="{% url 'arena:lobby' %}">
-    <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
-  </a>
-  <a href="{% url 'webapp:create_room' %}">
-    <span class="nav-icon">➕</span><span class="nav-label">Create</span>
-  </a>
-  <a href="{% url 'webapp:join_private' %}" class="active">
-    <span class="nav-icon">🔑</span><span class="nav-label">Join</span>
-  </a>
-  <a href="{% url 'webapp:my_rooms' %}">
-    <span class="nav-icon">👤</span><span class="nav-label">Rooms</span>
-  </a>
-  <a href="{% url 'webapp:leaderboard' %}">
-    <span class="nav-icon">🏆</span><span class="nav-label">Board</span>
-  </a>
-  <a href="{% url 'webapp:wallet' %}">
-    <span class="nav-icon">👛</span><span class="nav-label">Wallet</span>
-  </a>
-</nav>
 {% endblock %}

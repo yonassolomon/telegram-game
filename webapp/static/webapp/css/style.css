@@ -272,30 +272,34 @@ body::before {
   background: var(--bg-card);
   border: 2px solid rgba(180, 77, 255, 0.3);
   border-radius: var(--radius);
-  padding: 8px;
-  max-width: 340px;
-  margin: 16px auto;
+  padding: 6px;
+  max-width: 100%;
+  margin: 8px auto;
   box-shadow: 0 0 40px rgba(180, 77, 255, 0.1);
 }
 .bingo-row {
   display: flex;
+  justify-content: center;
 }
 .bingo-cell {
-  width: 56px;
-  height: 56px;
-  margin: 3px;
+  width: 18vw;
+  max-width: 56px;
+  height: 18vw;
+  max-height: 56px;
+  margin: 2px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: clamp(10px, 3vw, 16px);
   font-weight: 700;
   color: var(--text-secondary);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 .bingo-cell.free {
   background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.1));

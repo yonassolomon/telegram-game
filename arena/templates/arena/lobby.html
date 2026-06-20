@@ -2,19 +2,18 @@
 {% load static %}
 {% block content %}
 <style>
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 4px; padding: 8px; }
+.card-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; padding: 4px; max-height: 400px; overflow-y: auto; }
 .card-cell {
-  aspect-ratio: 1; border-radius: 8px; border: 2px solid var(--border);
+  aspect-ratio: 1; border-radius: 6px; border: 2px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; cursor: pointer; transition: .2s;
+  font-size: 11px; font-weight: 600; cursor: pointer; transition: .2s;
   background: var(--bg-secondary); color: var(--text-secondary);
   user-select: none; position: relative;
 }
 .card-cell.available { border-color: rgba(0,230,118,0.5); color: var(--green); }
 .card-cell.available:hover { background: rgba(0,230,118,0.1); border-color: var(--green); transform: scale(1.05); }
 .card-cell.taken { border-color: rgba(255,145,0,0.6); background: rgba(255,145,0,0.08); color: var(--orange); cursor: not-allowed; }
-.card-cell.selected { border-color: var(--cyan); background: rgba(0,229,255,0.15); color: var(--cyan); box-shadow: 0 0 16px rgba(0,229,255,0.3); font-size: 14px; }
-.card-cell .taken-by { font-size: 8px; position: absolute; bottom: 2px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.card-cell.selected { border-color: var(--cyan); background: rgba(0,229,255,0.15); color: var(--cyan); box-shadow: 0 0 10px rgba(0,229,255,0.3); }
 .timer-display { font-size: 36px; font-weight: 800; color: var(--neon-purple); text-align: center; }
 .arena-numbers { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .arena-ball {
@@ -27,9 +26,9 @@
 </style>
 
 <div class="top-bar">
-  <a href="{% url 'webapp:home' %}" class="back-btn">← Home</a>
-  <div class="title">🏟️ Arena</div>
   <div style="width:50px;"></div>
+  <div class="title">🏟️ Arena</div>
+  <a href="{% url 'webapp:wallet' %}" class="back-btn" style="color:var(--neon-gold);">👛 Wallet</a>
 </div>
 
 <div class="container">
@@ -115,29 +114,6 @@
 
 </div>
 
-<nav class="bottom-nav">
-  <a href="{% url 'webapp:home' %}">
-    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
-  </a>
-  <a href="{% url 'arena:lobby' %}" class="active">
-    <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
-  </a>
-  <a href="{% url 'webapp:create_room' %}">
-    <span class="nav-icon">➕</span><span class="nav-label">Create</span>
-  </a>
-  <a href="{% url 'webapp:join_private' %}">
-    <span class="nav-icon">🔑</span><span class="nav-label">Join</span>
-  </a>
-  <a href="{% url 'webapp:my_rooms' %}">
-    <span class="nav-icon">👤</span><span class="nav-label">Rooms</span>
-  </a>
-  <a href="{% url 'webapp:leaderboard' %}">
-    <span class="nav-icon">🏆</span><span class="nav-label">Board</span>
-  </a>
-  <a href="{% url 'webapp:wallet' %}">
-    <span class="nav-icon">👛</span><span class="nav-label">Wallet</span>
-  </a>
-</nav>
 
 <div id="winner-overlay" class="overlay" style="display:none;">
   <div class="winner-popup">
