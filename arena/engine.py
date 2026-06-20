@@ -178,6 +178,13 @@ def _award_winner(round_obj, sel, player_count):
                                    description=f'Arena Round #{r.round_number} win')
         Transaction.objects.create(player=sel.player, amount=-house_fee, transaction_type='house_fee',
                                    description=f'Arena Round #{r.round_number} house fee')
+        from arena.models import CardSelection
+        all_players = CardSelection.objects.filter(round=r)
+        for s in all_players:
+            if s.player_id != sel.player_id:
+                s.player.games_played = db_models.F('games_played') + 1
+                s.player.losses = db_models.F('losses') + 1
+                s.player.save(update_fields=['games_played', 'losses'])
         r.status = 'finished'
         r.finished_at = timezone.now()
         r.save()
@@ -190,7 +197,10 @@ def _finish_draw(round_obj):
     fee = round_obj.entry_fee
     for sel in round_obj.selections.all():
         from users.models import Player
-        Player.objects.filter(id=sel.player_id).update(coins=db_models.F('coins') + fee)
+        Player.objects.filter(id=sel.player_id).update(
+            coins=db_models.F('coins') + fee,
+            games_played=db_models.F('games_played') + 1
+        )
         Transaction.objects.create(player=sel.player, amount=fee, transaction_type='draw_refund',
                                    description=f'Arena Round #{round_obj.round_number} draw')
     round_obj.status = 'finished'
