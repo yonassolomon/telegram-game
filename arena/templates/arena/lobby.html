@@ -155,8 +155,32 @@ var MY_CARD = {{ selected_card|default:"null" }};
 startPolling();
 buildMasterBoard();
 
+(function buildGrid() {
+  try {
+    var grid = document.getElementById('card-grid');
+    if (!grid) return;
+    for (var i = 1; i <= 100; i++) {
+      var cell = document.createElement('div');
+      cell.className = 'card-cell available';
+      cell.dataset.card = i;
+      cell.textContent = i;
+      cell.onclick = (function(num) { return function() { selectCard(num); }; })(i);
+      grid.appendChild(cell);
+    }
+    if (Object.keys(TAKEN).length > 0) updateCardGrid(TAKEN, MY_CARD);
+  } catch(e) { console.log('Grid error:', e); }
+})();
+
 (function formatBalls() {
-  document.querySelectorAll('.arena-ball, #live-called-row span').forEach(function(ball) {
+  try {
+    document.querySelectorAll('.arena-ball, #live-called-row span').forEach(function(ball) {
+      var n = parseInt(ball.textContent);
+      if (isNaN(n)) return;
+      var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+      ball.textContent = prefix + '-' + String(n).padStart(2, '0');
+    });
+  } catch(e) { console.log('Format error:', e); }
+})();
     var n = parseInt(ball.textContent);
     if (isNaN(n)) return;
     var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
