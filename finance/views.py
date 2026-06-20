@@ -74,7 +74,7 @@ def withdrawal(request):
                 from finance.models import DepositRequest
                 has_deposited = DepositRequest.objects.filter(player=player, status='approved').exists()
                 if player.wins < 1 and not has_deposited:
-                    error = 'You must win at least one game or deposit before withdrawing.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ አሸንፈው ወይም ገንዘብ አስገብተው መሆን አለበት።'
+                    error = 'You must win at least one game before withdrawing.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ አሸንፈው መሆን አለበት።'
                 else:
                     WithdrawalRequest.objects.create(player=player, amount=amount)
                     success = True
