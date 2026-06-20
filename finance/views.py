@@ -72,10 +72,10 @@ def withdrawal(request):
             else:
                 player.refresh_from_db(fields=['games_played', 'coins'])
                 if player.games_played < 1:
-                error = 'Please play at least one game before requesting a withdrawal.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ ይጫወቱ።'
-            else:
-                WithdrawalRequest.objects.create(player=player, amount=amount)
-                success = True
+                    error = 'Please play at least one game before requesting a withdrawal.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ ይጫወቱ።'
+                else:
+                    WithdrawalRequest.objects.create(player=player, amount=amount)
+                    success = True
 
     return render(request, 'finance/withdrawal.html', {
         'player': player,
