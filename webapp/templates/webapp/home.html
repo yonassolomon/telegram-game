@@ -38,6 +38,15 @@
 
   <a href="{% url 'arena:lobby' %}" class="btn btn-primary">🎮 Play Bingo</a>
 
+  <div class="card" style="text-align:center;padding:12px;margin:8px 0;border-color:rgba(255,215,0,0.3);">
+    <div style="font-size:13px;color:var(--neon-gold);font-weight:700;">🎁 Daily Reward +2 💰</div>
+    {% if can_claim_daily %}
+    <button class="btn btn-gold btn-sm" onclick="claimDaily()" id="claim-btn" style="margin:6px 0;">🎁 Claim +2 Coins</button>
+    {% else %}
+    <div style="font-size:12px;color:var(--text-secondary);margin:4px 0;">Next reward in: <span id="daily-timer" style="color:var(--neon-purple);font-weight:700;">{{ next_daily }}</span></div>
+    {% endif %}
+  </div>
+
   <div style="display:flex;gap:8px;margin:8px 0;">
     <a href="{% url 'finance:deposit' %}" class="btn btn-gold btn-sm" style="flex:1;">💰 Deposit</a>
     <a href="{% url 'finance:withdrawal' %}" class="btn btn-purple btn-sm" style="flex:1;">💸 Withdraw</a>

@@ -1,0 +1,58 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="header"><h1>📊 Player Daily Status</h1></div>
+
+<div class="card">
+  <form class="toolbar" method="GET" style="display:flex;gap:8px;align-items:center;">
+    <select name="period" onchange="this.form.submit()">
+      <option value="daily" {% if period == 'daily' %}selected{% endif %}>Daily</option>
+      <option value="weekly" {% if period == 'weekly' %}selected{% endif %}>Weekly</option>
+    </select>
+    <select name="type" onchange="this.form.submit()">
+      <option value="deposits" {% if stat_type == 'deposits' %}selected{% endif %}>Deposits</option>
+      <option value="wins" {% if stat_type == 'wins' %}selected{% endif %}>Wins</option>
+    </select>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    {% if stat_type == 'deposits' %}💰 Deposit Rankings{% else %}🏆 Win Rankings{% endif %}
+    <span style="font-weight:400;color:var(--muted);">({{ period|title }})</span>
+  </div>
+
+  <table>
+    <thead>
+    {% if stat_type == 'deposits' %}
+    <tr><th>Rank</th><th>Player</th><th>TG ID</th><th>Phone</th><th>Total Deposits</th></tr>
+    {% else %}
+    <tr><th>Rank</th><th>Player</th><th>TG ID</th><th>Phone</th><th>Wins</th><th>Games</th><th>Win Rate</th></tr>
+    {% endif %}
+    </thead>
+    <tbody>
+    {% for s in stats %}
+    <tr>
+      <td>
+        {% if s.rank == 1 %}<span class="badge badge-info">🥇</span>
+        {% elif s.rank == 2 %}<span class="badge badge-info">🥈</span>
+        {% elif s.rank == 3 %}<span class="badge badge-info">🥉</span>
+        {% else %}{{ s.rank }}{% endif %}
+      </td>
+      <td>{{ s.player_name }}</td>
+      <td>{{ s.player_tg }}</td>
+      <td style="font-size:12px;">{{ s.phone|default:'—' }}</td>
+      {% if stat_type == 'deposits' %}
+      <td style="font-weight:700;color:var(--neon-gold);">{{ s.total|floatformat:0 }} 💰</td>
+      {% else %}
+      <td>{{ s.wins }}</td>
+      <td>{{ s.games }}</td>
+      <td style="color:var(--neon-green);{% if s.win_rate >= 80 %}font-weight:700;{% endif %}">{{ s.win_rate }}%</td>
+      {% endif %}
+    </tr>
+    {% empty %}
+    <tr><td colspan="{% if stat_type == 'deposits' %}5{% else %}7{% endif %}" style="text-align:center;color:var(--muted);padding:32px;">No statistics available</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

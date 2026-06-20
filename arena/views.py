@@ -47,10 +47,26 @@ def lobby(request):
         if sel:
             selected_card = sel.card_number
 
+    can_claim = player.can_claim_daily()
+    next_daily = ''
+    next_daily_seconds = 0
+    if not can_claim and player.last_daily_bonus:
+        secs = 86400 - (timezone.now() - player.last_daily_bonus).total_seconds()
+        next_daily_seconds = max(0, int(secs))
+        h = next_daily_seconds // 3600
+        m = (next_daily_seconds % 3600) // 60
+        s = next_daily_seconds % 60
+        next_daily = f'{h:02d}:{m:02d}:{s:02d}'
+        if secs <= 0:
+            can_claim = True
+
     return render(request, 'arena/lobby.html', {
         'player': player,
         'round': current,
         'selected_card': selected_card,
+        'can_claim_daily': can_claim,
+        'next_daily': next_daily,
+        'next_daily_seconds': next_daily_seconds,
         'taken_cards_json': json.dumps(taken_cards),
         'my_card_grid': selected_card and _get_card_grid(selected_card, set()) or None,
     })

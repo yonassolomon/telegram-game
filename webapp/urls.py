@@ -21,5 +21,6 @@ urlpatterns = [
     path('api/room/<str:room_code>/state/', views.api_room_state, name='api_state'),
     path('api/room/<str:room_code>/info/', views.api_room_info, name='api_info'),
     path('api/set-language/', views.set_language, name='set_language'),
+    path('api/claim-daily/', views.api_claim_daily, name='api_claim_daily'),
     path('help/', views.help_page, name='help_page'),
 ]

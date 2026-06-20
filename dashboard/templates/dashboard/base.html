@@ -41,6 +41,9 @@
       <a href="{% url 'dashboard:admin_withdrawals' %}" class="{% if request.resolver_match.url_name == 'admin_withdrawals' %}active{% endif %}">
         <span class="icon">💸</span> Withdrawals
       </a>
+      <a href="{% url 'dashboard:player_stats' %}" class="{% if request.resolver_match.url_name == 'player_stats' %}active{% endif %}">
+        <span class="icon">📊</span> Player Stats
+      </a>
       <a href="{% url 'dashboard:house_fees' %}" class="{% if request.resolver_match.url_name == 'house_fees' %}active{% endif %}">
         <span class="icon">🏦</span> House Fees
       </a>

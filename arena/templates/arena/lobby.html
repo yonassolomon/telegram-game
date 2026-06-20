@@ -33,7 +33,15 @@
 </div>
 
 <div class="container">
-  <div id="arena-refresh-btn" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+  <div id="arena-refresh-btn" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+    <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid rgba(255,215,0,0.2);border-radius:8px;padding:4px 10px;font-size:11px;">
+      <span style="color:var(--neon-gold);">🎁+2</span>
+      {% if can_claim_daily %}
+      <button class="btn btn-gold btn-sm" onclick="claimDaily()" id="claim-daily-btn" style="padding:2px 8px;font-size:10px;">Claim</button>
+      {% else %}
+      <span id="daily-timer-display" style="color:var(--neon-purple);font-weight:700;min-width:60px;">{{ next_daily }}</span>
+      {% endif %}
+    </div>
     <button class="btn btn-outline btn-sm" onclick="location.reload()" style="margin-left:auto;">🔄 Refresh</button>
   </div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
@@ -489,12 +497,53 @@ window.addEventListener('beforeunload', function() {
 });
 
 function showToast(msg) {
-  var el = document.createElement('div');
-  el.className = 'toast'; el.textContent = msg;
-  var c = document.getElementById('toast-container');
-  if (c) c.appendChild(el);
-  setTimeout(function() { el.remove(); }, 3000);
+  var el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  (document.getElementById('toast-container')||document.body).appendChild(el);
+  setTimeout(function(){el.remove();},3000);
 }
+
+function claimDaily() {
+  var btn = document.getElementById('claim-daily-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  fetch('/webapp/api/claim-daily/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+  }).then(function(r){return r.json()}).then(function(d){
+    if (d.error) { showToast(d.error); if(btn){btn.disabled=false;btn.textContent='Claim';} return; }
+    showToast('+2 coins added!');
+    var parent = btn.parentElement;
+    if (parent) {
+      parent.innerHTML = '<span style="color:var(--neon-gold);">🎁+2</span> <span id="daily-timer-display" style="color:var(--neon-purple);font-weight:700;min-width:60px;">23:59:59</span>';
+      startDailyTimer(86400);
+    }
+  });
+}
+
+var dailySeconds = {{ next_daily_seconds|default:0 }};
+function startDailyTimer(secs) {
+  dailySeconds = secs || dailySeconds;
+  var timer = setInterval(function() {
+    if (dailySeconds <= 0) {
+      clearInterval(timer);
+      var disp = document.getElementById('daily-timer-display');
+      if (disp) {
+        var p = disp.parentElement;
+        p.innerHTML = '<span style="color:var(--neon-gold);">🎁+2</span>' +
+          '<button class="btn btn-gold btn-sm" onclick="claimDaily()" id="claim-daily-btn" style="padding:2px 8px;font-size:10px;">Claim</button>';
+      }
+      return;
+    }
+    dailySeconds--;
+    var h = Math.floor(dailySeconds / 3600);
+    var m = Math.floor((dailySeconds % 3600) / 60);
+    var s = dailySeconds % 60;
+    var disp = document.getElementById('daily-timer-display');
+    if (disp) disp.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  }, 1000);
+}
+{% if not can_claim_daily and next_daily_seconds > 0 %}
+startDailyTimer({{ next_daily_seconds }});
+{% endif %}
 function launchConfetti() {
   var colors = ['#ffd700','#ff2d78','#00e5ff','#b44dff','#00ff88'];
   for (var i = 0; i < 60; i++) {

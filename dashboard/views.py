@@ -740,6 +740,67 @@ def api_reset_totals(request):
     return JsonResponse({'success': True, 'day': next_day})
 
 
+@admin_required
+def player_stats(request):
+    from django.db.models import Sum, Count, Q
+    from django.db.models.functions import TruncDate
+    from datetime import timedelta
+
+    period = request.GET.get('period', 'daily')
+    stat_type = request.GET.get('type', 'deposits')
+
+    now = timezone.now()
+    if period == 'weekly':
+        start_date = now - timedelta(days=now.weekday())
+        start_date = start_date.replace(hour=0, minute=0, second=0)
+    else:
+        start_date = now.replace(hour=0, minute=0, second=0)
+
+    stats = []
+    if stat_type == 'deposits':
+        deposits = Transaction.objects.filter(
+            transaction_type='deposit', created_at__gte=start_date
+        ).values('player__id', 'player__first_name', 'player__telegram_id', 'player__phone_number').annotate(
+            total=Sum('amount')
+        ).order_by('-total')[:50]
+
+        rank = 1
+        for d in deposits:
+            stats.append({
+                'rank': rank,
+                'player_name': d['player__first_name'],
+                'player_tg': d['player__telegram_id'],
+                'phone': d.get('player__phone_number', ''),
+                'total': d['total'],
+            })
+            rank += 1
+    else:
+        from django.db.models import Count
+        players = Player.objects.filter(games_played__gt=0).annotate(
+            period_wins=Count('transactions', filter=Q(transactions__transaction_type='game_win', transactions__created_at__gte=start_date)),
+            period_games=Count('transactions', filter=Q(transactions__transaction_type__in=('game_win', 'game_entry', 'draw_refund'), transactions__created_at__gte=start_date)),
+        ).order_by('-period_wins')[:50]
+        rank = 1
+        for p in players:
+            rate = round(p.period_wins / max(p.games_played, 1) * 100)
+            stats.append({
+                'rank': rank,
+                'player_name': p.first_name,
+                'player_tg': p.telegram_id,
+                'phone': p.phone_number,
+                'wins': p.period_wins,
+                'games': p.period_games,
+                'win_rate': rate,
+            })
+            rank += 1
+
+    return render(request, 'dashboard/player_stats.html', {
+        'stats': stats,
+        'period': period,
+        'stat_type': stat_type,
+    })
+
+
 # ═══ Finance Admin ═══
 
 

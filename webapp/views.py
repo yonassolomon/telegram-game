@@ -684,6 +684,21 @@ def help_page(request):
 
 @csrf_exempt
 @require_POST
+def api_claim_daily(request):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+    if not player.can_claim_daily():
+        return JsonResponse({'error': 'Already claimed today'}, status=400)
+    player.coins = db_models.F('coins') + 2
+    player.last_daily_bonus = timezone.now()
+    player.save(update_fields=['coins', 'last_daily_bonus'])
+    player.refresh_from_db()
+    return JsonResponse({'success': True, 'coins': player.coins})
+
+
+@csrf_exempt
+@require_POST
 def set_language(request):
     player = get_player_from_request(request)
     lang = request.POST.get('lang', 'en')
