@@ -44,9 +44,12 @@ def _handle_start(telegram_id, username, first_name, args):
             pass
 
     if created:
+        player.coins = 30
+        player.registration_bonus_claimed = True
+        player.save(update_fields=['coins', 'registration_bonus_claimed'])
         text = (
             f"🎉 *Welcome to Bingo2Bingo, {player.first_name or player.username}!*\n\n"
-            f"🪙 You received *30 starter coins*!\n"
+            f"🪙 You received *30 bonus coins*!\n"
             f"🎮 Play bingo, win big, and climb the leaderboard!\n\n"
             f"👇 Choose an option below:"
         )

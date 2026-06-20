@@ -64,6 +64,7 @@ def tick():
         return
 
     if round_obj.status == 'waiting':
+        close_old_connections()
         if not round_obj.waiting_started_at:
             round_obj.waiting_started_at = timezone.now()
             round_obj.save(update_fields=['waiting_started_at'])
@@ -108,6 +109,7 @@ def tick():
         return
 
     if round_obj.status == 'active':
+        close_old_connections()
         if round_obj.call_mode == 'manual':
             _check_manual_winner(round_obj)
             return

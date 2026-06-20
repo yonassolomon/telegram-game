@@ -15,6 +15,7 @@ class Player(models.Model):
     xp = models.BigIntegerField(default=0)
     level = models.IntegerField(default=1)
     referral_code = models.CharField(max_length=32, unique=True, blank=True)
+    registration_bonus_claimed = models.BooleanField(default=False)
     invited_by = models.ForeignKey(
         'self', null=True, blank=True,
         on_delete=models.SET_NULL,
