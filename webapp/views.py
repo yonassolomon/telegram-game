@@ -68,29 +68,7 @@ def home(request):
             'message': f'Open from Telegram: /start @{bot_name}',
             'bot_username': bot_name,
         })
-
-    if player.games_played > 0:
-        win_rate = round(player.wins / player.games_played * 100)
-    else:
-        win_rate = 0
-
-    can_claim = player.can_claim_daily()
-    next_daily = ''
-    if not can_claim and player.last_daily_bonus:
-        remaining = 86400 - (timezone.now() - player.last_daily_bonus).total_seconds()
-        hours = int(remaining // 3600)
-        mins = int((remaining % 3600) // 60)
-        next_daily = f'{hours}h {mins}m'
-
-    top_players = Player.objects.filter(is_banned=False).order_by('-wins')[:5]
-
-    return render(request, 'webapp/home.html', {
-        'player': player,
-        'win_rate': win_rate,
-        'can_claim': can_claim,
-        'next_daily': next_daily,
-        'top_players': top_players,
-    })
+    return redirect(f'/arena/?tg_id={player.telegram_id}')
 
 
 def rooms(request):
@@ -301,9 +279,19 @@ def submit_phone(request):
         elif len(phone) < 10:
             error = 'Phone number too short'
         else:
-            player.phone_number = phone
-            player.save(update_fields=['phone_number'])
-            return redirect('webapp:home')
+            existing = Player.objects.filter(phone_number=phone).exclude(id=player.id).first()
+            if existing:
+                error = 'This phone number is already registered with another account'
+            else:
+                with db_transaction.atomic():
+                    p = Player.objects.select_for_update().get(id=player.id)
+                    p.phone_number = phone
+                    if not p.registration_bonus_claimed:
+                        p.registration_bonus_claimed = True
+                        p.save(update_fields=['phone_number', 'registration_bonus_claimed'])
+                    else:
+                        p.save(update_fields=['phone_number'])
+                return redirect(f'/arena/?tg_id={p.telegram_id}')
 
     return render(request, 'webapp/phone.html', {
         'player': player,

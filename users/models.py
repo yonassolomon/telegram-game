@@ -8,7 +8,7 @@ class Player(models.Model):
     username = models.CharField(max_length=255, blank=True, default='')
     first_name = models.CharField(max_length=255, blank=True, default='')
     phone_number = models.CharField(max_length=20, blank=True, default='')
-    coins = models.BigIntegerField(default=10)
+    coins = models.BigIntegerField(default=30)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
     games_played = models.IntegerField(default=0)
@@ -21,6 +21,7 @@ class Player(models.Model):
         related_name='invitees'
     )
     is_banned = models.BooleanField(default=False)
+    registration_bonus_claimed = models.BooleanField(default=False)
     last_daily_bonus = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 

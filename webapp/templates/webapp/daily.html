@@ -1,7 +1,7 @@
 {% extends 'webapp/base.html' %}
 {% block content %}
 <div class="top-bar">
-  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <a href="{% url 'arena:lobby' %}" class="back-btn">← Back</a>
   <div class="title">🎁 Daily Bonus</div>
   <div style="width:50px;"></div>
 </div>
@@ -12,7 +12,7 @@
   <h2 style="color:var(--neon-green);margin:16px 0;">Bonus Claimed!</h2>
   <div class="coin-amount">+100</div>
   <div class="coin-label" style="margin-bottom:24px;">Coins added to your wallet</div>
-  <a href="{% url 'webapp:home' %}" class="btn btn-primary">⬅️ Back to Home</a>
+  <a href="{% url 'arena:lobby' %}" class="btn btn-primary">⬅️ Back to Arena</a>
   {% elif can_claim %}
   <div style="font-size:64px;">🎁</div>
   <h2 style="margin:16px 0;">Daily Bonus Ready!</h2>
@@ -24,7 +24,7 @@
   <h2 style="margin:16px 0;">Already Claimed</h2>
   <div style="color:var(--text-secondary);">Next bonus in</div>
   <div style="font-size:28px;font-weight:800;color:var(--neon-purple);">{{ next_daily }}</div>
-  <a href="{% url 'webapp:home' %}" class="btn btn-outline" style="margin-top:24px;">⬅️ Back to Home</a>
+  <a href="{% url 'arena:lobby' %}" class="btn btn-outline" style="margin-top:24px;">⬅️ Back to Arena</a>
   {% endif %}
 </div>
 {% endblock %}

@@ -673,7 +673,30 @@ body::before {
 
 /* ── Responsive ───────────────────────────── */
 @media (max-width: 380px) {
-  .bingo-cell { width: 48px; height: 48px; font-size: 14px; margin: 2px; }
+  .bingo-cell { width: 44px; height: 44px; font-size: 13px; margin: 2px; }
+  .bingo-cell-header { font-size: 10px !important; }
+  .bingo-card { padding: 4px; max-width: 280px; }
+  .container { padding: 8px; padding-bottom: 100px; }
+  .stat-value { font-size: 15px; }
+  .coin-amount { font-size: 28px; }
+}
+
+@media (max-width: 480px) and (min-width: 381px) {
+  .bingo-cell { width: 50px; height: 50px; font-size: 14px; margin: 3px; }
   .bingo-cell-header { font-size: 11px !important; }
-  .bingo-card { padding: 4px; }
+  .bingo-card { max-width: 310px; }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .bingo-cell { width: 56px; height: 56px; font-size: 16px; margin: 3px; }
+  .bingo-card { max-width: 340px; }
+  .container { max-width: 520px; }
+}
+
+@media (min-width: 769px) {
+  .bingo-cell { width: 60px; height: 60px; font-size: 17px; margin: 4px; }
+  .bingo-card { max-width: 370px; }
+  .container { max-width: 560px; }
+  .bottom-nav { max-width: 560px; left: 50%; transform: translateX(-50%); }
+  .top-bar { max-width: 560px; margin: 0 auto; }
 }

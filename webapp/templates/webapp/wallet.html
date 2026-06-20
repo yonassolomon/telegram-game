@@ -1,7 +1,7 @@
 {% extends 'webapp/base.html' %}
 {% block content %}
 <div class="top-bar">
-  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <a href="{% url 'arena:lobby' %}" class="back-btn">← Back</a>
   <div class="title">👛 Wallet</div>
   <div style="width:50px;"></div>
 </div>
@@ -12,20 +12,11 @@
     <div class="coin-label">Coins</div>
   </div>
 
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-value">{{ player.wins }}</div>
-      <div class="stat-label">Wins</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">{{ player.games_played }}</div>
-      <div class="stat-label">Games</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">{{ player.level }}</div>
-      <div class="stat-label">Level</div>
-    </div>
+  <div style="display:flex;gap:8px;margin:12px 0;">
+    <a href="{% url 'finance:deposit' %}" class="btn btn-gold btn-sm" style="flex:1;">💰 Deposit</a>
+    <a href="{% url 'finance:withdrawal' %}" class="btn btn-purple btn-sm" style="flex:1;">💸 Withdraw</a>
   </div>
+  <a href="{% url 'arena:lobby' %}" class="btn btn-primary" style="margin:4px 0 12px;">🎮 Play Bingo</a>
 
   <div class="card">
     <div class="card-header">📊 Transaction History</div>
@@ -44,28 +35,4 @@
     {% endfor %}
   </div>
 </div>
-
-<nav class="bottom-nav">
-  <a href="{% url 'webapp:home' %}">
-    <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
-  </a>
-  <a href="{% url 'arena:lobby' %}">
-    <span class="nav-icon">🎮</span><span class="nav-label">Play</span>
-  </a>
-  <a href="{% url 'webapp:create_room' %}">
-    <span class="nav-icon">➕</span><span class="nav-label">Create</span>
-  </a>
-  <a href="{% url 'webapp:join_private' %}">
-    <span class="nav-icon">🔑</span><span class="nav-label">Join</span>
-  </a>
-  <a href="{% url 'webapp:my_rooms' %}">
-    <span class="nav-icon">👤</span><span class="nav-label">Rooms</span>
-  </a>
-  <a href="{% url 'webapp:leaderboard' %}">
-    <span class="nav-icon">🏆</span><span class="nav-label">Board</span>
-  </a>
-  <a href="{% url 'webapp:wallet' %}" class="active">
-    <span class="nav-icon">👛</span><span class="nav-label">Wallet</span>
-  </a>
-</nav>
 {% endblock %}

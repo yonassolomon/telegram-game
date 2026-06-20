@@ -1,7 +1,7 @@
 {% extends 'webapp/base.html' %}
 {% block content %}
 <div class="top-bar">
-  <a href="{% url 'webapp:home' %}" class="back-btn">← Back</a>
+  <a href="{% url 'webapp:wallet' %}" class="back-btn">← Back</a>
   <div class="title">💰 Deposit</div>
   <div style="width:50px;"></div>
 </div>
@@ -12,7 +12,7 @@
     <div style="font-size:64px;">✅</div>
     <h2 style="color:var(--neon-green);margin:16px 0;">የገንዘብ ማስገቢያ ጥያቄዎ ተልኳል</h2>
     <p style="color:var(--text-secondary);">Admin will review your request shortly.</p>
-    <a href="{% url 'webapp:home' %}" class="btn btn-primary" style="margin-top:16px;">⬅️ Back to Home</a>
+    <a href="{% url 'webapp:wallet' %}" class="btn btn-primary" style="margin-top:16px;">⬅️ Back to Wallet</a>
   </div>
   {% else %}
   <div class="card">
