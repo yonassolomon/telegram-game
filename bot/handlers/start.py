@@ -46,7 +46,7 @@ def _handle_start(telegram_id, username, first_name, args):
     if created:
         text = (
             f"🎉 *Welcome to Bingo2Bingo, {player.first_name or player.username}!*\n\n"
-            f"🪙 You received *10 starter coins*!\n"
+            f"🪙 You received *30 starter coins*!\n"
             f"🎮 Play bingo, win big, and climb the leaderboard!\n\n"
             f"👇 Choose an option below:"
         )
@@ -98,11 +98,31 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         def _save_phone():
             from users.models import Player
+            from django.db import transaction as db_transaction
             p = Player.objects.get(telegram_id=update.effective_user.id)
-            p.phone_number = phone
-            p.save(update_fields=['phone_number'])
-            return p.first_name, p.coins
-        name, coins = await sync_to_async(_save_phone)()
+
+            existing = Player.objects.filter(phone_number=phone).exclude(id=p.id).first()
+            if existing:
+                return None, None, 'This phone number is already registered with another account'
+
+            with db_transaction.atomic():
+                p = Player.objects.select_for_update().get(id=p.id)
+                p.phone_number = phone
+                if not p.registration_bonus_claimed:
+                    p.registration_bonus_claimed = True
+                    p.save(update_fields=['phone_number', 'registration_bonus_claimed'])
+                else:
+                    p.save(update_fields=['phone_number'])
+                p.refresh_from_db()
+                return p.first_name, p.coins, None
+
+        name, coins, error = await sync_to_async(_save_phone)()
+
+        if error:
+            await update.message.reply_text(
+                f"⚠️ {error}\n\nPlease use a different phone number.",
+            )
+            return
 
         from telegram import ReplyKeyboardRemove
         await update.message.reply_text(
