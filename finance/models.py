@@ -35,6 +35,7 @@ class WithdrawalRequest(models.Model):
 
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='withdrawal_requests')
     amount = models.BigIntegerField()
+    receiving_number = models.CharField(max_length=20, blank=True, default='')
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     reviewed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(default=timezone.now)

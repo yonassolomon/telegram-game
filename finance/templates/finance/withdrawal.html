@@ -27,6 +27,12 @@
       {% if error %}<div style="color:var(--red);font-size:13px;margin-bottom:8px;">{{ error }}</div>{% endif %}
       <input type="number" name="amount" placeholder="Amount (min 10)" min="10" max="{{ player.coins }}"
         style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:14px;border-radius:var(--radius-sm);font-size:18px;font-weight:700;text-align:center;outline:none;">
+      <div style="margin-top:12px;">
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">የመቀበያ ቁጥር</div>
+        <input type="tel" name="receiving_number" placeholder="0911121314"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:var(--radius-sm);font-size:16px;text-align:center;outline:none;">
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;">ገንዘቡን መቀበል የሚፈልጉበትን ቁጥር ያስገቡ። ቁጥሩን በትክክል መሙላትዎን ያረጋግጡ።</div>
+      </div>
       <button type="submit" class="btn btn-purple" style="margin-top:12px;">📤 Send Request</button>
     </form>
   </div>

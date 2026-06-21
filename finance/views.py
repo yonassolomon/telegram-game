@@ -76,7 +76,11 @@ def withdrawal(request):
                 if player.wins < 1 and not has_deposited:
                     error = 'You must win at least one game before withdrawing.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ አሸንፈው መሆን አለበት።'
                 else:
-                    WithdrawalRequest.objects.create(player=player, amount=amount)
+                    receiving_number = request.POST.get('receiving_number', '')
+                    WithdrawalRequest.objects.create(
+                        player=player, amount=amount,
+                        receiving_number=receiving_number
+                    )
                     success = True
 
     return render(request, 'finance/withdrawal.html', {
