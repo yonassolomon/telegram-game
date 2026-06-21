@@ -27,11 +27,11 @@ async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 )
     kb = None
     if webapp_url and '127.0.0.1' not in webapp_url and 'localhost' not in webapp_url:
-        kb = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📖 ሙሉ መመሪያ / Full Guide", web_app=WebAppInfo(url=webapp_url + 'help/'))
-        ], [
-            InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu")
-        ]])
+       kb = InlineKeyboardMarkup([
+    [
+        InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu")
+    ]
+])
     else:
         from bot.keyboards.inline import help_keyboard
         kb = help_keyboard()
