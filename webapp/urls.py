@@ -22,5 +22,6 @@ urlpatterns = [
     path('api/room/<str:room_code>/info/', views.api_room_info, name='api_info'),
     path('api/set-language/', views.set_language, name='set_language'),
     path('api/claim-daily/', views.api_claim_daily, name='api_claim_daily'),
+    path('api/claim-streak/', views.api_claim_streak, name='api_claim_streak'),
     path('help/', views.help_page, name='help_page'),
 ]

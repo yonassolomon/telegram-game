@@ -16,6 +16,9 @@ class Player(models.Model):
     level = models.IntegerField(default=1)
     referral_code = models.CharField(max_length=32, unique=True, blank=True)
     registration_bonus_claimed = models.BooleanField(default=False)
+    streak_count = models.IntegerField(default=0)
+    last_streak_date = models.DateField(null=True, blank=True)
+    streak_reward_claimed = models.IntegerField(default=0)
     invited_by = models.ForeignKey(
         'self', null=True, blank=True,
         on_delete=models.SET_NULL,

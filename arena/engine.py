@@ -190,6 +190,7 @@ def _award_winner(round_obj, sel, player_count):
         r.save()
         logger.info(f'ARENA WINNER: round={r.round_number} player={sel.player.telegram_id} prize={winner_prize}')
     _start_next_round()
+    _update_streaks(round_obj)
 
 
 def _finish_draw(round_obj):
@@ -208,6 +209,7 @@ def _finish_draw(round_obj):
     round_obj.save(update_fields=['status', 'finished_at'])
     logger.info(f'ARENA DRAW: round={round_obj.round_number}')
     _start_next_round()
+    _update_streaks(round_obj)
 
 
 def _add_bot_players(round_obj, human_count):
@@ -238,6 +240,23 @@ def _add_bot_players(round_obj, human_count):
     GameRound.objects.filter(id=round_obj.id).update(prize_pool=new_prize)
 
     logger.info(f'BOTS JOINED: round={round_obj.round_number} bots={len(chosen)} total={CardSelection.objects.filter(round=round_obj).count()}')
+
+
+def _update_streaks(round_obj):
+    from datetime import timedelta
+    from arena.models import CardSelection
+    today = timezone.now().date()
+    selections = CardSelection.objects.filter(round=round_obj).select_related('player')
+    for sel in selections:
+        p = sel.player
+        if p.last_streak_date == today:
+            continue
+        if p.last_streak_date == today - timedelta(days=1):
+            p.streak_count = db_models.F('streak_count') + 1
+        else:
+            p.streak_count = 1
+        p.last_streak_date = today
+        p.save(update_fields=['streak_count', 'last_streak_date'])
 
 
 def _start_next_round():
