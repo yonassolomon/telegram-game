@@ -11,13 +11,13 @@
   <div style="font-size:64px;">✅</div>
   <h2 style="color:var(--neon-green);margin:16px 0;">Bonus Claimed!</h2>
   <div class="coin-amount">+100</div>
-  <div class="coin-label" style="margin-bottom:24px;">Coins added to your wallet</div>
+    <div class="coin-label" style="margin-bottom:24px;">ብር added to your wallet</div>
   <a href="{% url 'arena:lobby' %}" class="btn btn-primary">⬅️ Back to Arena</a>
   {% elif can_claim %}
   <div style="font-size:64px;">🎁</div>
   <h2 style="margin:16px 0;">Daily Bonus Ready!</h2>
   <div class="coin-amount">+100</div>
-  <div class="coin-label" style="margin-bottom:24px;">Coins</div>
+  <div class="coin-label" style="margin-bottom:24px;">ብር</div>
   <a href="{% url 'webapp:claim_daily' %}" class="btn btn-gold">🎁 Claim Now!</a>
   {% else %}
   <div style="font-size:64px;">⏳</div>
