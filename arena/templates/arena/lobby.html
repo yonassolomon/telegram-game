@@ -375,7 +375,24 @@ function pollState() {
         var g = document.getElementById('arena-game-ui');
         if (g) g.style.display = '';
         var mb = document.getElementById('master-board-container');
-        if (mb) { mb.style.display = ''; buildMasterBoard(); }
+        if (mb) {
+          mb.style.display = '';
+          buildMasterBoard();
+        } else {
+          var waitingUI = document.getElementById('arena-waiting-ui');
+          var notice = document.createElement('div');
+          notice.className = 'card';
+          notice.style.cssText = 'text-align:center;padding:8px;border-color:rgba(255,215,0,0.3);margin-bottom:4px;';
+          notice.innerHTML = '<div style="font-size:13px;color:var(--neon-gold);font-weight:700;">ጨዋታው እስኪጠናቀቅ ድረስ ተመልካች ነዎት</div><div style="font-size:11px;color:var(--text-secondary);">Spectator — wait for next round</div>';
+          var mbDiv = document.createElement('div');
+          mbDiv.id = 'master-board-container';
+          mbDiv.style.cssText = 'overflow-x:auto;margin-bottom:8px;';
+          if (waitingUI) {
+            waitingUI.parentNode.insertBefore(mbDiv, waitingUI);
+            waitingUI.parentNode.insertBefore(notice, mbDiv);
+          }
+          buildMasterBoard();
+        }
         var wb = document.getElementById('arena-wallet-btn');
         if (wb && MY_CARD) wb.style.display = 'none';
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
