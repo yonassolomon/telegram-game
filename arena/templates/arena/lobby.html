@@ -24,6 +24,25 @@
   font-size: 13px; font-weight: 700; color: #fff;
   box-shadow: 0 0 10px rgba(0,229,255,0.3);
 }
+.auto-mark-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px; cursor: pointer;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  transition: all 0.2s; user-select: none;
+}
+.auto-mark-toggle.on { border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 8px rgba(0,229,255,0.15); }
+.auto-mark-toggle.off { border-color: var(--orange); color: var(--orange); }
+.auto-mark-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--neon-cyan);
+  box-shadow: 0 0 6px var(--neon-cyan); transition: background 0.2s;
+}
+.auto-mark-toggle.off .auto-mark-dot { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+.bingo-cell.manual-mode { cursor: pointer; }
+.bingo-cell.manual-called:not(.marked):not(.free) {
+  border-color: rgba(255,145,0,0.4);
+  box-shadow: 0 0 6px rgba(255,145,0,0.15);
+}
 </style>
 
 <div class="top-bar">
@@ -100,7 +119,7 @@
     </div>
     {% endfor %}
   </div>
-  <div style="text-align:center;padding:8px 0;" id="live-called-row">
+  <div style="text-align:center;padding:4px 0;" id="live-called-row">
     {% with last=round.numbers_called|last %}
     {% if last %}
     <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
@@ -108,6 +127,11 @@
     {% endwith %}
   </div>
   {% endif %}
+  <div style="text-align:center;margin:4px 0;" id="auto-mark-container">
+    <button class="auto-mark-toggle on" id="auto-mark-btn" onclick="toggleAutoMark()">
+      <span class="auto-mark-dot"></span> Auto Mark: ON
+    </button>
+  </div>
   <div class="card">
     <div class="card-header">🎯 Called Numbers <span id="called-count">({{ round.numbers_called|length }})</span></div>
     <div class="arena-numbers" id="called-numbers-display">
@@ -167,9 +191,85 @@ var TG_ID = '{{ player.telegram_id }}';
 var POLL_TIMER = null;
 var TAKEN = {{ taken_cards_json|default:"{}"|safe }};
 var MY_CARD = {{ selected_card|default:"null" }};
+var CALLED_NUMS = {{ round.numbers_called|default:"[]"|safe }};
+var AUTO_MARK = localStorage.getItem('arenaAutoMark') !== 'off';
+
+function initAutoMark() {
+  var btn = document.getElementById('auto-mark-btn');
+  if (!btn) return;
+  btn.className = 'auto-mark-toggle ' + (AUTO_MARK ? 'on' : 'off');
+  btn.innerHTML = '';
+  var d = document.createElement('span'); d.className = 'auto-mark-dot'; btn.appendChild(d);
+  btn.appendChild(document.createTextNode(' Auto Mark: ' + (AUTO_MARK ? 'ON' : 'OFF')));
+  stripServerMarks();
+  updateBingoCardStyle();
+}
+
+function toggleAutoMark() {
+  AUTO_MARK = !AUTO_MARK;
+  localStorage.setItem('arenaAutoMark', AUTO_MARK ? 'on' : 'off');
+  initAutoMark();
+  if (AUTO_MARK) {
+    updateBingoCardStyle();
+  } else {
+    updateBingoCardStyle();
+    showToast('🔧 Manual marking: tap called numbers on your card to mark them.');
+  }
+}
+
+function updateBingoCardStyle() {
+  var cardEl = document.getElementById('my-bingo-card');
+  if (!cardEl) return;
+  var allCells = cardEl.querySelectorAll('.bingo-cell[data-num]');
+  allCells.forEach(function(cell) {
+    if (AUTO_MARK) {
+      cell.classList.remove('manual-mode', 'manual-called');
+    } else {
+      cell.classList.add('manual-mode');
+      var num = parseInt(cell.dataset.num);
+      if (CALLED_NUMS.indexOf(num) !== -1 && !cell.classList.contains('free')) {
+        cell.classList.add('manual-called');
+      } else {
+        cell.classList.remove('manual-called');
+      }
+    }
+  });
+}
+
+function stripServerMarks() {
+  if (AUTO_MARK) return;
+  var cardEl = document.getElementById('my-bingo-card');
+  if (!cardEl) return;
+  cardEl.querySelectorAll('.bingo-cell.marked[data-num]').forEach(function(c) {
+    c.classList.remove('marked');
+  });
+}
+
+function attachCellClickHandlers() {
+  var cardEl = document.getElementById('my-bingo-card');
+  if (!cardEl) return;
+  var cells = cardEl.querySelectorAll('.bingo-cell[data-num]');
+  cells.forEach(function(cell) {
+    cell.onclick = function() { return handleCellClick(cell); };
+  });
+}
+
+function handleCellClick(cell) {
+  if (AUTO_MARK) return;
+  if (cell.classList.contains('free')) return;
+  var num = parseInt(cell.dataset.num);
+  if (CALLED_NUMS.indexOf(num) === -1) {
+    showToast('This number has not been called yet.\nይህ ቁጥር ገና አልተጠራም።');
+    return;
+  }
+  cell.classList.toggle('marked');
+  cell.classList.toggle('manual-called');
+}
 
 startPolling();
 buildMasterBoard();
+initAutoMark();
+attachCellClickHandlers();
 
 (function formatBalls() {
   document.querySelectorAll('.arena-ball, #live-called-row span').forEach(function(ball) {
@@ -238,7 +338,7 @@ function pollState() {
         TAKEN = d.taken_cards;
         updateCardGrid(d.taken_cards, d.my_card);
       }
-      if (d.called_numbers) { updateCalledNumbers(d.called_numbers); updateMasterBoard(d.called_numbers); }
+      if (d.called_numbers) { CALLED_NUMS = d.called_numbers; updateCalledNumbers(d.called_numbers); updateMasterBoard(d.called_numbers); }
       if (d.my_card_grid && STATUS === 'active') updateBingoCard(d.my_card_grid);
 
       if (d.is_winner) {
@@ -280,6 +380,7 @@ function pollState() {
         if (wb && MY_CARD) wb.style.display = 'none';
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
       if (d.called_numbers) {
+        CALLED_NUMS = d.called_numbers;
         updateCalledNumbers(d.called_numbers);
         updateMasterBoard(d.called_numbers);
       }
@@ -397,29 +498,34 @@ function renderBingoCard(grid, cardNum) {
       var c = document.createElement('div');
       c.className = 'bingo-cell';
       if (cell.free) c.classList.add('free');
-      if (cell.marked && !cell.free) c.classList.add('marked');
+      if (AUTO_MARK && cell.marked && !cell.free) c.classList.add('marked');
       c.dataset.num = cell.num;
       c.textContent = cell.display;
       r.appendChild(c);
     });
     card.appendChild(r);
   });
-  var calledDiv = g.querySelector('#called-numbers-display');
-  if (calledDiv) g.insertBefore(card, calledDiv.parentNode);
-  else g.insertBefore(card, g.querySelector('.card'));
+  var insertBefore = g.querySelector('#auto-mark-container') || g.querySelector('.card');
+  if (insertBefore) g.insertBefore(card, insertBefore);
+  else g.appendChild(card);
+  attachCellClickHandlers();
+  updateBingoCardStyle();
 }
 
 function updateBingoCard(grid) {
   var cardEl = document.getElementById('my-bingo-card');
   if (!cardEl) return;
-  var rows = cardEl.querySelectorAll('.bingo-row');
-  for (var r = 1; r < rows.length; r++) {
-    var cells = rows[r].querySelectorAll('.bingo-cell');
-    for (var c = 0; c < cells.length; c++) {
-      var cellData = grid[r-1][c];
-      if (cellData.marked && !cellData.free) cells[c].classList.add('marked');
+  if (AUTO_MARK) {
+    var rows = cardEl.querySelectorAll('.bingo-row');
+    for (var r = 1; r < rows.length; r++) {
+      var cells = rows[r].querySelectorAll('.bingo-cell');
+      for (var c = 0; c < cells.length; c++) {
+        var cellData = grid[r-1][c];
+        if (cellData.marked && !cellData.free) cells[c].classList.add('marked');
+      }
     }
   }
+  updateBingoCardStyle();
 }
 
 function selectCard(num) {
