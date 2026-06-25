@@ -230,6 +230,33 @@ var AUTO_MARK = localStorage.getItem('arenaAutoMark') !== 'off';
 var VOICE_ON = localStorage.getItem('arenaVoice') === 'on';
 var LAST_SPOKEN_IDX = CALLED_NUMS.length;
 
+var AMH_NUMS = [
+  '', 'አንድ','ሁለት','ሶስት','አራት','አምስት','ስድስት','ሰባት','ስምንት','ዘጠኝ',
+  'አስር','አስራ አንድ','አስራ ሁለት','አስራ ሶስት','አስራ አራት','አስራ አምስት','አስራ ስድስት','አስራ ሰባት','አስራ ስምንት','አስራ ዘጠኝ',
+  'ሀያ','ሀያ አንድ','ሀያ ሁለት','ሀያ ሶስት','ሀያ አራት','ሀያ አምስት','ሀያ ስድስት','ሀያ ሰባት','ሀያ ስምንት','ሀያ ዘጠኝ',
+  'ሰላሳ','ሰላሳ አንድ','ሰላሳ ሁለት','ሰላሳ ሶስት','ሰላሳ አራት','ሰላሳ አምስት','ሰላሳ ስድስት','ሰላሳ ሰባት','ሰላሳ ስምንት','ሰላሳ ዘጠኝ',
+  'አርባ','አርባ አንድ','አርባ ሁለት','አርባ ሶስት','አርባ አራት','አርባ አምስት','አርባ ስድስት','አርባ ሰባት','አርባ ስምንት','አርባ ዘጠኝ',
+  'ሃምሳ','ሃምሳ አንድ','ሃምሳ ሁለት','ሃምሳ ሶስት','ሃምሳ አራት','ሃምሳ አምስት','ሃምሳ ስድስት','ሃምሳ ሰባት','ሃምሳ ስምንት','ሃምሳ ዘጠኝ',
+  'ስልሳ','ስልሳ አንድ','ስልሳ ሁለት','ስልሳ ሶስት','ስልሳ አራት','ስልሳ አምስት','ስልሳ ስድስት','ስልሳ ሰባት','ስልሳ ስምንት','ስልሳ ዘጠኝ',
+  'ሰባ','ሰባ አንድ','ሰባ ሁለት','ሰባ ሶስት','ሰባ አራት','ሰባ አምስት'
+];
+var AMH_LETTERS = ['ቢ','አይ','ኤን','ጂ','ኦ'];
+
+var AMHARIC_VOICE = null;
+function cacheVoices() {
+  var voices = speechSynthesis.getVoices();
+  for (var i = 0; i < voices.length; i++) {
+    if (voices[i].lang.indexOf('am') === 0) {
+      AMHARIC_VOICE = voices[i];
+      return;
+    }
+  }
+}
+if (window.speechSynthesis) {
+  cacheVoices();
+  speechSynthesis.onvoiceschanged = cacheVoices;
+}
+
 function initVoice() {
   var btn = document.getElementById('voice-btn');
   if (!btn) return;
@@ -247,8 +274,18 @@ function toggleVoice() {
 }
 
 function speakNumber(n) {
-  var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
-  var utterance = new SpeechSynthesisUtterance(prefix + ' ' + n);
+  if (!window.speechSynthesis) return null;
+  var utterance;
+  if (AMHARIC_VOICE) {
+    var col = n <= 15 ? 0 : n <= 30 ? 1 : n <= 45 ? 2 : n <= 60 ? 3 : 4;
+    utterance = new SpeechSynthesisUtterance(AMH_LETTERS[col] + ' ' + AMH_NUMS[n]);
+    utterance.lang = 'am-ET';
+    utterance.voice = AMHARIC_VOICE;
+  } else {
+    var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+    utterance = new SpeechSynthesisUtterance(prefix + ' ' + n);
+    utterance.lang = 'en-US';
+  }
   utterance.rate = 0.85;
   utterance.pitch = 1.1;
   utterance.volume = 0.9;
