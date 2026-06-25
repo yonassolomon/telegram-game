@@ -57,6 +57,18 @@
   box-shadow: 0 0 6px var(--neon-green); transition: background 0.2s;
 }
 .voice-toggle.off .voice-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.active-game-layout {
+  display: flex; gap: 8px; margin: 4px 0; align-items: flex-start;
+}
+.active-game-layout .master-col { flex: 1; min-width: 0; overflow-x: auto; }
+.active-game-layout .player-col { flex: 1; min-width: 0; }
+@media (max-width: 480px) {
+  .active-game-layout .master-col { flex: 0 0 55%; }
+  .active-game-layout .player-col { flex: 0 0 45%; }
+  .active-game-layout .bingo-cell { width: 14vw; height: 14vw; max-width: 40px; max-height: 40px; font-size: 11px; margin: 1px; }
+  .active-game-layout .bingo-cell-header { font-size: 9px !important; }
+  .active-game-layout .bingo-cell.free { font-size: 14px; }
+}
 </style>
 
 <div class="top-bar">
@@ -104,8 +116,8 @@
     <div style="font-size:13px;color:var(--neon-gold);font-weight:700;">ጨዋታው እስኪጠናቀቅ ድረስ ተመልካች ነዎት</div>
     <div style="font-size:11px;color:var(--text-secondary);">Spectator — wait for next round</div>
   </div>
-  <div id="master-board-container" style="overflow-x:auto;margin-bottom:8px;"></div>
   {% endif %}
+  <div id="master-board-container" style="overflow-x:auto;margin-bottom:8px;"></div>
 
   <div id="arena-waiting-ui"
     {% if round.status == 'active' or round.status == 'finished' %}style="display:none;"{% endif %}>
@@ -121,24 +133,29 @@
   <div id="arena-game-ui"
     {% if round.status != 'active' or not selected_card %}style="display:none;"{% endif %}>
   {% if my_card_grid %}
-  <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:8px auto;">
-    <div class="bingo-row">
-      <div class="bingo-cell bingo-cell-header">B</div><div class="bingo-cell bingo-cell-header">I</div><div class="bingo-cell bingo-cell-header">N</div><div class="bingo-cell bingo-cell-header">G</div><div class="bingo-cell bingo-cell-header">O</div>
+  <div class="active-game-layout" id="active-game-layout">
+    <div class="master-col" id="master-board-side" style="overflow-x:auto;"></div>
+    <div class="player-col">
+      <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:0 auto;">
+        <div class="bingo-row">
+          <div class="bingo-cell bingo-cell-header">B</div><div class="bingo-cell bingo-cell-header">I</div><div class="bingo-cell bingo-cell-header">N</div><div class="bingo-cell bingo-cell-header">G</div><div class="bingo-cell bingo-cell-header">O</div>
+        </div>
+        {% for row in my_card_grid %}
+        <div class="bingo-row">
+          {% for cell in row %}
+          <div class="bingo-cell {% if cell.free %}free{% endif %} {% if cell.marked %}marked{% endif %}" data-num="{{ cell.num }}">{{ cell.display }}</div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      <div style="text-align:center;padding:4px 0;" id="live-called-row">
+        {% with last=round.numbers_called|last %}
+        {% if last %}
+        <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
+        {% endif %}
+        {% endwith %}
+      </div>
     </div>
-    {% for row in my_card_grid %}
-    <div class="bingo-row">
-      {% for cell in row %}
-      <div class="bingo-cell {% if cell.free %}free{% endif %} {% if cell.marked %}marked{% endif %}" data-num="{{ cell.num }}">{{ cell.display }}</div>
-      {% endfor %}
-    </div>
-    {% endfor %}
-  </div>
-  <div style="text-align:center;padding:4px 0;" id="live-called-row">
-    {% with last=round.numbers_called|last %}
-    {% if last %}
-    <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
-    {% endif %}
-    {% endwith %}
   </div>
   {% endif %}
   <div style="text-align:center;margin:4px 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;" id="toggle-row">
@@ -324,7 +341,7 @@ function handleCellClick(cell) {
 }
 
 startPolling();
-buildMasterBoard();
+buildAllMasterBoards();
 initAutoMark();
 initVoice();
 attachCellClickHandlers();
@@ -352,10 +369,11 @@ attachCellClickHandlers();
   if (Object.keys(TAKEN).length > 0) updateCardGrid(TAKEN, MY_CARD);
 })();
 
-function buildMasterBoard() {
-  var container = document.getElementById('master-board-container');
+function buildMasterBoard(container) {
+  container = container || document.getElementById('master-board-container');
   if (!container) return;
-  var html = '<table id="master-bingo-board" style="width:100%;border-collapse:collapse;font-size:10px;text-align:center;">';
+  var id = container.id === 'master-board-container' ? 'master-bingo-board' : 'master-bingo-board-side';
+  var html = '<table id="' + id + '" style="width:100%;border-collapse:collapse;font-size:10px;text-align:center;">';
   html += '<thead><tr><th style="background:var(--bg-primary);color:var(--neon-purple);padding:3px;">B</th><th style="background:var(--bg-primary);color:var(--neon-purple);padding:3px;">I</th><th style="background:var(--bg-primary);color:var(--neon-purple);padding:3px;">N</th><th style="background:var(--bg-primary);color:var(--neon-purple);padding:3px;">G</th><th style="background:var(--bg-primary);color:var(--neon-purple);padding:3px;">O</th></tr></thead><tbody>';
   for (var r = 0; r < 15; r++) {
     html += '<tr>';
@@ -367,6 +385,12 @@ function buildMasterBoard() {
   }
   html += '</tbody></table>';
   container.innerHTML = html;
+}
+
+function buildAllMasterBoards() {
+  buildMasterBoard(document.getElementById('master-board-container'));
+  var side = document.getElementById('master-board-side');
+  if (side) buildMasterBoard(side);
 }
 
 function startPolling() {
@@ -489,6 +513,13 @@ function pollState() {
         }
         return;
       }
+
+      var isActive = d.status === 'active';
+      var hasCard = MY_CARD !== null;
+      var mbGlobal = document.getElementById('master-board-container');
+      if (mbGlobal) mbGlobal.style.display = (isActive && hasCard) ? 'none' : '';
+      var mbSide = document.getElementById('master-board-side');
+      if (mbSide) mbSide.style.display = (isActive && hasCard) ? '' : 'none';
     });
 }
 
@@ -509,7 +540,7 @@ function updateCardGrid(taken, myCard) {
 }
 
 function updateMasterBoard(called) {
-  var cells = document.querySelectorAll('#master-bingo-board td[data-num]');
+  var cells = document.querySelectorAll('#master-bingo-board td[data-num], #master-bingo-board-side td[data-num]');
   cells.forEach(function(td) {
     var n = parseInt(td.dataset.num);
     if (called.indexOf(n) !== -1 && !td.classList.contains('master-called')) {
@@ -545,8 +576,10 @@ function updateCalledNumbers(nums) {
 function renderBingoCard(grid, cardNum) {
   var g = document.getElementById('arena-game-ui');
   if (!g) return;
-  var existing = g.querySelector('.bingo-card');
+  var existing = g.querySelector('.active-game-layout');
   if (existing) existing.remove();
+  var existingCard = g.querySelector('.bingo-card');
+  if (existingCard) existingCard.remove();
   var existingNum = g.querySelector('[style*="Your card"]');
   if (existingNum) existingNum.remove();
 
@@ -555,14 +588,21 @@ function renderBingoCard(grid, cardNum) {
   numDiv.textContent = 'Your card: #' + (cardNum || '');
   g.insertBefore(numDiv, g.firstChild);
 
-  var liveRow = document.createElement('div');
-  liveRow.id = 'live-called-row';
-  liveRow.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;justify-content:center;padding:4px 0;';
-  g.insertBefore(liveRow, numDiv.nextSibling);
+  var layout = document.createElement('div');
+  layout.className = 'active-game-layout';
+  layout.id = 'active-game-layout';
+
+  var masterCol = document.createElement('div');
+  masterCol.className = 'master-col';
+  masterCol.id = 'master-board-side';
+  layout.appendChild(masterCol);
+
+  var playerCol = document.createElement('div');
+  playerCol.className = 'player-col';
 
   var card = document.createElement('div');
   card.className = 'bingo-card'; card.id = 'my-bingo-card';
-  card.style.cssText = 'max-width:320px;margin:8px auto;';
+  card.style.cssText = 'max-width:320px;margin:0 auto;';
   var header = ['B','I','N','G','O'];
   var hRow = document.createElement('div'); hRow.className = 'bingo-row';
   header.forEach(function(l) {
@@ -582,9 +622,20 @@ function renderBingoCard(grid, cardNum) {
     });
     card.appendChild(r);
   });
-  var insertBefore = g.querySelector('#auto-mark-container') || g.querySelector('.card');
-  if (insertBefore) g.insertBefore(card, insertBefore);
-  else g.appendChild(card);
+  playerCol.appendChild(card);
+
+  var liveRow = document.createElement('div');
+  liveRow.id = 'live-called-row';
+  liveRow.style.cssText = 'text-align:center;padding:4px 0;';
+  playerCol.appendChild(liveRow);
+
+  layout.appendChild(playerCol);
+
+  var insertBefore = g.querySelector('#toggle-row') || g.querySelector('.card');
+  if (insertBefore) g.insertBefore(layout, insertBefore);
+  else g.appendChild(layout);
+
+  buildMasterBoard(masterCol);
   attachCellClickHandlers();
   updateBingoCardStyle();
 }
