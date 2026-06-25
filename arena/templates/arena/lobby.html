@@ -43,6 +43,20 @@
   border-color: rgba(255,145,0,0.4);
   box-shadow: 0 0 6px rgba(255,145,0,0.15);
 }
+.voice-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px; cursor: pointer;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  transition: all 0.2s; user-select: none;
+}
+.voice-toggle.on { border-color: var(--neon-green); color: var(--neon-green); box-shadow: 0 0 8px rgba(0,230,118,0.15); }
+.voice-toggle.off { border-color: var(--red); color: var(--red); }
+.voice-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--neon-green);
+  box-shadow: 0 0 6px var(--neon-green); transition: background 0.2s;
+}
+.voice-toggle.off .voice-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
 </style>
 
 <div class="top-bar">
@@ -127,9 +141,12 @@
     {% endwith %}
   </div>
   {% endif %}
-  <div style="text-align:center;margin:4px 0;" id="auto-mark-container">
+  <div style="text-align:center;margin:4px 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;" id="toggle-row">
     <button class="auto-mark-toggle on" id="auto-mark-btn" onclick="toggleAutoMark()">
       <span class="auto-mark-dot"></span> Auto Mark: ON
+    </button>
+    <button class="voice-toggle off" id="voice-btn" onclick="toggleVoice()">
+      <span class="voice-dot"></span> 🔇 Voice OFF
     </button>
   </div>
   <div class="card">
@@ -193,6 +210,46 @@ var TAKEN = {{ taken_cards_json|default:"{}"|safe }};
 var MY_CARD = {{ selected_card|default:"null" }};
 var CALLED_NUMS = {{ round.numbers_called|default:"[]"|safe }};
 var AUTO_MARK = localStorage.getItem('arenaAutoMark') !== 'off';
+var VOICE_ON = localStorage.getItem('arenaVoice') === 'on';
+var LAST_SPOKEN_IDX = CALLED_NUMS.length;
+
+function initVoice() {
+  var btn = document.getElementById('voice-btn');
+  if (!btn) return;
+  btn.className = 'voice-toggle ' + (VOICE_ON ? 'on' : 'off');
+  btn.innerHTML = '';
+  var d = document.createElement('span'); d.className = 'voice-dot'; btn.appendChild(d);
+  btn.appendChild(document.createTextNode(' ' + (VOICE_ON ? '🔊 Voice ON' : '🔇 Voice OFF')));
+}
+
+function toggleVoice() {
+  VOICE_ON = !VOICE_ON;
+  localStorage.setItem('arenaVoice', VOICE_ON ? 'on' : 'off');
+  if (!VOICE_ON) speechSynthesis.cancel();
+  initVoice();
+}
+
+function speakNumber(n) {
+  var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+  var utterance = new SpeechSynthesisUtterance(prefix + ' ' + n);
+  utterance.rate = 0.85;
+  utterance.pitch = 1.1;
+  utterance.volume = 0.9;
+  return utterance;
+}
+
+function announceNewNumbers(newNums) {
+  if (!VOICE_ON || !newNums.length || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  var i = 0;
+  function next() {
+    if (i >= newNums.length) return;
+    var utt = speakNumber(newNums[i]);
+    utt.onend = function() { i++; next(); };
+    speechSynthesis.speak(utt);
+  }
+  next();
+}
 
 function initAutoMark() {
   var btn = document.getElementById('auto-mark-btn');
@@ -269,6 +326,7 @@ function handleCellClick(cell) {
 startPolling();
 buildMasterBoard();
 initAutoMark();
+initVoice();
 attachCellClickHandlers();
 
 (function formatBalls() {
@@ -338,7 +396,7 @@ function pollState() {
         TAKEN = d.taken_cards;
         updateCardGrid(d.taken_cards, d.my_card);
       }
-      if (d.called_numbers) { CALLED_NUMS = d.called_numbers; updateCalledNumbers(d.called_numbers); updateMasterBoard(d.called_numbers); }
+      if (d.called_numbers) { CALLED_NUMS = d.called_numbers; updateCalledNumbers(d.called_numbers); updateMasterBoard(d.called_numbers); announceNewNumbers(d.called_numbers.slice(LAST_SPOKEN_IDX)); LAST_SPOKEN_IDX = d.called_numbers.length; }
       if (d.my_card_grid && STATUS === 'active') updateBingoCard(d.my_card_grid);
 
       if (d.is_winner) {
@@ -396,11 +454,13 @@ function pollState() {
         var wb = document.getElementById('arena-wallet-btn');
         if (wb && MY_CARD) wb.style.display = 'none';
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
-      if (d.called_numbers) {
-        CALLED_NUMS = d.called_numbers;
-        updateCalledNumbers(d.called_numbers);
-        updateMasterBoard(d.called_numbers);
-      }
+        if (d.called_numbers) {
+          CALLED_NUMS = d.called_numbers;
+          updateCalledNumbers(d.called_numbers);
+          updateMasterBoard(d.called_numbers);
+          announceNewNumbers(d.called_numbers.slice(LAST_SPOKEN_IDX));
+          LAST_SPOKEN_IDX = d.called_numbers.length;
+        }
         return;
       }
       if (d.status === 'finished' && STATUS !== 'finished' && STATUS !== 'cooldown') {
