@@ -69,6 +69,18 @@
   .active-game-layout .bingo-cell-header { font-size: 9px !important; }
   .active-game-layout .bingo-cell.free { font-size: 14px; }
 }
+.waiting-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; min-height: 200px; text-align: center; padding: 16px;
+  background: var(--bg-card); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px;
+}
+.waiting-card .waiting-icon { font-size: 40px; margin-bottom: 8px; }
+.waiting-card .waiting-title {
+  font-size: 14px; font-weight: 700; color: var(--neon-gold); margin-bottom: 6px; line-height: 1.4;
+}
+.waiting-card .waiting-sub {
+  font-size: 11px; color: var(--text-secondary); line-height: 1.4;
+}
 </style>
 
 <div class="top-bar">
@@ -117,7 +129,7 @@
     <div style="font-size:11px;color:var(--text-secondary);">Spectator — wait for next round</div>
   </div>
   {% endif %}
-  <div id="master-board-container" style="overflow-x:auto;margin-bottom:8px;"></div>
+  <div id="master-board-container" style="overflow-x:auto;margin-bottom:8px;display:none;"></div>
 
   <div id="arena-waiting-ui"
     {% if round.status == 'active' or round.status == 'finished' %}style="display:none;"{% endif %}>
@@ -130,35 +142,41 @@
   {% endif %}
   </div>
 
-  <div id="arena-game-ui"
-    {% if round.status != 'active' or not selected_card %}style="display:none;"{% endif %}>
-  {% if my_card_grid %}
+  <div id="arena-game-ui">
   <div class="active-game-layout" id="active-game-layout">
     <div class="master-col" id="master-board-side" style="overflow-x:auto;"></div>
-    <div class="player-col">
-      <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:0 auto;">
-        <div class="bingo-row">
-          <div class="bingo-cell bingo-cell-header">B</div><div class="bingo-cell bingo-cell-header">I</div><div class="bingo-cell bingo-cell-header">N</div><div class="bingo-cell bingo-cell-header">G</div><div class="bingo-cell bingo-cell-header">O</div>
-        </div>
-        {% for row in my_card_grid %}
-        <div class="bingo-row">
-          {% for cell in row %}
-          <div class="bingo-cell {% if cell.free %}free{% endif %} {% if cell.marked %}marked{% endif %}" data-num="{{ cell.num }}">{{ cell.display }}</div>
+    <div class="player-col" id="player-right-panel">
+      <div id="waiting-message" class="waiting-card" {% if my_card_grid %}style="display:none;"{% endif %}>
+        <div class="waiting-icon">👀</div>
+        <div class="waiting-title">ጨዋታው እስኪጠናቀቅ ድረስ ተመልካች ነዎት</div>
+        <div class="waiting-sub">አዲስ ጨዋታ እስኪጀምር ወይም እስኪቀላቀሉ ድረስ እባክዎ ይጠብቁ።</div>
+      </div>
+      <div id="player-card-area" {% if not my_card_grid %}style="display:none;"{% endif %}>
+        {% if my_card_grid %}
+        <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:0 auto;">
+          <div class="bingo-row">
+            <div class="bingo-cell bingo-cell-header">B</div><div class="bingo-cell bingo-cell-header">I</div><div class="bingo-cell bingo-cell-header">N</div><div class="bingo-cell bingo-cell-header">G</div><div class="bingo-cell bingo-cell-header">O</div>
+          </div>
+          {% for row in my_card_grid %}
+          <div class="bingo-row">
+            {% for cell in row %}
+            <div class="bingo-cell {% if cell.free %}free{% endif %} {% if cell.marked %}marked{% endif %}" data-num="{{ cell.num }}">{{ cell.display }}</div>
+            {% endfor %}
+          </div>
           {% endfor %}
         </div>
-        {% endfor %}
-      </div>
-      <div style="text-align:center;padding:4px 0;" id="live-called-row">
-        {% with last=round.numbers_called|last %}
-        {% if last %}
-        <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
+        <div style="text-align:center;padding:4px 0;" id="live-called-row">
+          {% with last=round.numbers_called|last %}
+          {% if last %}
+          <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
+          {% endif %}
+          {% endwith %}
+        </div>
         {% endif %}
-        {% endwith %}
       </div>
     </div>
   </div>
-  {% endif %}
-  <div style="text-align:center;margin:4px 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;" id="toggle-row">
+  <div style="text-align:center;margin:4px 0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;" id="toggle-row" {% if round.status != 'active' %}style="display:none;"{% endif %}>
     <button class="auto-mark-toggle on" id="auto-mark-btn" onclick="toggleAutoMark()">
       <span class="auto-mark-dot"></span> Auto Mark: ON
     </button>
@@ -435,6 +453,15 @@ function startPolling() {
   POLL_TIMER = setInterval(pollState, 1500);
 }
 
+function resetToWaiting() {
+  var wm = document.getElementById('waiting-message');
+  if (wm) wm.style.display = '';
+  var pc = document.getElementById('player-card-area');
+  if (pc) pc.style.display = 'none';
+  var tr = document.getElementById('toggle-row');
+  if (tr) tr.style.display = 'none';
+}
+
 var countdownGuard = setInterval(function() {
   var t = document.getElementById('timer');
   if (t && t.textContent === '0' && STATUS === 'waiting') {
@@ -491,27 +518,6 @@ function pollState() {
         if (w) w.style.display = 'none';
         var r = document.getElementById('arena-refresh-btn');
         if (r) r.style.display = 'none';
-        var g = document.getElementById('arena-game-ui');
-        if (g) g.style.display = '';
-        var mb = document.getElementById('master-board-container');
-        if (mb) {
-          mb.style.display = '';
-          buildMasterBoard();
-        } else {
-          var waitingUI = document.getElementById('arena-waiting-ui');
-          var notice = document.createElement('div');
-          notice.className = 'card';
-          notice.style.cssText = 'text-align:center;padding:8px;border-color:rgba(255,215,0,0.3);margin-bottom:4px;';
-          notice.innerHTML = '<div style="font-size:13px;color:var(--neon-gold);font-weight:700;">ጨዋታው እስኪጠናቀቅ ድረስ ተመልካች ነዎት</div><div style="font-size:11px;color:var(--text-secondary);">Spectator — wait for next round</div>';
-          var mbDiv = document.createElement('div');
-          mbDiv.id = 'master-board-container';
-          mbDiv.style.cssText = 'overflow-x:auto;margin-bottom:8px;';
-          if (waitingUI) {
-            waitingUI.parentNode.insertBefore(mbDiv, waitingUI);
-            waitingUI.parentNode.insertBefore(notice, mbDiv);
-          }
-          buildMasterBoard();
-        }
         var wb = document.getElementById('arena-wallet-btn');
         if (wb && MY_CARD) wb.style.display = 'none';
         if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
@@ -553,10 +559,15 @@ function pollState() {
 
       var isActive = d.status === 'active';
       var hasCard = MY_CARD !== null;
+      var showPlayerCard = isActive && hasCard;
       var mbGlobal = document.getElementById('master-board-container');
-      if (mbGlobal) mbGlobal.style.display = (isActive && hasCard) ? 'none' : '';
-      var mbSide = document.getElementById('master-board-side');
-      if (mbSide) mbSide.style.display = (isActive && hasCard) ? '' : 'none';
+      if (mbGlobal) mbGlobal.style.display = 'none';
+      var wm = document.getElementById('waiting-message');
+      if (wm) wm.style.display = showPlayerCard ? 'none' : '';
+      var pc = document.getElementById('player-card-area');
+      if (pc && !showPlayerCard) pc.style.display = 'none';
+      var tr = document.getElementById('toggle-row');
+      if (tr) tr.style.display = isActive ? '' : 'none';
     });
 }
 
@@ -613,29 +624,19 @@ function updateCalledNumbers(nums) {
 function renderBingoCard(grid, cardNum) {
   var g = document.getElementById('arena-game-ui');
   if (!g) return;
-  var existing = g.querySelector('.active-game-layout');
-  if (existing) existing.remove();
-  var existingCard = g.querySelector('.bingo-card');
-  if (existingCard) existingCard.remove();
   var existingNum = g.querySelector('[style*="Your card"]');
   if (existingNum) existingNum.remove();
 
   var numDiv = document.createElement('div');
   numDiv.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;';
   numDiv.textContent = 'Your card: #' + (cardNum || '');
-  g.insertBefore(numDiv, g.firstChild);
+  var layout = document.getElementById('active-game-layout');
+  if (layout) g.insertBefore(numDiv, layout);
+  else g.insertBefore(numDiv, g.firstChild);
 
-  var layout = document.createElement('div');
-  layout.className = 'active-game-layout';
-  layout.id = 'active-game-layout';
-
-  var masterCol = document.createElement('div');
-  masterCol.className = 'master-col';
-  masterCol.id = 'master-board-side';
-  layout.appendChild(masterCol);
-
-  var playerCol = document.createElement('div');
-  playerCol.className = 'player-col';
+  var cardArea = document.getElementById('player-card-area');
+  if (!cardArea) return;
+  cardArea.innerHTML = '';
 
   var card = document.createElement('div');
   card.className = 'bingo-card'; card.id = 'my-bingo-card';
@@ -659,20 +660,19 @@ function renderBingoCard(grid, cardNum) {
     });
     card.appendChild(r);
   });
-  playerCol.appendChild(card);
+  cardArea.appendChild(card);
 
   var liveRow = document.createElement('div');
   liveRow.id = 'live-called-row';
   liveRow.style.cssText = 'text-align:center;padding:4px 0;';
-  playerCol.appendChild(liveRow);
+  cardArea.appendChild(liveRow);
 
-  layout.appendChild(playerCol);
+  document.getElementById('player-card-area').style.display = '';
+  var wm = document.getElementById('waiting-message');
+  if (wm) wm.style.display = 'none';
 
-  var insertBefore = g.querySelector('#toggle-row') || g.querySelector('.card');
-  if (insertBefore) g.insertBefore(layout, insertBefore);
-  else g.appendChild(layout);
-
-  buildMasterBoard(masterCol);
+  var masterCol = document.getElementById('master-board-side');
+  if (masterCol) buildMasterBoard(masterCol);
   attachCellClickHandlers();
   updateBingoCardStyle();
 }
@@ -822,9 +822,23 @@ function startDailyTimer(secs) {
         var p = disp.parentElement;
         p.innerHTML = '<span style="color:var(--neon-gold);">🎁+2</span>' +
           '<button class="btn btn-gold btn-sm" onclick="claimDaily()" id="claim-daily-btn" style="padding:2px 8px;font-size:10px;">Claim</button>';
+        }
+        resetToWaiting();
+        return;
       }
-      return;
-    }
+
+      if (d.status === 'waiting' && STATUS !== 'waiting') {
+        STATUS = 'waiting';
+        var w2 = document.getElementById('arena-waiting-ui');
+        if (w2) w2.style.display = '';
+        var ref = document.getElementById('arena-refresh-btn');
+        if (ref) ref.style.display = '';
+        var wb2 = document.getElementById('arena-wallet-btn');
+        if (wb2) wb2.style.display = '';
+        resetToWaiting();
+        MY_CARD = null;
+        return;
+      }
     dailySeconds--;
     var h = Math.floor(dailySeconds / 3600);
     var m = Math.floor((dailySeconds % 3600) / 60);
