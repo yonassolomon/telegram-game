@@ -153,6 +153,13 @@
       </div>
       <div id="player-card-area" {% if not my_card_grid %}style="display:none;"{% endif %}>
         {% if my_card_grid %}
+        <div style="text-align:center;padding:0 0 6px 0;" id="live-called-row">
+          {% with last=round.numbers_called|last %}
+          {% if last %}
+          <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:6px 18px;font-size:26px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
+          {% endif %}
+          {% endwith %}
+        </div>
         <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:0 auto;">
           <div class="bingo-row">
             <div class="bingo-cell bingo-cell-header">B</div><div class="bingo-cell bingo-cell-header">I</div><div class="bingo-cell bingo-cell-header">N</div><div class="bingo-cell bingo-cell-header">G</div><div class="bingo-cell bingo-cell-header">O</div>
@@ -164,13 +171,6 @@
             {% endfor %}
           </div>
           {% endfor %}
-        </div>
-        <div style="text-align:center;padding:4px 0;" id="live-called-row">
-          {% with last=round.numbers_called|last %}
-          {% if last %}
-          <span style="display:inline-block;background:var(--bg-card);border:2px solid var(--neon-cyan);border-radius:12px;padding:8px 20px;font-size:28px;font-weight:800;color:var(--neon-cyan);box-shadow:0 0 16px rgba(0,229,255,0.3);">B</span>
-          {% endif %}
-          {% endwith %}
         </div>
         {% endif %}
       </div>
@@ -664,12 +664,12 @@ function renderBingoCard(grid, cardNum) {
     });
     card.appendChild(r);
   });
-  cardArea.appendChild(card);
-
   var liveRow = document.createElement('div');
   liveRow.id = 'live-called-row';
-  liveRow.style.cssText = 'text-align:center;padding:4px 0;';
+  liveRow.style.cssText = 'text-align:center;padding:0 0 6px 0;';
   cardArea.appendChild(liveRow);
+
+  cardArea.appendChild(card);
 
   document.getElementById('player-card-area').style.display = '';
   var wm = document.getElementById('waiting-message');
