@@ -142,7 +142,7 @@
   {% endif %}
   </div>
 
-  <div id="arena-game-ui">
+  <div id="arena-game-ui" {% if round.status == 'waiting' %}style="display:none;"{% endif %}>
   <div class="active-game-layout" id="active-game-layout">
     <div class="master-col" id="master-board-side" style="overflow-x:auto;"></div>
     <div class="player-col" id="player-right-panel">
@@ -454,6 +454,8 @@ function startPolling() {
 }
 
 function resetToWaiting() {
+  var gui = document.getElementById('arena-game-ui');
+  if (gui) gui.style.display = 'none';
   var wm = document.getElementById('waiting-message');
   if (wm) wm.style.display = '';
   var pc = document.getElementById('player-card-area');
@@ -514,6 +516,8 @@ function pollState() {
       if (d.status === 'active' && STATUS !== 'active') {
         STATUS = 'active'; document.getElementById('timer').textContent = '0';
         document.getElementById('status-label').textContent = 'Game Live';
+        var gui = document.getElementById('arena-game-ui');
+        if (gui) gui.style.display = '';
         var w = document.getElementById('arena-waiting-ui');
         if (w) w.style.display = 'none';
         var r = document.getElementById('arena-refresh-btn');
@@ -560,8 +564,8 @@ function pollState() {
       var isActive = d.status === 'active';
       var hasCard = MY_CARD !== null;
       var showPlayerCard = isActive && hasCard;
-      var mbGlobal = document.getElementById('master-board-container');
-      if (mbGlobal) mbGlobal.style.display = 'none';
+      var gui = document.getElementById('arena-game-ui');
+      if (gui) gui.style.display = d.status === 'waiting' ? 'none' : '';
       var wm = document.getElementById('waiting-message');
       if (wm) wm.style.display = showPlayerCard ? 'none' : '';
       var pc = document.getElementById('player-card-area');
@@ -823,7 +827,12 @@ function startDailyTimer(secs) {
         p.innerHTML = '<span style="color:var(--neon-gold);">🎁+2</span>' +
           '<button class="btn btn-gold btn-sm" onclick="claimDaily()" id="claim-daily-btn" style="padding:2px 8px;font-size:10px;">Claim</button>';
         }
-        resetToWaiting();
+        var wm2 = document.getElementById('waiting-message');
+        if (wm2) wm2.style.display = '';
+        var pc2 = document.getElementById('player-card-area');
+        if (pc2) pc2.style.display = 'none';
+        var tr2 = document.getElementById('toggle-row');
+        if (tr2) tr2.style.display = 'none';
         return;
       }
 
