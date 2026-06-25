@@ -51,6 +51,8 @@ class GameRound(models.Model):
 
 
 class CardSelection(models.Model):
+    MAX_CARDS_PER_PLAYER = 3
+
     round = models.ForeignKey(GameRound, on_delete=models.CASCADE, related_name='selections')
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='arena_selections')
     card_number = models.IntegerField()
@@ -61,7 +63,6 @@ class CardSelection(models.Model):
         verbose_name_plural = 'Card Selections'
         constraints = [
             models.UniqueConstraint(fields=['round', 'card_number'], name='unique_card_per_round'),
-            models.UniqueConstraint(fields=['round', 'player'], name='unique_player_per_round'),
         ]
 
     def __str__(self):

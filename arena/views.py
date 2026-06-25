@@ -41,11 +41,9 @@ def lobby(request):
     selections = list(CardSelection.objects.filter(round=current).select_related('player'))
     taken_cards = {s.card_number: s.player.first_name for s in selections}
 
-    selected_card = None
+    my_cards = []
     if current:
-        sel = CardSelection.objects.filter(round=current, player=player).first()
-        if sel:
-            selected_card = sel.card_number
+        my_cards = list(CardSelection.objects.filter(round=current, player=player).values_list('card_number', flat=True))
 
     can_claim = player.can_claim_daily()
     next_daily = ''
@@ -63,12 +61,13 @@ def lobby(request):
     return render(request, 'arena/lobby.html', {
         'player': player,
         'round': current,
-        'selected_card': selected_card,
+        'my_cards': my_cards,
+        'my_cards_json': json.dumps(my_cards),
         'can_claim_daily': can_claim,
         'next_daily': next_daily,
         'next_daily_seconds': next_daily_seconds,
         'taken_cards_json': json.dumps(taken_cards),
-        'my_card_grid': selected_card and _get_card_grid(selected_card, set()) or None,
+        'my_card_grids_json': json.dumps([_get_card_grid(c, set()) for c in my_cards]) if my_cards else '[]',
     })
 
 
@@ -93,17 +92,28 @@ def api_select_card(request, round_id):
         return JsonResponse({'error': 'Card selection is closed. Game already started.'}, status=400)
 
     with db_transaction.atomic():
-        existing_player = CardSelection.objects.select_for_update().filter(round=game_round, player=player).first()
-        if existing_player:
-            old_card = existing_player.card_number
-            existing_player.card_number = card_num
-            existing_player.save(update_fields=['card_number'])
-            logger.info(f'CARD CHANGED: round={game_round.round_number} player={player.telegram_id} {old_card}→{card_num}')
-            return JsonResponse({'success': True, 'card_number': card_num, 'changed': True, 'old_card': old_card})
+        my_existing = list(CardSelection.objects.select_for_update().filter(round=game_round, player=player))
+
+        existing_for_card = next((s for s in my_existing if s.card_number == card_num), None)
+        if existing_for_card:
+            existing_for_card.delete()
+            Player.objects.filter(id=player.id).update(coins=F('coins') + game_round.entry_fee)
+            Transaction.objects.create(
+                player=player, amount=game_round.entry_fee,
+                transaction_type='draw_refund',
+                description=f'Deselected card #{card_num} in Arena Round #{game_round.round_number}'
+            )
+            _recalc_prize(game_round)
+            my_remaining = list(CardSelection.objects.filter(round=game_round, player=player).values_list('card_number', flat=True))
+            logger.info(f'CARD DESELECTED: round={game_round.round_number} player={player.telegram_id} card={card_num}')
+            return JsonResponse({'success': True, 'card_number': card_num, 'action': 'deselect', 'my_cards': my_remaining})
+
+        if len(my_existing) >= CardSelection.MAX_CARDS_PER_PLAYER:
+            return JsonResponse({'error': f'Maximum {CardSelection.MAX_CARDS_PER_PLAYER} cards allowed.'}, status=400)
 
         p = Player.objects.select_for_update().get(id=player.id)
         if p.coins < game_round.entry_fee:
-            return JsonResponse({'error': f'❌ Insufficient coins. Need {game_round.entry_fee}, have {p.coins}.'}, status=400)
+            return JsonResponse({'error': f'Insufficient coins. Need {game_round.entry_fee}, have {p.coins}.'}, status=400)
 
         existing_card = CardSelection.objects.filter(round=game_round, card_number=card_num).first()
         if existing_card:
@@ -113,20 +123,23 @@ def api_select_card(request, round_id):
         p.coins = F('coins') - game_round.entry_fee
         p.save(update_fields=['coins'])
 
-        from core.utils import calculate_prize
-        total_pot = game_round.entry_fee * CardSelection.objects.filter(round=game_round).count()
-        winner_prize, _ = calculate_prize(total_pot)
-        GameRound.objects.filter(id=game_round.id).update(prize_pool=winner_prize)
-
         Transaction.objects.create(
             player=p, amount=-game_round.entry_fee,
             transaction_type='game_entry',
-            description=f'Arena Round #{game_round.round_number} entry'
+            description=f'Arena Round #{game_round.round_number} entry (card #{card_num})'
         )
 
-    logger.info(f'CARD SELECTED: round={game_round.round_number} player={player.telegram_id} card={card_num} fee={game_round.entry_fee}')
+    _recalc_prize(game_round)
+    my_remaining = list(CardSelection.objects.filter(round=game_round, player=player).values_list('card_number', flat=True))
 
-    return JsonResponse({'success': True, 'card_number': card_num})
+    logger.info(f'CARD SELECTED: round={game_round.round_number} player={player.telegram_id} card={card_num} total={len(my_remaining)}')
+    return JsonResponse({'success': True, 'card_number': card_num, 'action': 'select', 'my_cards': my_remaining})
+
+def _recalc_prize(game_round):
+    from core.utils import calculate_prize
+    total_pot = game_round.entry_fee * CardSelection.objects.filter(round=game_round).count()
+    winner_prize, _ = calculate_prize(total_pot)
+    GameRound.objects.filter(id=game_round.id).update(prize_pool=winner_prize)
 
 
 @csrf_exempt
@@ -140,28 +153,28 @@ def api_leave_arena(request, round_id):
     if game_round.status != 'waiting':
         return JsonResponse({'error': 'Game already started. Cannot leave.'}, status=400)
 
-    sel = CardSelection.objects.filter(round=game_round, player=player).first()
-    if not sel:
+    my_sels = list(CardSelection.objects.filter(round=game_round, player=player))
+    if not my_sels:
         return JsonResponse({'error': 'Not in this round'}, status=400)
 
-    card_num = sel.card_number
+    card_nums = [s.card_number for s in my_sels]
     fee = game_round.entry_fee
+    total_refund = fee * len(my_sels)
 
     with db_transaction.atomic():
-        sel.delete()
-        Player.objects.filter(id=player.id).update(coins=F('coins') + fee)
+        my_sels = list(CardSelection.objects.filter(round=game_round, player=player))
+        for s in my_sels:
+            s.delete()
+        Player.objects.filter(id=player.id).update(coins=F('coins') + total_refund)
         Transaction.objects.create(
-            player=player, amount=fee,
+            player=player, amount=total_refund,
             transaction_type='draw_refund',
-            description=f'Left Arena Round #{game_round.round_number} before start'
+            description=f'Left Arena Round #{game_round.round_number} ({len(my_sels)} cards)'
         )
-        from core.utils import calculate_prize
-        total_pot = game_round.entry_fee * CardSelection.objects.filter(round=game_round).count()
-        winner_prize, _ = calculate_prize(total_pot)
-        GameRound.objects.filter(id=game_round.id).update(prize_pool=winner_prize)
 
-    logger.info(f'ARENA LEAVE: round={game_round.round_number} player={player.telegram_id} card={card_num} refunded={fee}')
-    return JsonResponse({'success': True, 'refunded': fee, 'card_number': card_num})
+    _recalc_prize(game_round)
+    logger.info(f'ARENA LEAVE: round={game_round.round_number} player={player.telegram_id} cards={card_nums} refunded={total_refund}')
+    return JsonResponse({'success': True, 'refunded': total_refund, 'card_numbers': card_nums})
 
 
 def api_round_state(request, round_id):
@@ -175,38 +188,39 @@ def api_round_state(request, round_id):
     taken_cards = {s.card_number: s.player.first_name for s in selections}
     player_count = len(selections)
 
-    my_card = None
-    my_card_grid = None
-    my_marked = set()
-
-    sel = next((s for s in selections if s.player_id == player.id), None)
-    if sel:
-        my_card = sel.card_number
-        numbers = generate_card_by_number(my_card)
-        my_marked = {n for n in game_round.numbers_called if n in numbers}
-        my_card_grid = format_card_grid(numbers, my_marked)
-
+    my_sels = [s for s in selections if s.player_id == player.id]
+    my_cards = [s.card_number for s in my_sels]
+    my_card_grids = []
     my_win = False
     win_pattern = None
     win_cells = None
     win_numbers = None
-    if my_card:
-        numbers = generate_card_by_number(my_card)
+    win_card = None
+
+    for sel in my_sels:
+        numbers = generate_card_by_number(sel.card_number)
+        marked = {n for n in game_round.numbers_called if n in numbers}
+        my_card_grids.append({
+            'card_number': sel.card_number,
+            'grid': format_card_grid(numbers, marked),
+            'marked': list(marked),
+        })
         if game_round.status == 'active':
-            result = _check_win(numbers, my_marked)
-            if result:
+            result = _check_win(numbers, marked)
+            if result and not my_win:
                 my_win = True
                 win_pattern = result['pattern']
                 win_cells = result['cells']
                 win_numbers = result['numbers']
+                win_card = sel.card_number
         elif game_round.status == 'finished' and game_round.winner_id == player.id:
-            marked_set = {n for n in game_round.numbers_called if n in numbers}
-            result = _check_win(numbers, marked_set)
-            if result:
+            result = _check_win(numbers, marked)
+            if result and not my_win:
                 my_win = True
                 win_pattern = result['pattern']
                 win_cells = result['cells']
                 win_numbers = result['numbers']
+                win_card = sel.card_number
 
     return JsonResponse({
         'status': game_round.status,
@@ -215,9 +229,8 @@ def api_round_state(request, round_id):
         'prize_pool': game_round.prize_pool,
         'entry_fee': game_round.entry_fee,
         'taken_cards': taken_cards,
-        'my_card': my_card,
-        'my_card_grid': my_card_grid,
-        'my_marked': list(my_marked),
+        'my_cards': my_cards,
+        'my_card_grids': my_card_grids,
         'called_numbers': game_round.numbers_called,
         'waiting_seconds_left': game_round.waiting_seconds_left,
         'winner_name': game_round.winner.first_name if game_round.winner else None,
@@ -226,6 +239,7 @@ def api_round_state(request, round_id):
         'win_pattern': win_pattern,
         'win_cells': win_cells,
         'win_numbers': win_numbers,
+        'winning_card': win_card,
         'cancelled': game_round.status == 'finished' and not game_round.winner and game_round.player_count < 2,
     })
 

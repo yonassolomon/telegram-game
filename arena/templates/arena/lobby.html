@@ -86,7 +86,7 @@
 <div class="top-bar">
   <div style="width:50px;"></div>
   <div class="title">🏟️ Arena</div>
-  <a href="{% url 'webapp:wallet' %}" class="back-btn" style="color:var(--neon-gold);{% if selected_card %}display:none;{% endif %}" id="arena-wallet-btn">👛 Wallet</a>
+  <a href="{% url 'webapp:wallet' %}" class="back-btn" style="color:var(--neon-gold);{% if my_cards %}display:none;{% endif %}" id="arena-wallet-btn">👛 Wallet</a>
 </div>
 
 <div class="container">
@@ -134,11 +134,12 @@
   <div id="arena-waiting-ui"
     {% if round.status == 'active' or round.status == 'finished' %}style="display:none;"{% endif %}>
   <div class="card">
-    <div class="card-header">🎯 Choose Your Card <span style="font-weight:400;color:var(--muted);">(<span id="hdr-player-count">{{ round.player_count }}</span> players)</span></div>
+    <div class="card-header">🎯 Choose Your Cards <span style="font-weight:400;color:var(--muted);">(<span id="hdr-player-count">{{ round.player_count }}</span> players)</span></div>
     <div class="card-grid" id="card-grid"></div>
+    <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--neon-gold);" id="card-counter">Selected: <span id="card-count">0</span>/3</div>
   </div>
-  {% if selected_card %}
-  <button class="btn btn-outline" onclick="leaveArena()" style="margin:8px 0;color:var(--red);border-color:rgba(255,61,90,0.3);">🚪 Leave Arena (Refund {{ round.entry_fee }} 💰)</button>
+  {% if my_cards %}
+  <button class="btn btn-outline" onclick="leaveArena()" style="margin:8px 0;color:var(--red);border-color:rgba(255,61,90,0.3);">🚪 Leave Arena (Refund {{ round.entry_fee }} 💰 per card)</button>
   {% endif %}
   </div>
 
@@ -146,13 +147,12 @@
   <div class="active-game-layout" id="active-game-layout">
     <div class="master-col" id="master-board-side" style="overflow-x:auto;"></div>
     <div class="player-col" id="player-right-panel">
-      <div id="waiting-message" class="waiting-card" {% if my_card_grid %}style="display:none;"{% endif %}>
+      <div id="waiting-message" class="waiting-card" {% if my_cards %}style="display:none;"{% endif %}>
         <div class="waiting-icon">👀</div>
         <div class="waiting-title">ጨዋታው እስኪጠናቀቅ ድረስ ተመልካች ነዎት</div>
         <div class="waiting-sub">አዲስ ጨዋታ እስኪጀምር ወይም እስኪቀላቀሉ ድረስ እባክዎ ይጠብቁ።</div>
       </div>
-      <div id="player-card-area" {% if not my_card_grid %}style="display:none;"{% endif %}>
-        {% if my_card_grid %}
+      <div id="player-card-area" {% if not my_cards %}style="display:none;"{% endif %}>
         <div style="text-align:center;padding:0 0 6px 0;" id="live-called-row">
           {% with last=round.numbers_called|last %}
           {% if last %}
@@ -160,19 +160,7 @@
           {% endif %}
           {% endwith %}
         </div>
-        <div class="bingo-card" id="my-bingo-card" style="max-width:320px;margin:0 auto;">
-          <div class="bingo-row">
-            <div class="bingo-cell bingo-cell-header">B</div><div class="bingo-cell bingo-cell-header">I</div><div class="bingo-cell bingo-cell-header">N</div><div class="bingo-cell bingo-cell-header">G</div><div class="bingo-cell bingo-cell-header">O</div>
-          </div>
-          {% for row in my_card_grid %}
-          <div class="bingo-row">
-            {% for cell in row %}
-            <div class="bingo-cell {% if cell.free %}free{% endif %} {% if cell.marked %}marked{% endif %}" data-num="{{ cell.num }}">{{ cell.display }}</div>
-            {% endfor %}
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
+        <div id="my-cards-stack" style="overflow-y:auto;max-height:60vh;"></div>
       </div>
     </div>
   </div>
@@ -242,7 +230,8 @@ var STATUS = '{{ round.status }}';
 var TG_ID = '{{ player.telegram_id }}';
 var POLL_TIMER = null;
 var TAKEN = {{ taken_cards_json|default:"{}"|safe }};
-var MY_CARD = {{ selected_card|default:"null" }};
+var MY_CARDS = {{ my_cards_json|default:"[]"|safe }};
+var MY_CARD_GRIDS = {{ my_card_grids_json|default:"[]"|safe }};
 var CALLED_NUMS = {{ round.numbers_called|default:"[]"|safe }};
 var AUTO_MARK = localStorage.getItem('arenaAutoMark') !== 'off';
 var VOICE_ON = localStorage.getItem('arenaVoice') === 'on';
@@ -375,11 +364,43 @@ function stripServerMarks() {
 }
 
 function attachCellClickHandlers() {
-  var cardEl = document.getElementById('my-bingo-card');
-  if (!cardEl) return;
-  var cells = cardEl.querySelectorAll('.bingo-cell[data-num]');
-  cells.forEach(function(cell) {
+  document.querySelectorAll('#my-cards-stack .bingo-cell[data-num]').forEach(function(cell) {
     cell.onclick = function() { return handleCellClick(cell); };
+  });
+}
+
+function handleCellClick(cell) {
+  if (AUTO_MARK) return;
+  if (cell.classList.contains('free')) return;
+  var num = parseInt(cell.dataset.num);
+  if (CALLED_NUMS.indexOf(num) === -1) {
+    showToast('This number has not been called yet.\nይህ ቁጥር ገና አልተጠራም።');
+    return;
+  }
+  cell.classList.toggle('marked');
+  cell.classList.toggle('manual-called');
+}
+
+function updateBingoCardStyle() {
+  document.querySelectorAll('#my-cards-stack .bingo-cell[data-num]').forEach(function(cell) {
+    if (AUTO_MARK) {
+      cell.classList.remove('manual-mode', 'manual-called');
+    } else {
+      cell.classList.add('manual-mode');
+      var num = parseInt(cell.dataset.num);
+      if (CALLED_NUMS.indexOf(num) !== -1 && !cell.classList.contains('free')) {
+        cell.classList.add('manual-called');
+      } else {
+        cell.classList.remove('manual-called');
+      }
+    }
+  });
+}
+
+function stripServerMarks() {
+  if (AUTO_MARK) return;
+  document.querySelectorAll('#my-cards-stack .bingo-cell.marked[data-num]').forEach(function(c) {
+    c.classList.remove('marked');
   });
 }
 
@@ -399,6 +420,7 @@ startPolling();
 buildAllMasterBoards();
 initAutoMark();
 initVoice();
+if (MY_CARD_GRIDS.length > 0) renderAllCards(MY_CARD_GRIDS);
 attachCellClickHandlers();
 
 (function formatBalls() {
@@ -421,7 +443,7 @@ attachCellClickHandlers();
     cell.onclick = (function(num) { return function() { selectCard(num); }; })(i);
     grid.appendChild(cell);
   }
-  if (Object.keys(TAKEN).length > 0) updateCardGrid(TAKEN, MY_CARD);
+  if (Object.keys(TAKEN).length > 0) updateCardGrid(TAKEN, MY_CARDS);
 })();
 
 function buildMasterBoard(container) {
@@ -484,10 +506,10 @@ function pollState() {
 
       if (d.taken_cards) {
         TAKEN = d.taken_cards;
-        updateCardGrid(d.taken_cards, d.my_card);
+        updateCardGrid(d.taken_cards, d.my_cards);
       }
       if (d.called_numbers) { CALLED_NUMS = d.called_numbers; updateCalledNumbers(d.called_numbers); updateMasterBoard(d.called_numbers); announceNewNumbers(d.called_numbers.slice(LAST_SPOKEN_IDX)); LAST_SPOKEN_IDX = d.called_numbers.length; }
-      if (d.my_card_grid && STATUS === 'active') updateBingoCard(d.my_card_grid);
+      if (d.my_card_grids && STATUS === 'active') updateAllCards(d.my_card_grids);
 
       if (d.is_winner) {
         clearInterval(POLL_TIMER);
@@ -495,7 +517,7 @@ function pollState() {
         document.getElementById('winner-trophy').textContent = '🏆';
         document.getElementById('winner-name').textContent = '🎉 ' + (d.winner_name || 'You') + ' Wins!';
         document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰';
-        document.getElementById('winner-card-info').textContent = 'Card #' + (d.my_card || '');
+        document.getElementById('winner-card-info').textContent = d.winning_card ? 'Card #' + d.winning_card : '';
 
         var pat = d.win_pattern || '';
         var patEl = document.getElementById('winner-pattern');
@@ -523,8 +545,8 @@ function pollState() {
         var r = document.getElementById('arena-refresh-btn');
         if (r) r.style.display = 'none';
         var wb = document.getElementById('arena-wallet-btn');
-        if (wb && MY_CARD) wb.style.display = 'none';
-        if (d.my_card_grid) renderBingoCard(d.my_card_grid, d.my_card);
+        if (wb && MY_CARDS.length > 0) wb.style.display = 'none';
+        if (d.my_card_grids && d.my_card_grids.length) renderAllCards(d.my_card_grids);
         if (d.called_numbers) {
           CALLED_NUMS = d.called_numbers;
           updateCalledNumbers(d.called_numbers);
@@ -562,7 +584,7 @@ function pollState() {
       }
 
       var isActive = d.status === 'active';
-      var hasCard = MY_CARD !== null;
+      var hasCard = MY_CARDS && MY_CARDS.length > 0;
       var showPlayerCard = isActive && hasCard;
       var gui = document.getElementById('arena-game-ui');
       if (gui) gui.style.display = d.status === 'waiting' ? 'none' : '';
@@ -575,13 +597,15 @@ function pollState() {
     });
 }
 
-function updateCardGrid(taken, myCard) {
+function updateCardGrid(taken, myCards) {
+  var counter = document.getElementById('card-count');
+  if (counter) counter.textContent = myCards ? myCards.length : 0;
   document.querySelectorAll('.card-cell').forEach(function(cell) {
     var num = parseInt(cell.dataset.card);
     cell.classList.remove('available', 'taken', 'selected');
     cell.innerHTML = '';
     cell.textContent = num;
-    if (myCard && num === myCard) {
+    if (myCards && myCards.indexOf(num) !== -1) {
       cell.classList.add('selected');
     } else if (taken[num]) {
       cell.classList.add('taken');
@@ -625,25 +649,16 @@ function updateCalledNumbers(nums) {
   if (cnt) cnt.textContent = '(' + nums.length + ')';
 }
 
-function renderBingoCard(grid, cardNum) {
-  var g = document.getElementById('arena-game-ui');
-  if (!g) return;
-  var existingNum = g.querySelector('[style*="Your card"]');
-  if (existingNum) existingNum.remove();
-
-  var numDiv = document.createElement('div');
-  numDiv.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;';
-  numDiv.textContent = 'Your card: #' + (cardNum || '');
-  var layout = document.getElementById('active-game-layout');
-  if (layout) g.insertBefore(numDiv, layout);
-  else g.insertBefore(numDiv, g.firstChild);
-
-  var cardArea = document.getElementById('player-card-area');
-  if (!cardArea) return;
-  cardArea.innerHTML = '';
-
+function buildOneCard(cardNum, grid) {
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText = 'margin-bottom:8px;';
+  wrapper.dataset.cardNum = cardNum;
+  var label = document.createElement('div');
+  label.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:11px;margin-bottom:2px;';
+  label.textContent = 'Card #' + cardNum;
+  wrapper.appendChild(label);
   var card = document.createElement('div');
-  card.className = 'bingo-card'; card.id = 'my-bingo-card';
+  card.className = 'bingo-card';
   card.style.cssText = 'max-width:320px;margin:0 auto;';
   var header = ['B','I','N','G','O'];
   var hRow = document.createElement('div'); hRow.className = 'bingo-row';
@@ -664,12 +679,29 @@ function renderBingoCard(grid, cardNum) {
     });
     card.appendChild(r);
   });
-  var liveRow = document.createElement('div');
-  liveRow.id = 'live-called-row';
-  liveRow.style.cssText = 'text-align:center;padding:0 0 6px 0;';
-  cardArea.appendChild(liveRow);
+  wrapper.appendChild(card);
+  return wrapper;
+}
 
-  cardArea.appendChild(card);
+function renderAllCards(grids) {
+  var g = document.getElementById('arena-game-ui');
+  if (!g) return;
+  var existingNum = g.querySelector('[style*="Your cards"]');
+  if (existingNum) existingNum.remove();
+
+  var numDiv = document.createElement('div');
+  numDiv.style.cssText = 'text-align:center;color:var(--text-secondary);font-size:12px;margin:4px 0;';
+  numDiv.textContent = 'Your cards: ' + grids.map(function(cg) { return '#' + cg.card_number; }).join(', ');
+  var layout = document.getElementById('active-game-layout');
+  if (layout) g.insertBefore(numDiv, layout);
+  else g.insertBefore(numDiv, g.firstChild);
+
+  var stack = document.getElementById('my-cards-stack');
+  if (!stack) return;
+  stack.innerHTML = '';
+  grids.forEach(function(cg) {
+    stack.appendChild(buildOneCard(cg.card_number, cg.grid));
+  });
 
   document.getElementById('player-card-area').style.display = '';
   var wm = document.getElementById('waiting-message');
@@ -681,25 +713,26 @@ function renderBingoCard(grid, cardNum) {
   updateBingoCardStyle();
 }
 
-function updateBingoCard(grid) {
-  var cardEl = document.getElementById('my-bingo-card');
-  if (!cardEl) return;
-  if (AUTO_MARK) {
-    var rows = cardEl.querySelectorAll('.bingo-row');
-    for (var r = 1; r < rows.length; r++) {
+function updateAllCards(grids) {
+  if (!AUTO_MARK) { updateBingoCardStyle(); return; }
+  grids.forEach(function(cg) {
+    var wrapper = document.querySelector('#my-cards-stack [data-card-num="' + cg.card_number + '"]');
+    if (!wrapper) return;
+    var rows = wrapper.querySelectorAll('.bingo-row');
+    for (var r = 0; r < rows.length; r++) {
       var cells = rows[r].querySelectorAll('.bingo-cell');
       for (var c = 0; c < cells.length; c++) {
-        var cellData = grid[r-1][c];
+        var cellData = cg.grid[r][c];
         if (cellData.marked && !cellData.free) cells[c].classList.add('marked');
       }
     }
-  }
+  });
   updateBingoCardStyle();
 }
 
 function selectCard(num) {
   if (STATUS !== 'waiting') return;
-  if (TAKEN[num] && (!MY_CARD || MY_CARD !== num)) {
+  if (TAKEN[num] && MY_CARDS.indexOf(num) === -1) {
     showToast('Card ' + num + ' already taken');
     return;
   }
@@ -747,9 +780,14 @@ function confirmSelectCard() {
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) { showToast(d.error); return; }
-      MY_CARD = d.card_number;
+      MY_CARDS = d.my_cards || [];
+      if (d.action === 'deselect') {
+        showToast('Card #' + d.card_number + ' deselected');
+      } else {
+        showToast('Card #' + d.card_number + ' selected! (' + MY_CARDS.length + '/3)');
+      }
       var wb = document.getElementById('arena-wallet-btn');
-      if (wb) wb.style.display = 'none';
+      if (wb) wb.style.display = MY_CARDS.length > 0 ? 'none' : '';
       showToast('Card #' + d.card_number + ' selected!');
     });
 }
@@ -773,7 +811,7 @@ function leaveArena() {
 }
 
 window.addEventListener('beforeunload', function() {
-  if (STATUS === 'waiting' && MY_CARD) {
+  if (STATUS === 'waiting' && MY_CARDS.length > 0) {
     navigator.sendBeacon('/arena/api/' + ROUND_ID + '/leave/', JSON.stringify({tg_id: TG_ID}));
   }
 });
@@ -845,7 +883,7 @@ function startDailyTimer(secs) {
         var wb2 = document.getElementById('arena-wallet-btn');
         if (wb2) wb2.style.display = '';
         resetToWaiting();
-        MY_CARD = null;
+        MY_CARDS = [];
         return;
       }
     dailySeconds--;
@@ -875,18 +913,20 @@ function launchConfetti() {
 }
 
 function highlightWinCells(cells) {
-  var cardEl = document.getElementById('my-bingo-card');
-  if (!cardEl) return;
-  var rows = cardEl.querySelectorAll('.bingo-row');
-  cells.forEach(function(rc) {
-    var r = rc[0], c = rc[1];
-    var rowEl = rows[r + 1];
-    if (rowEl) {
-      var cellEl = rowEl.querySelectorAll('.bingo-cell')[c];
-      if (cellEl) {
-        cellEl.classList.add('bingo-row-win');
+  if (!cells) return;
+  var stack = document.getElementById('my-cards-stack');
+  if (!stack) return;
+  var cards = stack.querySelectorAll('.bingo-card');
+  cards.forEach(function(cardEl) {
+    var rows = cardEl.querySelectorAll('.bingo-row');
+    cells.forEach(function(rc) {
+      var r = rc[0], c = rc[1];
+      var rowEl = rows[r + 1];
+      if (rowEl) {
+        var cellEl = rowEl.querySelectorAll('.bingo-cell')[c];
+        if (cellEl) cellEl.classList.add('bingo-row-win');
       }
-    }
+    });
   });
 }
 </script>

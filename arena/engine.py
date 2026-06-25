@@ -79,10 +79,14 @@ def tick():
             selections = list(CardSelection.objects.filter(round=r).select_related('player'))
             if len(selections) < 2:
                 fee = r.entry_fee
+                done = set()
                 for sel in selections:
-                    Player.objects.filter(id=sel.player_id).update(coins=db_models.F('coins') + fee)
+                    if sel.player_id not in done:
+                        done.add(sel.player_id)
+                        total_fee = fee * len([s for s in selections if s.player_id == sel.player_id])
+                        Player.objects.filter(id=sel.player_id).update(coins=db_models.F('coins') + total_fee)
                     Transaction.objects.create(player=sel.player, amount=fee, transaction_type='draw_refund',
-                                               description=f'Arena Round #{r.round_number} cancelled')
+                                               description=f'Arena Round #{r.round_number} cancelled (card #{sel.card_number})')
                 r.status = 'finished'
                 r.finished_at = timezone.now()
                 r.save(update_fields=['status', 'finished_at'])
@@ -180,8 +184,10 @@ def _award_winner(round_obj, sel, player_count):
                                    description=f'Arena Round #{r.round_number} house fee')
         from arena.models import CardSelection
         all_players = CardSelection.objects.filter(round=r)
+        done = set()
         for s in all_players:
-            if s.player_id != sel.player_id:
+            if s.player_id != sel.player_id and s.player_id not in done:
+                done.add(s.player_id)
                 s.player.games_played = db_models.F('games_played') + 1
                 s.player.losses = db_models.F('losses') + 1
                 s.player.save(update_fields=['games_played', 'losses'])
@@ -195,15 +201,19 @@ def _award_winner(round_obj, sel, player_count):
 
 def _finish_draw(round_obj):
     from wallets.models import Transaction
+    from users.models import Player
     fee = round_obj.entry_fee
+    unique_players = set()
     for sel in round_obj.selections.all():
-        from users.models import Player
-        Player.objects.filter(id=sel.player_id).update(
-            coins=db_models.F('coins') + fee,
-            games_played=db_models.F('games_played') + 1
-        )
+        total_fee = fee * round_obj.selections.filter(player_id=sel.player_id).count()
+        if sel.player_id not in unique_players:
+            unique_players.add(sel.player_id)
+            Player.objects.filter(id=sel.player_id).update(
+                coins=db_models.F('coins') + total_fee,
+                games_played=db_models.F('games_played') + 1
+            )
         Transaction.objects.create(player=sel.player, amount=fee, transaction_type='draw_refund',
-                                   description=f'Arena Round #{round_obj.round_number} draw')
+                                   description=f'Arena Round #{round_obj.round_number} draw (card #{sel.card_number})')
     round_obj.status = 'finished'
     round_obj.finished_at = timezone.now()
     round_obj.save(update_fields=['status', 'finished_at'])
@@ -247,8 +257,12 @@ def _update_streaks(round_obj):
     from arena.models import CardSelection
     today = timezone.now().date()
     selections = CardSelection.objects.filter(round=round_obj).select_related('player')
+    done = set()
     for sel in selections:
         p = sel.player
+        if p.id in done:
+            continue
+        done.add(p.id)
         if p.last_streak_date == today:
             continue
         if p.last_streak_date == today - timedelta(days=1):
