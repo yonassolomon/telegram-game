@@ -50,7 +50,7 @@ def async_db(func):
     return wrapper
 
 
-HOUSE_FEE_PERCENT = 10
+HOUSE_FEE_PERCENT = 20
 
 
 def calculate_prize(total_pot):

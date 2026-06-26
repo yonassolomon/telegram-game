@@ -878,7 +878,7 @@ def house_fees(request):
         info = {
             'tx': tx,
             'game_type': 'Arena' if 'Arena' in tx.description else 'Room',
-            'pot': tx.amount * -10,
+            'pot': tx.amount * -5,
             'winner': tx.player.first_name,
         }
         desc = tx.description
