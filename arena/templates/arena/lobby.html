@@ -335,34 +335,6 @@ function toggleAutoMark() {
   }
 }
 
-function updateBingoCardStyle() {
-  var cardEl = document.getElementById('my-bingo-card');
-  if (!cardEl) return;
-  var allCells = cardEl.querySelectorAll('.bingo-cell[data-num]');
-  allCells.forEach(function(cell) {
-    if (AUTO_MARK) {
-      cell.classList.remove('manual-mode', 'manual-called');
-    } else {
-      cell.classList.add('manual-mode');
-      var num = parseInt(cell.dataset.num);
-      if (CALLED_NUMS.indexOf(num) !== -1 && !cell.classList.contains('free')) {
-        cell.classList.add('manual-called');
-      } else {
-        cell.classList.remove('manual-called');
-      }
-    }
-  });
-}
-
-function stripServerMarks() {
-  if (AUTO_MARK) return;
-  var cardEl = document.getElementById('my-bingo-card');
-  if (!cardEl) return;
-  cardEl.querySelectorAll('.bingo-cell.marked[data-num]').forEach(function(c) {
-    c.classList.remove('marked');
-  });
-}
-
 function attachCellClickHandlers() {
   document.querySelectorAll('#my-cards-stack .bingo-cell[data-num]').forEach(function(cell) {
     cell.onclick = function() { return handleCellClick(cell); };
@@ -402,18 +374,6 @@ function stripServerMarks() {
   document.querySelectorAll('#my-cards-stack .bingo-cell.marked[data-num]').forEach(function(c) {
     c.classList.remove('marked');
   });
-}
-
-function handleCellClick(cell) {
-  if (AUTO_MARK) return;
-  if (cell.classList.contains('free')) return;
-  var num = parseInt(cell.dataset.num);
-  if (CALLED_NUMS.indexOf(num) === -1) {
-    showToast('This number has not been called yet.\nይህ ቁጥር ገና አልተጠራም።');
-    return;
-  }
-  cell.classList.toggle('marked');
-  cell.classList.toggle('manual-called');
 }
 
 startPolling();
@@ -547,6 +507,8 @@ function pollState() {
         var wb = document.getElementById('arena-wallet-btn');
         if (wb && MY_CARDS.length > 0) wb.style.display = 'none';
         if (d.my_card_grids && d.my_card_grids.length) renderAllCards(d.my_card_grids);
+        var trToggle = document.getElementById('toggle-row');
+        if (trToggle) trToggle.style.display = '';
         if (d.called_numbers) {
           CALLED_NUMS = d.called_numbers;
           updateCalledNumbers(d.called_numbers);
@@ -719,10 +681,10 @@ function updateAllCards(grids) {
     var wrapper = document.querySelector('#my-cards-stack [data-card-num="' + cg.card_number + '"]');
     if (!wrapper) return;
     var rows = wrapper.querySelectorAll('.bingo-row');
-    for (var r = 0; r < rows.length; r++) {
+    for (var r = 1; r < rows.length; r++) {
       var cells = rows[r].querySelectorAll('.bingo-cell');
       for (var c = 0; c < cells.length; c++) {
-        var cellData = cg.grid[r][c];
+        var cellData = cg.grid[r - 1][c];
         if (cellData.marked && !cellData.free) cells[c].classList.add('marked');
       }
     }
