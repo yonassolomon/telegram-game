@@ -238,17 +238,7 @@ var VOICE_ON = localStorage.getItem('arenaVoice') === 'on';
 var LAST_SPOKEN_IDX = CALLED_NUMS.length;
 
 var AUDIO_BASE = '/static/audio/';
-var AUDIO_CACHE = {};
 var CURRENT_AUDIO = null;
-
-(function preloadAudio() {
-  for (var n = 1; n <= 75; n++) {
-    var audio = new Audio(AUDIO_BASE + n + '.mp3');
-    audio.preload = 'auto';
-    audio.onerror = function(num) { return function() { console.log('Audio missing: ' + num + '.mp3'); }; }(n);
-    AUDIO_CACHE[n] = audio;
-  }
-})();
 
 function initVoice() {
   var btn = document.getElementById('voice-btn');
@@ -271,10 +261,12 @@ function toggleVoice() {
 }
 
 function playAudio(n) {
-  var audio = AUDIO_CACHE[n];
-  if (!audio) return;
-  audio.currentTime = 0;
-  audio.play().catch(function(e) { console.log('Audio play failed: ' + n + '.mp3', e); });
+  var audio = new Audio(AUDIO_BASE + n + '.mp3');
+  audio.play().then(function() {
+    console.log('Playing: ' + n + '.mp3');
+  }).catch(function(e) {
+    console.log('Audio play failed: ' + n + '.mp3', e);
+  });
   return audio;
 }
 
