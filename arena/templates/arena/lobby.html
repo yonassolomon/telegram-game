@@ -237,32 +237,18 @@ var AUTO_MARK = localStorage.getItem('arenaAutoMark') !== 'off';
 var VOICE_ON = localStorage.getItem('arenaVoice') === 'on';
 var LAST_SPOKEN_IDX = CALLED_NUMS.length;
 
-var AMH_NUMS = [
-  '', 'አንድ','ሁለት','ሶስት','አራት','አምስት','ስድስት','ሰባት','ስምንት','ዘጠኝ',
-  'አስር','አስራ አንድ','አስራ ሁለት','አስራ ሶስት','አስራ አራት','አስራ አምስት','አስራ ስድስት','አስራ ሰባት','አስራ ስምንት','አስራ ዘጠኝ',
-  'ሀያ','ሀያ አንድ','ሀያ ሁለት','ሀያ ሶስት','ሀያ አራት','ሀያ አምስት','ሀያ ስድስት','ሀያ ሰባት','ሀያ ስምንት','ሀያ ዘጠኝ',
-  'ሰላሳ','ሰላሳ አንድ','ሰላሳ ሁለት','ሰላሳ ሶስት','ሰላሳ አራት','ሰላሳ አምስት','ሰላሳ ስድስት','ሰላሳ ሰባት','ሰላሳ ስምንት','ሰላሳ ዘጠኝ',
-  'አርባ','አርባ አንድ','አርባ ሁለት','አርባ ሶስት','አርባ አራት','አርባ አምስት','አርባ ስድስት','አርባ ሰባት','አርባ ስምንት','አርባ ዘጠኝ',
-  'ሃምሳ','ሃምሳ አንድ','ሃምሳ ሁለት','ሃምሳ ሶስት','ሃምሳ አራት','ሃምሳ አምስት','ሃምሳ ስድስት','ሃምሳ ሰባት','ሃምሳ ስምንት','ሃምሳ ዘጠኝ',
-  'ስልሳ','ስልሳ አንድ','ስልሳ ሁለት','ስልሳ ሶስት','ስልሳ አራት','ስልሳ አምስት','ስልሳ ስድስት','ስልሳ ሰባት','ስልሳ ስምንት','ስልሳ ዘጠኝ',
-  'ሰባ','ሰባ አንድ','ሰባ ሁለት','ሰባ ሶስት','ሰባ አራት','ሰባ አምስት'
-];
-var AMH_LETTERS = ['ቢ','አይ','ኤን','ጂ','ኦ'];
+var AUDIO_BASE = '/audio/';
+var AUDIO_CACHE = {};
+var CURRENT_AUDIO = null;
 
-var AMHARIC_VOICE = null;
-function cacheVoices() {
-  var voices = speechSynthesis.getVoices();
-  for (var i = 0; i < voices.length; i++) {
-    if (voices[i].lang.indexOf('am') === 0) {
-      AMHARIC_VOICE = voices[i];
-      return;
-    }
+(function preloadAudio() {
+  for (var n = 1; n <= 75; n++) {
+    var audio = new Audio(AUDIO_BASE + n + '.mp3');
+    audio.preload = 'auto';
+    audio.onerror = function(num) { return function() { console.log('Audio missing: ' + num + '.mp3'); }; }(n);
+    AUDIO_CACHE[n] = audio;
   }
-}
-if (window.speechSynthesis) {
-  cacheVoices();
-  speechSynthesis.onvoiceschanged = cacheVoices;
-}
+})();
 
 function initVoice() {
   var btn = document.getElementById('voice-btn');
@@ -276,38 +262,37 @@ function initVoice() {
 function toggleVoice() {
   VOICE_ON = !VOICE_ON;
   localStorage.setItem('arenaVoice', VOICE_ON ? 'on' : 'off');
-  if (!VOICE_ON) speechSynthesis.cancel();
+  if (!VOICE_ON && CURRENT_AUDIO) {
+    CURRENT_AUDIO.pause();
+    CURRENT_AUDIO.currentTime = 0;
+    CURRENT_AUDIO = null;
+  }
   initVoice();
 }
 
-function speakNumber(n) {
-  if (!window.speechSynthesis) return null;
-  var utterance;
-  if (AMHARIC_VOICE) {
-    var col = n <= 15 ? 0 : n <= 30 ? 1 : n <= 45 ? 2 : n <= 60 ? 3 : 4;
-    utterance = new SpeechSynthesisUtterance(AMH_LETTERS[col] + ' ' + AMH_NUMS[n]);
-    utterance.lang = 'am-ET';
-    utterance.voice = AMHARIC_VOICE;
-  } else {
-    var prefix = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
-    utterance = new SpeechSynthesisUtterance(prefix + ' ' + n);
-    utterance.lang = 'en-US';
-  }
-  utterance.rate = 0.85;
-  utterance.pitch = 1.1;
-  utterance.volume = 0.9;
-  return utterance;
+function playAudio(n) {
+  var audio = AUDIO_CACHE[n];
+  if (!audio) return;
+  audio.currentTime = 0;
+  audio.play().catch(function(e) { console.log('Audio play failed: ' + n + '.mp3', e); });
+  return audio;
 }
 
 function announceNewNumbers(newNums) {
-  if (!VOICE_ON || !newNums.length || !window.speechSynthesis) return;
-  speechSynthesis.cancel();
+  if (!VOICE_ON || !newNums.length) return;
+  if (CURRENT_AUDIO) {
+    CURRENT_AUDIO.pause();
+    CURRENT_AUDIO.currentTime = 0;
+  }
   var i = 0;
   function next() {
-    if (i >= newNums.length) return;
-    var utt = speakNumber(newNums[i]);
-    utt.onend = function() { i++; next(); };
-    speechSynthesis.speak(utt);
+    if (i >= newNums.length) { CURRENT_AUDIO = null; return; }
+    CURRENT_AUDIO = playAudio(newNums[i]);
+    if (CURRENT_AUDIO) {
+      CURRENT_AUDIO.onended = function() { i++; next(); };
+    } else {
+      i++; next();
+    }
   }
   next();
 }
