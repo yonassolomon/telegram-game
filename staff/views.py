@@ -120,17 +120,12 @@ def api_approve_withdrawal(request, request_id):
     if wd.status != 'pending':
         return JsonResponse({'error': 'Already reviewed'})
     with db_transaction.atomic():
-        p = Player.objects.select_for_update().get(id=wd.player_id)
-        if p.coins < wd.amount:
-            return JsonResponse({'error': 'Insufficient coins'})
-        p.coins = F('coins') - wd.amount
-        p.save(update_fields=['coins'])
         wd.status = 'approved'
         wd.reviewed_by = request.user
         wd.reviewed_at = timezone.now()
         wd.save()
         Transaction.objects.create(
-            player=p, amount=-wd.amount,
+            player=wd.player, amount=-wd.amount,
             transaction_type='withdrawal',
             description=f'Withdrawal {wd.amount} approved by {request.user.username}')
     return JsonResponse({'success': True})
@@ -143,8 +138,14 @@ def api_reject_withdrawal(request, request_id):
     wd = get_object_or_404(WithdrawalRequest, id=request_id)
     if wd.status != 'pending':
         return JsonResponse({'error': 'Already reviewed'})
-    wd.status = 'rejected'
-    wd.reviewed_by = request.user
-    wd.reviewed_at = timezone.now()
-    wd.save()
+    with db_transaction.atomic():
+        Player.objects.filter(id=wd.player_id).update(coins=F('coins') + wd.amount)
+        wd.status = 'rejected'
+        wd.reviewed_by = request.user
+        wd.reviewed_at = timezone.now()
+        wd.save()
+        Transaction.objects.create(
+            player=wd.player, amount=wd.amount,
+            transaction_type='withdrawal_refund',
+            description=f'Withdrawal #{request_id} rejected — refunded')
     return JsonResponse({'success': True})

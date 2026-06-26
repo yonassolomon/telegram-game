@@ -53,40 +53,61 @@ def deposit(request):
 
 
 def withdrawal(request):
-    player = get_player_from_request(request)
-    if not player:
+    player_obj = get_player_from_request(request)
+    if not player_obj:
         return redirect('webapp:home')
+
+    from users.models import Player
+    NON_WITHDRAWABLE_BONUS = Player.NON_WITHDRAWABLE_BONUS
+    MIN_WITHDRAWABLE_BALANCE = Player.MIN_WITHDRAWABLE_BALANCE
 
     success = False
     error = None
+    actual_amount = 0
+    requested_amount = 0
     if request.method == 'POST':
         try:
-            amount = int(request.POST.get('amount', 0))
+            requested_amount = int(request.POST.get('amount', 0))
         except (ValueError, TypeError):
             error = 'Invalid amount'
         else:
-            if amount < 10:
-                error = 'Minimum withdrawal is 10 coins'
-            elif amount > player.coins:
-                error = f'Insufficient coins. You have {player.coins}'
+            if requested_amount < 10:
+                error = 'Minimum withdrawal is 10 Birr'
             else:
-                player.refresh_from_db(fields=['wins', 'coins'])
-                from finance.models import DepositRequest
-                has_deposited = DepositRequest.objects.filter(player=player, status='approved').exists()
-                if player.wins < 1 and not has_deposited:
+                player_obj.refresh_from_db(fields=['wins', 'coins'])
+                from finance.models import DepositRequest, WithdrawalRequest
+                has_deposited = DepositRequest.objects.filter(player=player_obj, status='approved').exists()
+                total_balance = player_obj.coins
+
+                if total_balance < MIN_WITHDRAWABLE_BALANCE:
+                    error = 'ገንዘብ ለማውጣት ቢያንስ 100 ብር በዋሌትዎ ውስጥ ሊኖር ይገባል።'
+                elif player_obj.wins < 1 and not has_deposited:
                     error = 'You must win at least one game before withdrawing.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ አሸንፈው መሆን አለበት።'
+                elif WithdrawalRequest.objects.filter(player=player_obj, status='pending').exists():
+                    error = 'You have a pending withdrawal. Please wait for it to be processed.\nአንድ በሂደት ላይ ያለ የማውጫ ጥያቄ አለዎት። እባክዎ መጀመሪያ ውጤቱን ይጠብቁ።'
                 else:
-                    receiving_number = request.POST.get('receiving_number', '')
-                    WithdrawalRequest.objects.create(
-                        player=player, amount=amount,
-                        receiving_number=receiving_number
-                    )
-                    success = True
+                    max_withdrawable = total_balance - NON_WITHDRAWABLE_BONUS
+                    actual_amount = max_withdrawable if requested_amount > max_withdrawable else requested_amount
+
+                    if actual_amount <= 0:
+                        error = 'የሚወጣ ገንዘብ የለም። 20 ብሩ የቦነስ ገንዘብ ስለሆነ ሊወጣ አይችልም።'
+                    else:
+                        receiving_number = request.POST.get('receiving_number', '')
+                        player_obj.coins = F('coins') - actual_amount
+                        player_obj.save(update_fields=['coins'])
+                        WithdrawalRequest.objects.create(
+                            player=player_obj, amount=actual_amount,
+                            receiving_number=receiving_number
+                        )
+                        player_obj.refresh_from_db()
+                        success = True
 
     return render(request, 'finance/withdrawal.html', {
-        'player': player,
+        'player': player_obj,
         'success': success,
         'error': error,
+        'actual_amount': actual_amount,
+        'requested_amount': requested_amount,
     })
 
 
@@ -179,17 +200,12 @@ def api_approve_withdrawal(request, request_id):
         return JsonResponse({'error': 'Already reviewed'})
 
     with db_transaction.atomic():
-        player = Player.objects.select_for_update().get(id=wd.player_id)
-        if player.coins < wd.amount:
-            return JsonResponse({'error': 'Insufficient coins'})
-        player.coins = F('coins') - wd.amount
-        player.save(update_fields=['coins'])
         wd.status = 'approved'
         wd.reviewed_by = request.user
         wd.reviewed_at = timezone.now()
         wd.save()
         Transaction.objects.create(
-            player=player, amount=-wd.amount,
+            player=wd.player, amount=-wd.amount,
             transaction_type='withdrawal',
             description=f'Withdrawal approved by {request.user.username}'
         )
@@ -206,10 +222,17 @@ def api_reject_withdrawal(request, request_id):
     if wd.status != 'pending':
         return JsonResponse({'error': 'Already reviewed'})
 
-    wd.status = 'rejected'
-    wd.reviewed_by = request.user
-    wd.reviewed_at = timezone.now()
-    wd.save()
+    with db_transaction.atomic():
+        Player.objects.filter(id=wd.player_id).update(coins=F('coins') + wd.amount)
+        wd.status = 'rejected'
+        wd.reviewed_by = request.user
+        wd.reviewed_at = timezone.now()
+        wd.save()
+        Transaction.objects.create(
+            player=wd.player, amount=wd.amount,
+            transaction_type='withdrawal_refund',
+            description=f'Withdrawal #{request_id} rejected — refunded'
+        )
 
-    logger.info(f'ADMIN: {request.user} rejected withdrawal #{request_id}')
+    logger.info(f'ADMIN: {request.user} rejected withdrawal #{request_id} — refunded {wd.amount}')
     return JsonResponse({'success': True})
