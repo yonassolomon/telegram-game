@@ -135,6 +135,9 @@
     {% if round.status == 'active' or round.status == 'finished' %}style="display:none;"{% endif %}>
   <div class="card">
     <div class="card-header">🎯 Choose Your Cards <span style="font-weight:400;color:var(--muted);">(<span id="hdr-player-count">{{ round.player_count }}</span> players)</span></div>
+    <div style="text-align:center;padding:6px 10px;margin:0 0 4px 0;background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.15);border-radius:8px;font-size:12px;color:var(--neon-gold);line-height:1.5;">
+      💡 እስከ 3 ካርዶች መምረጥ ይችላሉ። ብዙ ካርዶች ሲኖሩዎት የማሸነፍ እድልዎ ይጨምራል።
+    </div>
     <div class="card-grid" id="card-grid"></div>
     <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--neon-gold);" id="card-counter">Selected: <span id="card-count">0</span>/3</div>
   </div>
