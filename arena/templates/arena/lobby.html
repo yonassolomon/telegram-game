@@ -185,12 +185,19 @@
 
   {% if round.status == 'finished' or round.status == 'cooldown' %}
   <div class="card" style="text-align:center;padding:40px;">
-    <div style="font-size:64px;">{% if round.winner %}🏆{% else %}🤝{% endif %}</div>
-    <h2>{% if round.winner %}{{ round.winner.first_name }} Won!{% else %}Draw!{% endif %}</h2>
-    <div style="color:var(--neon-gold);font-size:24px;font-weight:800;">{{ round.prize_pool }} 💰</div>
-    {% if round.winner_card_number %}
-    <div style="color:var(--muted);">Winning card: #{{ round.winner_card_number }}</div>
+    <div style="font-size:64px;">{% if round.winner or round.winners_data %}🏆{% else %}🤝{% endif %}</div>
+    {% if round.winners_data and round.winners_data|length > 1 %}
+    <h2>{{ round.winners_data|length }} አሸናፊዎች ተገኝተዋል!</h2>
+    <div style="color:var(--neon-gold);margin:8px 0;font-size:14px;">
+    {% for w in round.winners_data %}👤 {{ w.name }}<br>{% endfor %}
+    </div>
+    <div style="color:var(--text-secondary);font-size:13px;">💰 እያንዳንዳቸው {{ round.winners_data.0.prize }} ብር አሸንፈዋል።</div>
+    {% elif round.winner %}
+    <h2>{{ round.winner.first_name }} Won!</h2>
+    {% else %}
+    <h2>Draw!</h2>
     {% endif %}
+    <div style="color:var(--neon-gold);font-size:24px;font-weight:800;">{{ round.prize_pool }} 💰</div>
     <div style="color:var(--text-secondary);margin-top:8px;">Next round starting soon...</div>
   </div>
   {% endif %}
@@ -415,6 +422,47 @@ function startPolling() {
   POLL_TIMER = setInterval(pollState, 1500);
 }
 
+function showWinnerOverlay(d) {
+  document.getElementById('winner-overlay').style.display = 'flex';
+  document.getElementById('winner-trophy').textContent = '🏆';
+  document.getElementById('winner-pattern').style.display = 'none';
+
+  var winners = d.winners && d.winners.length > 0 ? d.winners : null;
+
+  if (winners && winners.length > 1) {
+    document.getElementById('winner-name').textContent = '🎉 ' + winners.length + ' አሸናፊዎች ተገኝተዋል!';
+    var html = '<div style="font-size:13px;color:var(--neon-gold);margin:4px 0;">';
+    winners.forEach(function(w) {
+      html += '👤 ' + w.name + '<br>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">💰 እያንዳንዳቸው ' + winners[0].prize + ' ብር አሸንፈዋል።</div>';
+    document.getElementById('winner-sub').innerHTML = html;
+    document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰 (total)';
+    document.getElementById('winner-card-info').textContent = '';
+  } else {
+    var name = d.winner_name || (winners && winners[0] ? winners[0].name : '');
+    var prize = winners && winners[0] ? winners[0].prize : d.prize_pool;
+    document.getElementById('winner-name').textContent = '🎉 ' + name + ' Wins!';
+    document.getElementById('winner-prize').textContent = prize + ' 💰';
+    document.getElementById('winner-card-info').textContent = d.winning_card ? 'Card #' + d.winning_card : '';
+    document.getElementById('winner-sub').innerHTML = '';
+
+    var pat = d.win_pattern || '';
+    var patEl = document.getElementById('winner-pattern');
+    if (pat) {
+      patEl.style.display = 'inline-block';
+      patEl.textContent = pat === 'horizontal' ? 'Horizontal Row' :
+                         pat === 'vertical' ? 'Vertical Column' :
+                         pat === 'diagonal' ? 'Diagonal ↘' : 'Diagonal ↙';
+      patEl.className = 'winner-pattern-label ' + (
+        pat === 'horizontal' ? 'pattern-horizontal' : pat === 'vertical' ? 'pattern-vertical' :
+        pat === 'diagonal' ? 'pattern-diagonal' : 'pattern-diagonal_rev');
+    }
+    if (d.win_cells) highlightWinCells(d.win_cells);
+  }
+}
+
 function resetToWaiting() {
   var gui = document.getElementById('arena-game-ui');
   if (gui) gui.style.display = 'none';
@@ -453,24 +501,7 @@ function pollState() {
 
       if (d.is_winner) {
         clearInterval(POLL_TIMER);
-        document.getElementById('winner-overlay').style.display = 'flex';
-        document.getElementById('winner-trophy').textContent = '🏆';
-        document.getElementById('winner-name').textContent = '🎉 ' + (d.winner_name || 'You') + ' Wins!';
-        document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰';
-        document.getElementById('winner-card-info').textContent = d.winning_card ? 'Card #' + d.winning_card : '';
-
-        var pat = d.win_pattern || '';
-        var patEl = document.getElementById('winner-pattern');
-        if (pat) {
-          patEl.style.display = 'inline-block';
-          patEl.textContent = pat === 'horizontal' ? 'Horizontal Row' :
-                             pat === 'vertical' ? 'Vertical Column' :
-                             pat === 'diagonal' ? 'Diagonal ↘' : 'Diagonal ↙';
-          patEl.className = 'winner-pattern-label ' + (
-            pat === 'horizontal' ? 'pattern-horizontal' : pat === 'vertical' ? 'pattern-vertical' :
-            pat === 'diagonal' ? 'pattern-diagonal' : 'pattern-diagonal_rev');
-        }
-        if (d.win_cells) highlightWinCells(d.win_cells);
+        showWinnerOverlay(d);
         launchConfetti();
         return;
       }
@@ -507,13 +538,11 @@ function pollState() {
           document.getElementById('winner-prize').textContent = 'Not enough players. Coins refunded.';
           document.getElementById('winner-pattern').style.display = 'none';
           document.getElementById('winner-card-info').textContent = '';
+          document.getElementById('winner-sub').innerHTML = '';
+        } else if (d.winners && d.winners.length > 0) {
+          showWinnerOverlay(d);
         } else if (d.winner_name) {
-          document.getElementById('winner-overlay').style.display = 'flex';
-          document.getElementById('winner-trophy').textContent = '🏆';
-          document.getElementById('winner-name').textContent = '🏆 ' + d.winner_name + ' Wins!';
-          document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰';
-          document.getElementById('winner-pattern').style.display = 'none';
-          document.getElementById('winner-card-info').textContent = '';
+          showWinnerOverlay(d);
         } else {
           document.getElementById('winner-overlay').style.display = 'flex';
           document.getElementById('winner-trophy').textContent = '🤝';
@@ -521,6 +550,7 @@ function pollState() {
           document.getElementById('winner-prize').textContent = 'All players refunded';
           document.getElementById('winner-pattern').style.display = 'none';
           document.getElementById('winner-card-info').textContent = '';
+          document.getElementById('winner-sub').innerHTML = '';
         }
         return;
       }

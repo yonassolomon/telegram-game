@@ -235,12 +235,14 @@ def api_round_state(request, round_id):
         'waiting_seconds_left': game_round.waiting_seconds_left,
         'winner_name': game_round.winner.first_name if game_round.winner else None,
         'winner_card': game_round.winner_card_number,
+        'winners': game_round.winners_data or [],
+        'winner_count': len(game_round.winners_data) if game_round.winners_data else 0,
         'is_winner': my_win,
         'win_pattern': win_pattern,
         'win_cells': win_cells,
         'win_numbers': win_numbers,
         'winning_card': win_card,
-        'cancelled': game_round.status == 'finished' and not game_round.winner and game_round.player_count < 2,
+        'cancelled': game_round.status == 'finished' and not game_round.winner and not game_round.winners_data and game_round.player_count < 2,
     })
 
 

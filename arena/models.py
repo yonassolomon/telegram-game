@@ -21,6 +21,7 @@ class GameRound(models.Model):
     prize_pool = models.BigIntegerField(default=0)
     platform_fee_percent = models.IntegerField(default=7)
     winner = models.ForeignKey(Player, null=True, blank=True, on_delete=models.SET_NULL, related_name='arena_wins')
+    winners_data = models.JSONField(null=True, blank=True)
     numbers_called = models.JSONField(default=list)
     winner_card_number = models.IntegerField(null=True, blank=True)
     waiting_started_at = models.DateTimeField(null=True, blank=True)

@@ -141,12 +141,18 @@ def tick():
         round_obj.save(update_fields=['numbers_called', 'game_state'])
 
         selections = CardSelection.objects.filter(round=round_obj).select_related('player')
+        winning_players = {}  # player_id -> (player, winning_card_number)
         for sel in selections:
+            if sel.player_id in winning_players:
+                continue
             numbers_list = generate_card_by_number(sel.card_number)
             marked = {n for n in called if n in numbers_list}
             if _check_win(numbers_list, marked):
-                _award_winner(round_obj, sel, len(selections))
-                return
+                winning_players[sel.player_id] = (sel.player, sel.card_number)
+
+        if winning_players:
+            _award_winners(round_obj, winning_players, len(selections))
+            return
 
 
 def _check_manual_winner(round_obj):
@@ -154,15 +160,19 @@ def _check_manual_winner(round_obj):
     from arena.cards import generate_card_by_number
     selections = CardSelection.objects.filter(round=round_obj).select_related('player')
     called = list(round_obj.numbers_called or [])
+    winning_players = {}
     for sel in selections:
+        if sel.player_id in winning_players:
+            continue
         numbers_list = generate_card_by_number(sel.card_number)
         marked = {n for n in called if n in numbers_list}
         if _check_win(numbers_list, marked):
-            _award_winner(round_obj, sel, len(selections))
-            return
+            winning_players[sel.player_id] = (sel.player, sel.card_number)
+    if winning_players:
+        _award_winners(round_obj, winning_players, len(selections))
 
 
-def _award_winner(round_obj, sel, player_count):
+def _award_winners(round_obj, winning_players, player_count):
     from arena.models import GameRound
     from wallets.models import Transaction
     with db_transaction.atomic():
@@ -171,22 +181,46 @@ def _award_winner(round_obj, sel, player_count):
             return
         total_pot = player_count * r.entry_fee
         winner_prize, house_fee = calculate_prize(total_pot)
+        num_winners = len(winning_players)
+        per_winner = winner_prize // num_winners
+        remainder = winner_prize - (per_winner * num_winners)
+
         r.prize_pool = winner_prize
-        r.winner = sel.player
-        sel.player.coins = db_models.F('coins') + winner_prize
-        sel.player.wins = db_models.F('wins') + 1
-        sel.player.games_played = db_models.F('games_played') + 1
-        sel.player.xp = db_models.F('xp') + 200
-        sel.player.save(update_fields=['coins', 'wins', 'games_played', 'xp'])
-        Transaction.objects.create(player=sel.player, amount=winner_prize, transaction_type='game_win',
-                                   description=f'Arena Round #{r.round_number} win')
-        Transaction.objects.create(player=sel.player, amount=-house_fee, transaction_type='house_fee',
-                                   description=f'Arena Round #{r.round_number} house fee')
+        r.winner = list(winning_players.values())[0][0] if num_winners == 1 else None
+        winners_list = []
+        for pid, (p, card_num) in winning_players.items():
+            share = per_winner + (1 if remainder > 0 else 0)
+            if remainder > 0:
+                remainder -= 1
+            p.coins = db_models.F('coins') + share
+            p.wins = db_models.F('wins') + 1
+            p.games_played = db_models.F('games_played') + 1
+            p.xp = db_models.F('xp') + 200
+            p.save(update_fields=['coins', 'wins', 'games_played', 'xp'])
+            Transaction.objects.create(player=p, amount=share, transaction_type='game_win',
+                                       description=f'Arena Round #{r.round_number} win')
+            if num_winners == 1:
+                Transaction.objects.create(player=p, amount=-house_fee, transaction_type='house_fee',
+                                           description=f'Arena Round #{r.round_number} house fee')
+            winners_list.append({
+                'name': p.first_name,
+                'telegram_id': p.telegram_id,
+                'card_number': card_num,
+                'prize': share,
+            })
+        if num_winners > 1:
+            total_house_fee = house_fee
+            Transaction.objects.create(player=list(winning_players.values())[0][0], amount=-total_house_fee,
+                                       transaction_type='house_fee',
+                                       description=f'Arena Round #{r.round_number} house fee')
+
+        r.winners_data = winners_list
+
         from arena.models import CardSelection
         all_players = CardSelection.objects.filter(round=r)
         done = set()
         for s in all_players:
-            if s.player_id != sel.player_id and s.player_id not in done:
+            if s.player_id not in winning_players and s.player_id not in done:
                 done.add(s.player_id)
                 s.player.games_played = db_models.F('games_played') + 1
                 s.player.losses = db_models.F('losses') + 1
@@ -194,7 +228,8 @@ def _award_winner(round_obj, sel, player_count):
         r.status = 'finished'
         r.finished_at = timezone.now()
         r.save()
-        logger.info(f'ARENA WINNER: round={r.round_number} player={sel.player.telegram_id} prize={winner_prize}')
+        names = ', '.join(w['name'] for w in winners_list)
+        logger.info(f'ARENA WINNERS ({num_winners}): round={r.round_number} winners=[{names}] prize={winner_prize}')
     _start_next_round()
     _update_streaks(round_obj)
 

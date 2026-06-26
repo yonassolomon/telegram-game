@@ -62,7 +62,7 @@
     <div class="stat-label">Numbers Called</div>
   </div>
   <div class="stat-card green">
-    <div class="stat-value">{{ current_round.winner.first_name|default:"—" }}</div>
+    <div class="stat-value">{% if current_round.winners_data %}{{ current_round.winners_data|length }} winners{% elif current_round.winner %}{{ current_round.winner.first_name }}{% else %}—{% endif %}</div>
     <div class="stat-label">Winner</div>
   </div>
 </div>
@@ -127,7 +127,7 @@
         {% else %}<span class="badge badge-info">Done</span>{% endif %}</td>
       <td>{{ r.player_count }}</td>
       <td>{{ r.prize_pool }} 💰</td>
-      <td>{{ r.winner.first_name|default:"—" }}</td>
+      <td>{% if r.winners_data %}{{ r.winners_data|length }} winners{% elif r.winner %}{{ r.winner.first_name }}{% else %}—{% endif %}</td>
       <td>{{ r.created_at|date:"m/d H:i" }}</td>
     </tr>
     {% empty %}

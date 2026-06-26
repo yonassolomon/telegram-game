@@ -29,6 +29,7 @@ class GameRoom(models.Model):
         on_delete=models.SET_NULL,
         related_name='games_won'
     )
+    winners_data = models.JSONField(null=True, blank=True)
     players = models.ManyToManyField(Player, through='BingoCard', related_name='game_rooms')
     game_mode = models.CharField(max_length=10, choices=GameMode.choices, default=GameMode.AUTO)
     game_state = models.JSONField(default=dict, blank=True)

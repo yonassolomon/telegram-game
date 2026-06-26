@@ -103,7 +103,7 @@
     <tr><td style="color:var(--muted);">Created</td><td>{{ room.created_at|date:"Y-m-d H:i:s" }}</td></tr>
     <tr><td style="color:var(--muted);">Started</td><td>{{ room.started_at|date:"Y-m-d H:i:s"|default:"—" }}</td></tr>
     <tr><td style="color:var(--muted);">Finished</td><td>{{ room.finished_at|date:"Y-m-d H:i:s"|default:"—" }}</td></tr>
-    <tr><td style="color:var(--muted);">Winner</td><td>{{ room.winner.first_name|default:"—" }}</td></tr>
+    <tr><td style="color:var(--muted);">Winner</td><td>{% if room.winners_data %}{{ room.winners_data|length }} winners{% elif room.winner %}{{ room.winner.first_name }}{% else %}—{% endif %}</td></tr>
   </table>
 </div>
 {% endblock %}

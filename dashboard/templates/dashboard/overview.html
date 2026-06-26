@@ -107,7 +107,7 @@
       </td>
       <td>{{ r.pc }}</td>
       <td>{{ r.prize_pool }} 💰</td>
-      <td>{{ r.winner.first_name|default:"—" }}</td>
+      <td>{% if r.winners_data %}{{ r.winners_data|length }} winners{% elif r.winner %}{{ r.winner.first_name }}{% else %}—{% endif %}</td>
       <td>{{ r.created_at|date:"m/d H:i" }}</td>
     </tr>
     {% endfor %}

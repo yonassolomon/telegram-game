@@ -211,15 +211,19 @@ def run_game_engine(room_code):
 
         logger.info(f'ENGINE DRAW: room={room_code} number={number} called_count={len(called)} manual={manual_number is not None}')
 
+        winners_found = []
         for card in cards:
             card.mark_number(number)
             card.save(update_fields=['marked'])
             if card.check_win():
-                winner_card = card
                 card.is_winner = True
                 card.save(update_fields=['is_winner'])
+                winners_found.append(card)
                 logger.info(f'ENGINE WINNER: room={room_code} player={card.player.telegram_id} card={card.id}')
-                break
+        if winners_found:
+            winner_card = winners_found[0]
+            for wc in winners_found[1:]:
+                pass  # additional winners tracked in winners_data below
 
         history.numbers_called = called
         history.save(update_fields=['numbers_called'])
@@ -238,27 +242,47 @@ def run_game_engine(room_code):
     room.finished_at = timezone.now()
 
     if winner_card:
-        winner = winner_card.player
-        full_pot = room.prize_pool
         from core.utils import calculate_prize
+        full_pot = room.prize_pool
         winner_prize, house_fee = calculate_prize(full_pot)
-        winner.coins = db_models.F('coins') + winner_prize
-        winner.wins = db_models.F('wins') + 1
-        winner.xp = db_models.F('xp') + 100
-        winner.games_played = db_models.F('games_played') + 1
-        winner.save(update_fields=['coins', 'wins', 'xp', 'games_played'])
-        room.winner = winner
-        Transaction.objects.create(
-            player=winner, amount=winner_prize,
-            transaction_type='game_win',
-            description=f'Won room {room_code}'
-        )
-        Transaction.objects.create(
-            player=winner, amount=-house_fee,
-            transaction_type='house_fee',
-            description=f'House fee room {room_code}'
-        )
-        logger.info(f'ENGINE PRIZE: room={room_code} winner={winner.telegram_id} pot={full_pot} fee={house_fee} prize={winner_prize}')
+
+        unique_winner_ids = list(dict.fromkeys(wc.player_id for wc in winners_found))
+        num_winners = len(unique_winner_ids)
+        per_winner = winner_prize // num_winners
+        remainder = winner_prize - (per_winner * num_winners)
+        winners_paid = []
+        for pid in unique_winner_ids:
+            share = per_winner + (1 if remainder > 0 else 0)
+            if remainder > 0: remainder -= 1
+            winner = next(wc.player for wc in winners_found if wc.player_id == pid)
+            winner.coins = db_models.F('coins') + share
+            winner.wins = db_models.F('wins') + 1
+            winner.xp = db_models.F('xp') + 100
+            winner.games_played = db_models.F('games_played') + 1
+            winner.save(update_fields=['coins', 'wins', 'xp', 'games_played'])
+            Transaction.objects.create(
+                player=winner, amount=share,
+                transaction_type='game_win',
+                description=f'Won room {room_code}'
+            )
+            winners_paid.append({'name': winner.first_name, 'prize': share, 'card_number': next(wc.id for wc in winners_found if wc.player_id == pid)})
+
+        if num_winners == 1:
+            Transaction.objects.create(
+                player=winner_card.player, amount=-house_fee,
+                transaction_type='house_fee',
+                description=f'House fee room {room_code}'
+            )
+        else:
+            Transaction.objects.create(
+                player=winner_card.player, amount=-house_fee,
+                transaction_type='house_fee',
+                description=f'House fee room {room_code} (+{num_winners - 1} more winners)'
+            )
+
+        room.winner = winner_card.player if num_winners == 1 else None
+        room.winners_data = winners_paid
+        logger.info(f'ENGINE WINNERS ({num_winners}): room={room_code} pot={full_pot} prize_each={per_winner}')
     else:
         logger.info(f'ENGINE DRAW: room={room_code} no_winner — refunding all players')
         fee = room.entry_fee
@@ -278,7 +302,7 @@ def run_game_engine(room_code):
     room.save()
 
     for card in cards:
-        if card != winner_card:
+        if card not in winners_found:
             p = card.player
             p.losses = db_models.F('losses') + 1
             p.games_played = db_models.F('games_played') + 1
