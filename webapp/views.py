@@ -704,10 +704,10 @@ def api_claim_streak(request):
     if not player:
         return JsonResponse({'error': 'Not authenticated'}, status=401)
 
-    rewards = {3: 5, 7: 15, 14: 50, 30: 200}
+    rewards = {2: 2, 3: 5, 7: 10, 14: 50, 30: 200}
     streak = player.streak_count
-    if streak < 3:
-        return JsonResponse({'error': 'Need 3+ day streak to claim'}, status=400)
+    if streak < 2:
+        return JsonResponse({'error': 'Need 2+ day streak to claim'}, status=400)
     if streak <= player.streak_reward_claimed:
         return JsonResponse({'error': 'Already claimed this streak level'}, status=400)
 

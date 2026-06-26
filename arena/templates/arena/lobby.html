@@ -102,7 +102,7 @@
     <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);border:1px solid rgba(255,105,0,0.2);border-radius:8px;padding:4px 10px;font-size:11px;">
       <span>🔥</span>
       <span id="streak-count" style="color:var(--neon-gold);font-weight:700;">{{ player.streak_count }}/7</span>
-      {% if player.streak_count >= 3 and player.streak_count > player.streak_reward_claimed %}
+      {% if player.streak_count >= 2 and player.streak_count > player.streak_reward_claimed %}
       <button class="btn btn-gold btn-sm" onclick="claimStreak()" id="claim-streak-btn" style="padding:2px 8px;font-size:10px;">Claim</button>
       {% endif %}
     </div>
