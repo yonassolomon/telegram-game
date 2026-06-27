@@ -83,8 +83,8 @@ def api_select_card(request, round_id):
     except (ValueError, TypeError):
         return JsonResponse({'error': 'Invalid card number'}, status=400)
 
-    if card_num < 1 or card_num > 100:
-        return JsonResponse({'error': 'Card must be 1-100'}, status=400)
+    if card_num < 1 or card_num > 200:
+        return JsonResponse({'error': 'Card must be 1-200'}, status=400)
 
     game_round = get_object_or_404(GameRound, id=round_id)
 
@@ -277,7 +277,7 @@ def api_card_preview(request, card_number):
     from arena.cards import generate_card_by_number, format_card_grid
     try:
         num = int(card_number)
-        if num < 1 or num > 100:
+        if num < 1 or num > 200:
             return JsonResponse({'error': 'Invalid card'}, status=400)
         numbers = generate_card_by_number(num)
         grid = format_card_grid(numbers)

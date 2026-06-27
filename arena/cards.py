@@ -2,8 +2,8 @@ import random
 
 
 def generate_card_by_number(card_number):
-    if not (1 <= card_number <= 100):
-        raise ValueError('Card number must be 1-100')
+    if not (1 <= card_number <= 200):
+        raise ValueError('Card number must be 1-200')
 
     rng = random.Random(card_number * 7919 + 104729)
     cols = [

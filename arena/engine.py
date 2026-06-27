@@ -270,7 +270,7 @@ def _add_bot_players(round_obj, human_count):
     chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
 
     existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
-    available = [i for i in range(1, 101) if i not in existing_cards]
+    available = [i for i in range(1, 201) if i not in existing_cards]
 
     for bot in chosen:
         if not available:
@@ -373,7 +373,7 @@ def ensure_bots_in_round(round_obj):
     bot_count = _random.randint(2, 5)
     chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
     existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
-    available = [i for i in range(1, 101) if i not in existing_cards]
+    available = [i for i in range(1, 201) if i not in existing_cards]
 
     for bot in chosen:
         if not available:
