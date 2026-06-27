@@ -8,7 +8,9 @@
   <link rel="stylesheet" href="{% static 'dashboard/css/admin.css' %}">
 </head>
 <body>
-  <aside class="sidebar">
+  <button class="hamburger" id="hamburger-btn" onclick="document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open');">☰</button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="document.getElementById('sidebar').classList.remove('open'); this.classList.remove('open');"></div>
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <h2>Bingo2Bingo</h2>
       <span>Agent Panel</span>
