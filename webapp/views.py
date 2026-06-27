@@ -160,8 +160,8 @@ def create_room(request):
                     'player': p,
                     'error': f'Need {entry_fee} coins, have {p.coins}'
                 })
-            p.coins = db_models.F('coins') - entry_fee
-            p.save(update_fields=['coins'])
+            from agents.commission import process_entry_and_commission
+            process_entry_and_commission(p, entry_fee, 'room', 'creator')
 
             room = GameRoom.objects.create(
                 room_type=room_type,
@@ -418,8 +418,8 @@ def api_join_room(request, room_code):
             logger.warning(f'JOIN FAIL: room={room_code} player={p.telegram_id} reason=insufficient_coins have={p.coins} need={room.entry_fee}')
             return JsonResponse({'error': f'Need {room.entry_fee} coins, have {p.coins}'})
 
-        p.coins = db_models.F('coins') - room.entry_fee
-        p.save(update_fields=['coins'])
+        from agents.commission import process_entry_and_commission
+        process_entry_and_commission(p, room.entry_fee, 'room', room.room_code)
 
         card = BingoCard.objects.create(
             player=p, game_room=room, numbers=generate_bingo_card()

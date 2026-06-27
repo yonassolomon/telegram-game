@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Login - Bingo2Bingo</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/admin.css' %}">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+    .login-card { background: var(--card-bg); padding: 32px; border-radius: 12px; width: 360px; border: 1px solid var(--border); }
+    .login-card h2 { text-align: center; margin-bottom: 24px; color: var(--gold); }
+    .login-card input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; outline: none; }
+    .login-card button { width: 100%; background: var(--gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .error { color: var(--red); font-size: 13px; margin-bottom: 12px; text-align: center; }
+    .success { color: var(--green); font-size: 13px; margin-bottom: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h2>🧑‍💼 Agent Login</h2>
+    {% if success %}<div class="success">{{ success }}</div>{% endif %}
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST">
+      {% csrf_token %}
+      <input type="text" name="username" placeholder="Username (e.g. agent_12345678)" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+    <div style="text-align:center;margin-top:12px;font-size:13px;">
+      <a href="{% url 'agents:register' %}" style="color:var(--neon-gold);">Create Agent Account</a>
+    </div>
+  </div>
+</body>
+</html>

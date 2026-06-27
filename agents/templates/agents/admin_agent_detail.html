@@ -1,0 +1,61 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'dashboard:agents' %}" class="back-btn">← Agents</a>
+  <div class="title">{{ agent.player.first_name }}</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+    <div class="stat-card cyan" style="flex:1;">
+      <div class="stat-value">{{ agent.agent_balance }}</div>
+      <div class="stat-label">Agent Balance</div>
+    </div>
+    <div class="stat-card gold" style="flex:1;">
+      <div class="stat-value">{{ agent.total_commission_earned }}</div>
+      <div class="stat-label">Total Commission</div>
+    </div>
+    <div class="stat-card purple" style="flex:1;">
+      <div class="stat-value">{{ referred.count }}</div>
+      <div class="stat-label">Referred Players</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">👥 Referred Players</div>
+    <table>
+      <thead><tr><th>Player</th><th>Coins</th><th>Deposit Credit</th><th>Games</th><th>Joined</th></tr></thead>
+      <tbody>
+      {% for p in referred %}
+      <tr>
+        <td>{{ p.first_name }}</td>
+        <td>{{ p.coins }} 💰</td>
+        <td>{{ p.deposit_credit }}</td>
+        <td>{{ p.games_played }}</td>
+        <td>{{ p.created_at|date:"m/d" }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-header">💰 Commission History</div>
+    <table>
+      <thead><tr><th>Player</th><th>Game</th><th>Amount</th><th>Time</th></tr></thead>
+      <tbody>
+      {% for c in commission_logs %}
+      <tr>
+        <td>{{ c.player.first_name }}</td>
+        <td>{{ c.game_entry.game_type }} - {{ c.game_entry.entry_fee }} 💰</td>
+        <td style="color:var(--neon-green);">+{{ c.commission_amount }}</td>
+        <td>{{ c.created_at|date:"m/d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="color:var(--muted);">No commissions yet</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'dashboard:overview' %}" class="back-btn">← Dashboard</a>
+  <div class="title">🧑‍💼 Agents</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container">
+  <div class="card">
+    <div class="card-header">All Agents</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Agent</th><th>Balance</th><th>Total Commission</th><th>Referred</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for agent in agents %}
+        <tr>
+          <td>{{ agent.player.first_name }} ({{ agent.player.telegram_id }})</td>
+          <td style="color:var(--neon-green);">{{ agent.agent_balance }} 💰</td>
+          <td>{{ agent.total_commission_earned }} 💰</td>
+          <td>{{ agent.player.invitees.count }}</td>
+          <td><a href="{% url 'dashboard:agent_detail' agent.id %}" class="btn btn-sm btn-outline">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="color:var(--muted);">No agents yet</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

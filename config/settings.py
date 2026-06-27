@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'arena',
     'finance',
     'staff',
+    'agents',
 ]
 
 MIDDLEWARE = [

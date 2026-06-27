@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Register - Bingo2Bingo</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/admin.css' %}">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+    .login-card { background: var(--card-bg); padding: 32px; border-radius: 12px; width: 360px; border: 1px solid var(--border); }
+    .login-card h2 { text-align: center; margin-bottom: 24px; color: var(--gold); }
+    .login-card input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; outline: none; }
+    .login-card button { width: 100%; background: var(--gold); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .error { color: var(--red); font-size: 13px; margin-bottom: 12px; text-align: center; }
+    .success { color: var(--green); font-size: 13px; margin-bottom: 12px; text-align: center; }
+    .info { color: var(--muted); font-size: 12px; margin-bottom: 16px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h2>🧑‍💼 Agent Registration</h2>
+    {% if success %}<div class="success">{{ success }}</div>{% endif %}
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <div class="info">Create your agent account. Admin will review and approve your request.</div>
+    <form method="POST">
+      {% csrf_token %}
+      <input type="text" name="username" placeholder="Username (for login)" required>
+      <input type="text" name="phone" placeholder="Phone Number" required>
+      <input type="text" name="telegram_id" placeholder="Telegram Numeric ID" required>
+      <input type="text" name="telegram_username" placeholder="Telegram @username (optional)">
+      <input type="password" name="password" placeholder="Password (min 6 chars)" required>
+      <input type="password" name="password2" placeholder="Confirm Password" required>
+      <button type="submit">Submit Registration</button>
+    </form>
+    <div style="text-align:center;margin-top:12px;font-size:13px;">
+      <a href="{% url 'agents:login' %}" style="color:var(--cyan);">Already have an account? Login</a>
+    </div>
+  </div>
+</body>
+</html>

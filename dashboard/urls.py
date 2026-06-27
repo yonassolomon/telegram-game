@@ -39,4 +39,11 @@ urlpatterns = [
     path('api/withdrawals/<int:request_id>/approve/', views.api_finance_approve_withdrawal, name='api_approve_withdrawal'),
     path('player-stats/', views.player_stats, name='player_stats'),
     path('house-fees/', views.house_fees, name='house_fees'),
+    path('agents/', views.agents_list, name='agents'),
+    path('agents/<int:agent_id>/', views.agent_detail, name='agent_detail'),
+    path('game-logs/', views.game_logs, name='game_logs'),
+    path('commission-ledger/', views.commission_ledger, name='commission_ledger'),
+    path('agent-requests/', views.agent_requests, name='agent_requests'),
+    path('api/agent-requests/<int:request_id>/approve/', views.api_approve_agent, name='api_approve_agent'),
+    path('api/agent-requests/<int:request_id>/reject/', views.api_reject_agent, name='api_reject_agent'),
 ]

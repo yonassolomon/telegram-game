@@ -20,9 +20,11 @@
       <a href="{% url 'dashboard:players' %}" class="{% if request.resolver_match.url_name == 'players' %}active{% endif %}">
         <span class="icon">👥</span> Players
       </a>
+      {% comment %}
       <a href="{% url 'dashboard:rooms' %}" class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room_detail' %}active{% endif %}">
         <span class="icon">🏠</span> Rooms
       </a>
+      {% endcomment %}
       <a href="{% url 'dashboard:live' %}" class="{% if request.resolver_match.url_name == 'live' %}active{% endif %}">
         <span class="icon">🔴</span> Live Games
       </a>
@@ -46,6 +48,18 @@
       </a>
       <a href="{% url 'dashboard:house_fees' %}" class="{% if request.resolver_match.url_name == 'house_fees' %}active{% endif %}">
         <span class="icon">🏦</span> House Fees
+      </a>
+      <a href="{% url 'dashboard:agents' %}" class="{% if request.resolver_match.url_name == 'agents' or request.resolver_match.url_name == 'agent_detail' %}active{% endif %}">
+        <span class="icon">🧑‍💼</span> Agents
+      </a>
+      <a href="{% url 'dashboard:game_logs' %}" class="{% if request.resolver_match.url_name == 'game_logs' %}active{% endif %}">
+        <span class="icon">🎮</span> Game Logs
+      </a>
+      <a href="{% url 'dashboard:commission_ledger' %}" class="{% if request.resolver_match.url_name == 'commission_ledger' %}active{% endif %}">
+        <span class="icon">📒</span> Commission Ledger
+      </a>
+      <a href="{% url 'dashboard:agent_requests' %}" class="{% if request.resolver_match.url_name == 'agent_requests' %}active{% endif %}">
+        <span class="icon">📝</span> Agent Requests
       </a>
     </nav>
     <div class="sidebar-footer">

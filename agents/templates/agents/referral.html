@@ -1,0 +1,24 @@
+{% extends 'agents/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <div class="title">🔗 Referral</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container">
+  <div class="card" style="text-align:center;padding:24px;">
+    <div class="card-header">Your Referral Link</div>
+    <div style="font-size:14px;color:var(--neon-gold);word-break:break-all;margin:12px 0;">{{ referral_link }}</div>
+    <div style="color:var(--text-secondary);font-size:13px;">Share this link. Earn 5% commission when referred players use their deposit to play.</div>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:12px;">
+    <div class="stat-card gold" style="flex:1;">
+      <div class="stat-value">{{ referred_count }}</div>
+      <div class="stat-label">Total Referred</div>
+    </div>
+    <div class="stat-card cyan" style="flex:1;">
+      <div class="stat-value">{{ referral_code }}</div>
+      <div class="stat-label">Your Code</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

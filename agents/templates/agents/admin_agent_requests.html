@@ -1,0 +1,57 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'dashboard:overview' %}" class="back-btn">← Dashboard</a>
+  <div class="title">📝 Agent Requests</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container">
+  <div class="card">
+    <div class="card-header">Pending & Reviewed Agent Registrations</div>
+    <table>
+      <thead><tr><th>Username</th><th>Phone</th><th>Telegram</th><th>Telegram ID</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for req in requests_list %}
+      <tr>
+        <td>{{ req.username }}</td>
+        <td>{{ req.phone }}</td>
+        <td>{{ req.telegram_username|default:"—" }}</td>
+        <td>{{ req.telegram_id }}</td>
+        <td>
+          {% if req.status == 'pending' %}<span style="color:var(--orange);">Pending</span>
+          {% elif req.status == 'approved' %}<span style="color:var(--neon-green);">Approved</span>
+          {% else %}<span style="color:var(--red);">Rejected</span>{% endif %}
+        </td>
+        <td>{{ req.created_at|date:"m/d H:i" }}</td>
+        <td>
+          {% if req.status == 'pending' %}
+          <button onclick="reviewAgent({{ req.id }}, 'approve')" class="btn btn-sm" style="background:var(--neon-green);color:#000;">✅ Approve</button>
+          <button onclick="reviewAgent({{ req.id }}, 'reject')" class="btn btn-sm" style="background:var(--red);">❌ Reject</button>
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="color:var(--muted);">No agent requests</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function reviewAgent(id, action) {
+  var url = '/dashboard/api/agent-requests/' + id + '/' + action + '/';
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch(url, { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert(d.error); return; }
+      if (action === 'approve') {
+        alert('Agent approved! Username: ' + d.username);
+      }
+      location.reload();
+    });
+}
+</script>
+{% endblock %}

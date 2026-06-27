@@ -1,0 +1,58 @@
+{% extends 'agents/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <div class="title">📊 Agent Overview</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+    <div class="stat-card gold" style="flex:1;">
+      <div class="stat-value">{{ agent.agent_balance }} 💰</div>
+      <div class="stat-label">Agent Balance</div>
+    </div>
+    <div class="stat-card green" style="flex:1;">
+      <div class="stat-value">{{ agent.total_commission_earned }} 💰</div>
+      <div class="stat-label">Total Commission</div>
+    </div>
+    <div class="stat-card cyan" style="flex:1;">
+      <div class="stat-value">{{ active_players }} / {{ referred_count }}</div>
+      <div class="stat-label">Active / Total</div>
+    </div>
+    <div class="stat-card purple" style="flex:1;">
+      <div class="stat-value">{{ conversion }}</div>
+      <div class="stat-label">Conversion Rate</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">🎮 Recent Activity</div>
+    <table>
+      <thead><tr><th>Player</th><th>Game</th><th>Fee</th><th>Deposit Used</th><th>Time</th></tr></thead>
+      <tbody>
+      {% for entry in recent_entries %}
+      <tr>
+        <td>{{ entry.player.first_name }}</td>
+        <td>{{ entry.game_type }} {{ entry.game_ref }}</td>
+        <td>{{ entry.entry_fee }} 💰</td>
+        <td style="color:var(--neon-cyan);">{{ entry.used_deposit_credit }}</td>
+        <td>{{ entry.created_at|date:"m/d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="color:var(--muted);">No activity yet</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:12px;">
+    <div class="stat-card" style="flex:1;">
+      <div class="stat-value">{{ total_deposited }} 💰</div>
+      <div class="stat-label">Total Deposits by Referred</div>
+    </div>
+    <div class="stat-card" style="flex:1;">
+      <div class="stat-value">{{ agent_player.referral_code }}</div>
+      <div class="stat-label">Your Referral Code</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -120,8 +120,9 @@ def api_select_card(request, round_id):
             return JsonResponse({'error': f'Card {card_num} already chosen by another player'}, status=409)
 
         CardSelection.objects.create(round=game_round, player=p, card_number=card_num)
-        p.coins = F('coins') - game_round.entry_fee
-        p.save(update_fields=['coins'])
+
+        from agents.commission import process_entry_and_commission
+        process_entry_and_commission(p, game_round.entry_fee, 'arena', f'Round #{game_round.round_number}')
 
         Transaction.objects.create(
             player=p, amount=-game_round.entry_fee,

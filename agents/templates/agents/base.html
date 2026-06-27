@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Dashboard - Bingo2Bingo</title>
+  <link rel="stylesheet" href="{% static 'dashboard/css/admin.css' %}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Bingo2Bingo</h2>
+      <span>Agent Panel</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'agents:overview' %}" class="{% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
+        <span class="icon">📊</span> Overview
+      </a>
+      <a href="{% url 'agents:players' %}" class="{% if request.resolver_match.url_name == 'players' %}active{% endif %}">
+        <span class="icon">👥</span> Players
+      </a>
+      <a href="{% url 'agents:commissions' %}" class="{% if request.resolver_match.url_name == 'commissions' %}active{% endif %}">
+        <span class="icon">💰</span> Commissions
+      </a>
+      <a href="{% url 'agents:referral' %}" class="{% if request.resolver_match.url_name == 'referral' %}active{% endif %}">
+        <span class="icon">🔗</span> Referral
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user">{{ request.user.username }}</div>
+      <a href="{% url 'agents:logout' %}">Logout</a>
+    </div>
+  </aside>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+  <div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:999;"></div>
+</body>
+</html>

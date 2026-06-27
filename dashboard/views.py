@@ -903,3 +903,43 @@ def house_fees(request):
         'transactions': rich_txns,
         'game_filter': game_filter,
     })
+
+
+@admin_required
+def agents_list(request):
+    from agents.admin_views import agents_list as _view
+    return _view(request)
+
+
+@admin_required
+def agent_detail(request, agent_id):
+    from agents.admin_views import agent_detail as _view
+    return _view(request, agent_id)
+
+
+@admin_required
+def game_logs(request):
+    from agents.admin_views import game_logs as _view
+    return _view(request)
+
+
+@admin_required
+def commission_ledger(request):
+    from agents.admin_views import commission_ledger as _view
+    return _view(request)
+
+
+@admin_required
+def agent_requests(request):
+    from agents.admin_views import agent_requests as _view
+    return _view(request)
+
+
+def api_approve_agent(request, request_id):
+    from agents.admin_views import api_approve_agent as _view
+    return _view(request, request_id)
+
+
+def api_reject_agent(request, request_id):
+    from agents.admin_views import api_reject_agent as _view
+    return _view(request, request_id)

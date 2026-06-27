@@ -152,7 +152,7 @@ def api_approve_deposit(request, request_id):
         dep.reviewed_by = request.user
         dep.reviewed_at = timezone.now()
         dep.save()
-        Player.objects.filter(id=dep.player_id).update(coins=F('coins') + dep.amount)
+        Player.objects.filter(id=dep.player_id).update(coins=F('coins') + dep.amount, deposit_credit=F('deposit_credit') + dep.amount)
         Transaction.objects.create(
             player=dep.player, amount=dep.amount,
             transaction_type='deposit',
