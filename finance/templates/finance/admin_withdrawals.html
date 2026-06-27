@@ -1,6 +1,12 @@
 {% extends 'dashboard/base.html' %}
 {% block content %}
-<div class="header"><h1>💸 Withdrawal Requests</h1></div>
+<div class="header">
+  <h1>💸 Withdrawal Requests</h1>
+  <div class="header-actions">
+    <a href="{% url 'dashboard:withdrawal_history' %}" class="btn btn-outline btn-sm">📁 History</a>
+    <button class="btn btn-purple btn-sm" onclick="archiveWithdrawals()">🗄️ Clear History</button>
+  </div>
+</div>
 <div class="stats-grid" style="margin-bottom:12px;">
   <div class="stat-card purple">
     <div class="stat-value">{{ total_approved }}</div>
@@ -50,6 +56,12 @@ function csrf() {
   var fd = new FormData();
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   return fd;
+}
+function archiveWithdrawals() {
+  if (!confirm("Are you sure you want to archive today's history? This action cannot be undone.")) return;
+  fetch('/dashboard/api/archive-withdrawals/', { method: 'POST', body: csrf() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) { alert(d.count + ' records archived'); location.reload(); } else alert(d.error); });
 }
 </script>
 {% endblock %}

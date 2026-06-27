@@ -47,4 +47,8 @@ urlpatterns = [
     path('agent-requests/', views.agent_requests, name='agent_requests'),
     path('api/agent-requests/<int:request_id>/approve/', views.api_approve_agent, name='api_approve_agent'),
     path('api/agent-requests/<int:request_id>/reject/', views.api_reject_agent, name='api_reject_agent'),
+    path('api/archive-deposits/', views.api_archive_deposits, name='api_archive_deposits'),
+    path('api/archive-withdrawals/', views.api_archive_withdrawals, name='api_archive_withdrawals'),
+    path('deposit-history/', views.deposit_history, name='deposit_history'),
+    path('withdrawal-history/', views.withdrawal_history, name='withdrawal_history'),
 ]

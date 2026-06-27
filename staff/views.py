@@ -51,16 +51,16 @@ def logout_view(request):
 @staff_required
 def deposits(request):
     from django.db.models import Sum
-    deps = DepositRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
-    total_approved = DepositRequest.objects.filter(status='approved').aggregate(s=Sum('amount'))['s'] or 0
+    deps = DepositRequest.objects.filter(archived_date__isnull=True).select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    total_approved = DepositRequest.objects.filter(status='approved', archived_date__isnull=True).aggregate(s=Sum('amount'))['s'] or 0
     return render(request, 'staff/deposits.html', {'deposits': deps, 'total_approved': total_approved})
 
 
 @staff_required
 def withdrawals(request):
     from django.db.models import Sum
-    wds = WithdrawalRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
-    total_approved = WithdrawalRequest.objects.filter(status='approved').aggregate(s=Sum('amount'))['s'] or 0
+    wds = WithdrawalRequest.objects.filter(archived_date__isnull=True).select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    total_approved = WithdrawalRequest.objects.filter(status='approved', archived_date__isnull=True).aggregate(s=Sum('amount'))['s'] or 0
     return render(request, 'staff/withdrawals.html', {'withdrawals': wds, 'total_approved': total_approved})
 
 

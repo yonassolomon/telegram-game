@@ -1,0 +1,48 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<div class="top-bar">
+  <a href="{% url 'dashboard:admin_deposits' %}" class="back-btn">← Deposits</a>
+  <div class="title">📁 Deposit History</div>
+  <div style="width:50px;"></div>
+</div>
+<div class="container">
+  <form method="GET" class="toolbar" style="margin-bottom:16px;">
+    <input type="date" name="date" value="{{ date_filter }}" style="min-width:160px;">
+    <button type="submit" class="btn btn-cyan btn-sm">🔍 Search</button>
+    {% if date_filter %}<a href="{% url 'dashboard:deposit_history' %}" class="btn btn-outline btn-sm">Clear</a>{% endif %}
+  </form>
+
+  {% if single_date %}
+  <div class="card">
+    <div class="card-header">📁 {{ date_filter }} — {{ archived|length }} records — Total: {{ total }} 💰</div>
+    <table>
+      <thead><tr><th>Player</th><th>Amount</th><th>Status</th><th>Reviewed By</th><th>Time</th></tr></thead>
+      <tbody>
+      {% for d in archived %}
+      <tr>
+        <td>{{ d.player.first_name }} ({{ d.player.telegram_id }})</td>
+        <td>{{ d.amount }} 💰</td>
+        <td>{% if d.status == 'approved' %}<span class="badge badge-success">Approved</span>{% elif d.status == 'rejected' %}<span class="badge badge-danger">Rejected</span>{% else %}<span class="badge badge-warning">Pending</span>{% endif %}</td>
+        <td>{{ d.reviewed_by.username|default:"—" }}</td>
+        <td>{{ d.created_at|date:"m/d H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="color:var(--muted);">No records</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-header">Archived Dates</div>
+    {% for d in dates %}
+    <a href="?date={{ d.archive_day|date:'Y-m-d' }}" style="display:block;padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);">
+      📁 {{ d.archive_day|date:"F d, Y" }} — {{ d.count }} records — {{ d.total }} 💰
+    </a>
+    {% empty %}
+    <div style="padding:16px;color:var(--muted);text-align:center;">No archived deposits yet</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

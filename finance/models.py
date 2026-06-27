@@ -17,6 +17,7 @@ class DepositRequest(models.Model):
     reviewed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(default=timezone.now)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    archived_date = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = 'Deposit Request'
@@ -40,6 +41,7 @@ class WithdrawalRequest(models.Model):
     reviewed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(default=timezone.now)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    archived_date = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = 'Withdrawal Request'

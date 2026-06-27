@@ -1,6 +1,12 @@
 {% extends 'dashboard/base.html' %}
 {% block content %}
-<div class="header"><h1>💰 Deposit Requests</h1></div>
+<div class="header">
+  <h1>💰 Deposit Requests</h1>
+  <div class="header-actions">
+    <a href="{% url 'dashboard:deposit_history' %}" class="btn btn-outline btn-sm">📁 History</a>
+    <button class="btn btn-purple btn-sm" onclick="archiveDeposits()">🗄️ Clear History</button>
+  </div>
+</div>
 <div class="stats-grid" style="margin-bottom:12px;">
   <div class="stat-card gold">
     <div class="stat-value">{{ total_approved }}</div>
@@ -59,6 +65,12 @@ function csrf() {
   var fd = new FormData();
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   return fd;
+}
+function archiveDeposits() {
+  if (!confirm("Are you sure you want to archive today's history? This action cannot be undone.")) return;
+  fetch('/dashboard/api/archive-deposits/', { method: 'POST', body: csrf() })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d.success) { alert(d.count + ' records archived'); location.reload(); } else alert(d.error); });
 }
 </script>
 {% endblock %}

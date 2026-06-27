@@ -943,3 +943,27 @@ def api_approve_agent(request, request_id):
 def api_reject_agent(request, request_id):
     from agents.admin_views import api_reject_agent as _view
     return _view(request, request_id)
+
+
+@admin_required
+def api_archive_deposits(request):
+    from finance.views import api_archive_deposits as _view
+    return _view(request)
+
+
+@admin_required
+def api_archive_withdrawals(request):
+    from finance.views import api_archive_withdrawals as _view
+    return _view(request)
+
+
+@admin_required
+def deposit_history(request):
+    from finance.views import deposit_history as _view
+    return _view(request)
+
+
+@admin_required
+def withdrawal_history(request):
+    from finance.views import withdrawal_history as _view
+    return _view(request)

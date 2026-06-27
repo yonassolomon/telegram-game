@@ -45,6 +45,12 @@
       <a href="{% url 'dashboard:admin_withdrawals' %}" class="{% if request.resolver_match.url_name == 'admin_withdrawals' %}active{% endif %}">
         <span class="icon">💸</span> Withdrawals
       </a>
+      <a href="{% url 'dashboard:deposit_history' %}" class="{% if request.resolver_match.url_name == 'deposit_history' %}active{% endif %}">
+        <span class="icon">📁</span> Deposit History
+      </a>
+      <a href="{% url 'dashboard:withdrawal_history' %}" class="{% if request.resolver_match.url_name == 'withdrawal_history' %}active{% endif %}">
+        <span class="icon">📁</span> Withdrawal History
+      </a>
       <a href="{% url 'dashboard:player_stats' %}" class="{% if request.resolver_match.url_name == 'player_stats' %}active{% endif %}">
         <span class="icon">📊</span> Player Stats
       </a>

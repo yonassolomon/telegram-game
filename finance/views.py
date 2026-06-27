@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db import transaction as db_transaction
-from django.db.models import F
+from django.db.models import F, Count, Sum
 from django.utils import timezone
 from finance.models import DepositRequest, WithdrawalRequest
 from users.models import Player
@@ -117,8 +117,8 @@ def withdrawal(request):
 @admin_required
 def admin_deposits(request):
     from django.db.models import Sum
-    deposits = DepositRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
-    total_approved = DepositRequest.objects.filter(status='approved').aggregate(s=Sum('amount'))['s'] or 0
+    deposits = DepositRequest.objects.filter(archived_date__isnull=True).select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    total_approved = DepositRequest.objects.filter(status='approved', archived_date__isnull=True).aggregate(s=Sum('amount'))['s'] or 0
     return render(request, 'finance/admin_deposits.html', {
         'deposits': deposits,
         'total_approved': total_approved,
@@ -130,8 +130,8 @@ def admin_deposits(request):
 @admin_required
 def admin_withdrawals(request):
     from django.db.models import Sum
-    withdrawals = WithdrawalRequest.objects.select_related('player', 'reviewed_by').order_by('-created_at')[:100]
-    total_approved = WithdrawalRequest.objects.filter(status='approved').aggregate(s=Sum('amount'))['s'] or 0
+    withdrawals = WithdrawalRequest.objects.filter(archived_date__isnull=True).select_related('player', 'reviewed_by').order_by('-created_at')[:100]
+    total_approved = WithdrawalRequest.objects.filter(status='approved', archived_date__isnull=True).aggregate(s=Sum('amount'))['s'] or 0
     return render(request, 'finance/admin_withdrawals.html', {
         'withdrawals': withdrawals,
         'total_approved': total_approved,
@@ -236,3 +236,79 @@ def api_reject_withdrawal(request, request_id):
 
     logger.info(f'ADMIN: {request.user} rejected withdrawal #{request_id} — refunded {wd.amount}')
     return JsonResponse({'success': True})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_archive_deposits(request):
+    now = timezone.now()
+    count = DepositRequest.objects.filter(archived_date__isnull=True).update(archived_date=now)
+    logger.info(f'ADMIN: {request.user} archived {count} deposit requests')
+    return JsonResponse({'success': True, 'count': count})
+
+
+@csrf_exempt
+@require_POST
+@admin_required
+def api_archive_withdrawals(request):
+    now = timezone.now()
+    count = WithdrawalRequest.objects.filter(archived_date__isnull=True).update(archived_date=now)
+    logger.info(f'ADMIN: {request.user} archived {count} withdrawal requests')
+    return JsonResponse({'success': True, 'count': count})
+
+
+@admin_required
+def deposit_history(request):
+    from django.db.models.functions import TruncDate
+    date_filter = request.GET.get('date', '')
+    if date_filter:
+        try:
+            from datetime import datetime
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            archived = DepositRequest.objects.filter(
+                archived_date__date=filter_date
+            ).select_related('player', 'reviewed_by').order_by('-created_at')
+            total = sum(a.amount for a in archived)
+            return render(request, 'finance/deposit_history.html', {
+                'archived': archived, 'date_filter': date_filter, 'single_date': True,
+                'total': total,
+            })
+        except ValueError:
+            pass
+
+    dates = DepositRequest.objects.filter(archived_date__isnull=False).annotate(
+        archive_day=TruncDate('archived_date')
+    ).values('archive_day').annotate(count=Count('id'), total=Sum('amount')).order_by('-archive_day')
+
+    return render(request, 'finance/deposit_history.html', {
+        'dates': dates, 'date_filter': date_filter, 'single_date': False,
+    })
+
+
+@admin_required
+def withdrawal_history(request):
+    from django.db.models.functions import TruncDate
+    date_filter = request.GET.get('date', '')
+    if date_filter:
+        try:
+            from datetime import datetime
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            archived = WithdrawalRequest.objects.filter(
+                archived_date__date=filter_date
+            ).select_related('player', 'reviewed_by').order_by('-created_at')
+            total = sum(w.amount for w in archived)
+            return render(request, 'finance/withdrawal_history.html', {
+                'archived': archived, 'date_filter': date_filter, 'single_date': True,
+                'total': total,
+            })
+        except ValueError:
+            pass
+
+    dates = WithdrawalRequest.objects.filter(archived_date__isnull=False).annotate(
+        archive_day=TruncDate('archived_date')
+    ).values('archive_day').annotate(count=Count('id'), total=Sum('amount')).order_by('-archive_day')
+
+    return render(request, 'finance/withdrawal_history.html', {
+        'dates': dates, 'date_filter': date_filter, 'single_date': False,
+    })
