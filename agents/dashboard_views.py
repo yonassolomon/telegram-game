@@ -83,6 +83,8 @@ def register_view(request):
             error = 'Username already taken. Choose another.'
         elif AgentRequest.objects.filter(telegram_id=int(telegram_id), status='pending').exists():
             error = 'You already have a pending agent request. Wait for admin approval.'
+        elif AgentRequest.objects.filter(telegram_id=int(telegram_id), status='approved').exists():
+            error = 'An agent account already exists for this Telegram ID.'
         else:
             try:
                 tid = int(telegram_id)
@@ -90,7 +92,9 @@ def register_view(request):
             except (ValueError, TypeError):
                 error = 'Invalid Telegram ID.'
             else:
-                if not player:
+                if player and AgentProfile.objects.filter(player=player, user__isnull=False).exists():
+                    error = 'An agent account already exists for this Telegram ID.'
+                elif not player:
                     Player.objects.create(
                         telegram_id=tid,
                         first_name=username,

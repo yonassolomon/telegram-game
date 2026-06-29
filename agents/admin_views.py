@@ -89,17 +89,10 @@ def api_approve_agent(request, request_id):
         telegram_id=ar.telegram_id,
         defaults={'first_name': ar.username, 'phone_number': ar.phone}
     )
-    if player.phone_number == '' and ar.phone:
-        player.phone_number = ar.phone
-        player.save(update_fields=['phone_number'])
-    if player.first_name == 'Player' and ar.username:
-        player.first_name = ar.username
-        player.save(update_fields=['first_name'])
-
     profile, created = AgentProfile.objects.get_or_create(player=player)
     if profile.user and profile.user != user:
-        profile.user.is_active = False
-        profile.user.save()
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'This Telegram ID already has an active agent account.'})
     profile.user = user
     profile.save(update_fields=['user'])
 
