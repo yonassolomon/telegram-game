@@ -230,6 +230,7 @@ def _award_winners(round_obj, winning_players, player_count):
         r.save()
         names = ', '.join(w['name'] for w in winners_list)
         logger.info(f'ARENA WINNERS ({num_winners}): round={r.round_number} winners=[{names}] prize={winner_prize}')
+    _increment_gift_counters(round_obj)
     _start_next_round()
     _update_streaks(round_obj)
 
@@ -253,6 +254,7 @@ def _finish_draw(round_obj):
     round_obj.finished_at = timezone.now()
     round_obj.save(update_fields=['status', 'finished_at'])
     logger.info(f'ARENA DRAW: round={round_obj.round_number}')
+    _increment_gift_counters(round_obj)
     _start_next_round()
     _update_streaks(round_obj)
 
@@ -306,6 +308,19 @@ def _update_streaks(round_obj):
             p.streak_count = 1
         p.last_streak_date = today
         p.save(update_fields=['streak_count', 'last_streak_date'])
+
+
+def _increment_gift_counters(round_obj):
+    from arena.models import DailyGift
+    selections = CardSelection.objects.filter(round=round_obj).values_list('player_id', flat=True).distinct()
+    for pid in selections:
+        gift, created = DailyGift.objects.get_or_create(player_id=pid)
+        if created:
+            gift.games_completed = 1
+            gift.cycle_start_at = timezone.now()
+        else:
+            gift.games_completed = F('games_completed') + 1
+        gift.save(update_fields=['games_completed'] + (['cycle_start_at'] if created else []))
 
 
 def _start_next_round():

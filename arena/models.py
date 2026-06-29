@@ -82,3 +82,27 @@ class RoundQueue(models.Model):
 
     def __str__(self):
         return f'Queue: {self.player.first_name}'
+
+
+class DailyGift(models.Model):
+    VALID_REWARDS = [2, 3, 5]
+    DECOY_REWARDS = [100, 500]
+    ALL_REWARDS = [2, 3, 5, 100, 500]
+
+    player = models.OneToOneField(Player, on_delete=models.CASCADE, related_name='daily_gift')
+    games_completed = models.IntegerField(default=0)
+    last_claim_at = models.DateTimeField(null=True, blank=True)
+    cycle_start_at = models.DateTimeField(null=True, blank=True)
+    total_claimed = models.IntegerField(default=0)
+    reward_2_count = models.IntegerField(default=0)
+    reward_3_count = models.IntegerField(default=0)
+    reward_5_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = 'Daily Gift'
+        verbose_name_plural = 'Daily Gifts'
+
+    def __str__(self):
+        return f'Gift: {self.player.first_name} — {self.games_completed}/3 games'
+

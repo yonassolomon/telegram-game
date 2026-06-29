@@ -51,4 +51,5 @@ urlpatterns = [
     path('api/archive-withdrawals/', views.api_archive_withdrawals, name='api_archive_withdrawals'),
     path('deposit-history/', views.deposit_history, name='deposit_history'),
     path('withdrawal-history/', views.withdrawal_history, name='withdrawal_history'),
+    path('gift-stats/', views.gift_stats, name='gift_stats'),
 ]

@@ -9,4 +9,6 @@ urlpatterns = [
     path('api/<int:round_id>/leave/', views.api_leave_arena, name='api_leave_arena'),
     path('api/<int:round_id>/state/', views.api_round_state, name='api_round_state'),
     path('api/card/<int:card_number>/', views.api_card_preview, name='api_card_preview'),
+    path('api/gift/status/', views.api_gift_status, name='api_gift_status'),
+    path('api/gift/claim/', views.api_gift_claim, name='api_gift_claim'),
 ]

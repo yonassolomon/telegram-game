@@ -144,6 +144,7 @@
   {% if my_cards %}
   <button class="btn btn-outline" onclick="leaveArena()" style="margin:8px 0;color:var(--red);border-color:rgba(255,61,90,0.3);">🚪 Leave Arena (Refund {{ round.entry_fee }} 💰 per card)</button>
   {% endif %}
+  <button class="btn btn-gold btn-sm" onclick="openGiftPopup()" id="gift-btn" style="margin:8px 0;width:100%;">🎁 ስጦታ</button>
   </div>
 
   <div id="arena-game-ui" {% if round.status == 'waiting' %}style="display:none;"{% endif %}>
@@ -226,6 +227,18 @@
     <div class="modal-btn-row">
       <button class="btn btn-primary" onclick="confirmSelectCard()">✅ Select</button>
       <button class="btn btn-outline" onclick="closePreview()">❌ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="gift-overlay" class="overlay" style="display:none;">
+  <div class="winner-popup" style="max-width:400px;">
+    <h2 style="font-size:16px;">🎁 ስጦታ</h2>
+    <div id="gift-msg" style="font-size:12px;color:var(--neon-gold);text-align:center;margin:8px 0;">🎉 3 ጨዋታዎች በ24 ሰዓት ውስጥ ከተጫወቱ በኋላ ዕድልዎን በነጻ ይሞክሩ!</div>
+    <div id="gift-boxes" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0;"></div>
+    <div id="gift-result" style="text-align:center;font-size:14px;color:var(--neon-green);margin-top:8px;display:none;"></div>
+    <div class="modal-btn-row" style="margin-top:12px;">
+      <button class="btn btn-outline" onclick="document.getElementById('gift-overlay').style.display='none';">Close</button>
     </div>
   </div>
 </div>
@@ -901,5 +914,80 @@ function highlightWinCells(cells) {
     });
   });
 }
+
+function openGiftPopup() {
+  fetch('/arena/api/gift/status/?tg_id=' + TG_ID)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var msg = document.getElementById('gift-msg');
+      if (!d.can_claim) {
+        msg.textContent = '⏳ ' + d.games_completed + '/3 games played. Play more to unlock!';
+      } else {
+        msg.textContent = '🎉 3 ጨዋታዎች በ24 ሰዓት ውስጥ ከተጫወቱ በኋላ ዕድልዎን በነጻ ይሞክሩ!';
+      }
+      var boxes = document.getElementById('gift-boxes');
+      boxes.innerHTML = '';
+      var boxStyle = 'width:60px;height:70px;background:var(--bg-card);border:2px solid var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;';
+      for (var i = 1; i <= 5; i++) {
+        var box = document.createElement('div');
+        box.style.cssText = boxStyle;
+        box.textContent = '🎁';
+        box.dataset.box = i;
+        if (d.can_claim) {
+          box.onclick = function() { return claimGift(parseInt(this.dataset.box)); };
+        } else {
+          box.style.opacity = '0.5';
+          box.style.cursor = 'not-allowed';
+        }
+        boxes.appendChild(box);
+      }
+      document.getElementById('gift-result').style.display = 'none';
+      document.getElementById('gift-overlay').style.display = 'flex';
+    });
+}
+
+function claimGift(boxNum) {
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fd.append('box', boxNum);
+  fetch('/arena/api/gift/claim/?tg_id=' + TG_ID, { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { showToast(d.error); return; }
+      var boxes = document.getElementById('gift-boxes');
+      var children = boxes.querySelectorAll('div');
+      children.forEach(function(b) {
+        b.style.cursor = 'default';
+        b.onclick = null;
+        var bn = parseInt(b.dataset.box);
+        var reward = d.boxes[bn];
+        if (bn === boxNum) b.textContent = '✨';
+        else b.textContent = '📦';
+        var label = document.createElement('div');
+        label.style.cssText = 'font-size:9px;color:var(--text);margin-top:-8px;';
+        label.textContent = '+' + reward;
+        b.appendChild(label);
+      });
+      var result = document.getElementById('gift-result');
+      result.style.display = '';
+      result.innerHTML = '🎉 You won <strong>+' + d.reward + ' Birr</strong>!';
+      document.getElementById('gift-btn').disabled = true;
+      showToast('🎁 +' + d.reward + ' Birr added to wallet!');
+    });
+}
+
+(function initGift() {
+  fetch('/arena/api/gift/status/?tg_id=' + TG_ID)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var btn = document.getElementById('gift-btn');
+      if (btn) {
+        if (!d.can_claim) {
+          btn.textContent = '🎁 ስጦታ (' + d.games_completed + '/3)';
+          btn.style.opacity = '0.6';
+        }
+      }
+    });
+})();
 </script>
 {% endblock %}

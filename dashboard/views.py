@@ -967,3 +967,21 @@ def deposit_history(request):
 def withdrawal_history(request):
     from finance.views import withdrawal_history as _view
     return _view(request)
+
+
+@admin_required
+def gift_stats(request):
+    from arena.models import DailyGift
+    from django.db.models import Sum
+    total = DailyGift.objects.count()
+    total_claimed = DailyGift.objects.aggregate(s=Sum('total_claimed'))['s'] or 0
+    r2 = DailyGift.objects.aggregate(s=Sum('reward_2_count'))['s'] or 0
+    r3 = DailyGift.objects.aggregate(s=Sum('reward_3_count'))['s'] or 0
+    r5 = DailyGift.objects.aggregate(s=Sum('reward_5_count'))['s'] or 0
+    return render(request, 'dashboard/gift_stats.html', {
+        'total_players': total,
+        'total_claimed': total_claimed,
+        'reward_2_count': r2,
+        'reward_3_count': r3,
+        'reward_5_count': r5,
+    })

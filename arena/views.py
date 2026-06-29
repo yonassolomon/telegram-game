@@ -284,3 +284,116 @@ def api_card_preview(request, card_number):
         return JsonResponse({'card_number': num, 'grid': grid})
     except ValueError:
         return JsonResponse({'error': 'Invalid card'}, status=400)
+
+
+# ═══ Daily Gift ═══
+
+import random as _gift_random
+
+
+def api_gift_status(request):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    from arena.models import DailyGift
+    from django.utils import timezone
+    now = timezone.now()
+
+    gift, _ = DailyGift.objects.get_or_create(player=player)
+    if not gift.cycle_start_at:
+        gift.cycle_start_at = now
+        gift.save(update_fields=['cycle_start_at'])
+
+    elapsed = (now - gift.cycle_start_at).total_seconds()
+    if elapsed >= 86400:
+        gift.games_completed = 0
+        gift.cycle_start_at = now
+        gift.save(update_fields=['games_completed', 'cycle_start_at'])
+
+    can_claim = gift.games_completed >= 3
+    if gift.last_claim_at:
+        since_claim = (now - gift.last_claim_at).total_seconds()
+        if since_claim < 86400 and gift.games_completed < 3:
+            can_claim = False
+
+    if gift.last_claim_at:
+        since_claim = (now - gift.last_claim_at).total_seconds()
+        if since_claim >= 86400:
+            gift.games_completed = 0
+            gift.cycle_start_at = now
+            gift.save(update_fields=['games_completed', 'cycle_start_at'])
+            can_claim = False
+
+    return JsonResponse({
+        'games_completed': gift.games_completed,
+        'can_claim': can_claim,
+        'total_claimed': gift.total_claimed,
+    })
+
+
+@csrf_exempt
+@require_POST
+def api_gift_claim(request):
+    player = get_player_from_request(request)
+    if not player:
+        return JsonResponse({'error': 'Not authenticated'}, status=401)
+
+    from arena.models import DailyGift
+    from django.utils import timezone
+    import random as _random
+    now = timezone.now()
+
+    gift, _ = DailyGift.objects.get_or_create(player=player)
+
+    if gift.last_claim_at:
+        since_claim = (now - gift.last_claim_at).total_seconds()
+        if since_claim < 86400:
+            return JsonResponse({'error': 'Already claimed today. Come back in 24 hours.'}, status=400)
+        gift.games_completed = 0
+        gift.cycle_start_at = now
+
+    if gift.games_completed < 3:
+        return JsonResponse({'error': f'Need 3 games. You have {gift.games_completed}.'}, status=400)
+
+    try:
+        box_index = int(request.POST.get('box', 0))
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid box'}, status=400)
+
+    if box_index < 1 or box_index > 5:
+        return JsonResponse({'error': 'Box must be 1-5'}, status=400)
+
+    all_rewards = DailyGift.ALL_REWARDS[:]
+    _random.shuffle(all_rewards)
+    boxes = {i + 1: all_rewards[i] for i in range(5)}
+
+    reward = boxes[box_index]
+    if reward not in DailyGift.VALID_REWARDS:
+        reward = _random.choice(DailyGift.VALID_REWARDS)
+
+    with db_transaction.atomic():
+        gift.last_claim_at = now
+        gift.games_completed = 0
+        gift.cycle_start_at = now
+        gift.total_claimed = F('total_claimed') + 1
+        if reward == 2:
+            gift.reward_2_count = F('reward_2_count') + 1
+        elif reward == 3:
+            gift.reward_3_count = F('reward_3_count') + 1
+        elif reward == 5:
+            gift.reward_5_count = F('reward_5_count') + 1
+        gift.save()
+
+        Player.objects.filter(id=player.id).update(coins=F('coins') + reward)
+        Transaction.objects.create(
+            player=player, amount=reward,
+            transaction_type='admin_gift',
+            description=f'Daily gift box #{box_index} — {reward} Birr'
+        )
+
+    return JsonResponse({
+        'success': True,
+        'reward': reward,
+        'boxes': boxes,
+    })
