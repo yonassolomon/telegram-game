@@ -288,8 +288,6 @@ def api_card_preview(request, card_number):
 
 # ═══ Daily Gift ═══
 
-import random as _gift_random
-
 
 def api_gift_status(request):
     player = get_player_from_request(request)
@@ -300,8 +298,11 @@ def api_gift_status(request):
     from django.utils import timezone
     now = timezone.now()
 
-    gift, _ = DailyGift.objects.get_or_create(player=player)
-    if not gift.cycle_start_at:
+    gift, created = DailyGift.objects.get_or_create(player=player)
+    if created:
+        gift.cycle_start_at = now
+        gift.save(update_fields=['cycle_start_at'])
+    elif not gift.cycle_start_at:
         gift.cycle_start_at = now
         gift.save(update_fields=['cycle_start_at'])
 
@@ -311,25 +312,26 @@ def api_gift_status(request):
         gift.cycle_start_at = now
         gift.save(update_fields=['games_completed', 'cycle_start_at'])
 
-    can_claim = gift.games_completed >= 3
-    if gift.last_claim_at:
-        since_claim = (now - gift.last_claim_at).total_seconds()
-        if since_claim < 86400 and gift.games_completed < 3:
-            can_claim = False
+    can_claim = False
+    if gift.games_completed >= 3:
+        if not gift.last_claim_at:
+            can_claim = True
+        else:
+            since_claim = (now - gift.last_claim_at).total_seconds()
+            if since_claim >= 86400:
+                can_claim = True
 
-    if gift.last_claim_at:
-        since_claim = (now - gift.last_claim_at).total_seconds()
-        if since_claim >= 86400:
-            gift.games_completed = 0
-            gift.cycle_start_at = now
-            gift.save(update_fields=['games_completed', 'cycle_start_at'])
-            can_claim = False
-
-    return JsonResponse({
+    gift.refresh_from_db(fields=['games_completed'])
+    payload = {
         'games_completed': gift.games_completed,
         'can_claim': can_claim,
         'total_claimed': gift.total_claimed,
-    })
+    }
+    logger.info(
+        f'[GIFT DEBUG] Player: {player.telegram_id} '
+        f'API response: {payload}'
+    )
+    return JsonResponse(payload)
 
 
 @csrf_exempt

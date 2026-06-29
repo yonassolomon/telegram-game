@@ -176,6 +176,7 @@
       <span class="voice-dot"></span> 🔇 Voice OFF
     </button>
   </div>
+  <button class="btn btn-gold btn-sm" onclick="openGiftPopup()" id="gift-btn-2" style="margin:4px auto;display:block;width:80%;">🎁 ስጦታ</button>
   <div class="card">
     <div class="card-header">🎯 Called Numbers <span id="called-count">({{ round.numbers_called|length }})</span></div>
     <div class="arena-numbers" id="called-numbers-display">
@@ -514,6 +515,7 @@ function pollState() {
 
       if (d.is_winner) {
         clearInterval(POLL_TIMER);
+        updateGiftButton();
         showWinnerOverlay(d);
         launchConfetti();
         return;
@@ -540,10 +542,12 @@ function pollState() {
           announceNewNumbers(d.called_numbers.slice(LAST_SPOKEN_IDX));
           LAST_SPOKEN_IDX = d.called_numbers.length;
         }
+        updateGiftButton();
         return;
       }
       if (d.status === 'finished' && STATUS !== 'finished' && STATUS !== 'cooldown') {
         clearInterval(POLL_TIMER);
+        updateGiftButton();
         if (d.cancelled) {
           document.getElementById('winner-overlay').style.display = 'flex';
           document.getElementById('winner-trophy').textContent = '🚫';
@@ -919,6 +923,7 @@ function openGiftPopup() {
   fetch('/arena/api/gift/status/?tg_id=' + TG_ID)
     .then(function(r) { return r.json(); })
     .then(function(d) {
+      console.log('[GIFT DEBUG]', 'Player:', TG_ID, 'Gift popup response:', d);
       var msg = document.getElementById('gift-msg');
       if (!d.can_claim) {
         msg.textContent = '⏳ ' + d.games_completed + '/3 games played. Play more to unlock!';
@@ -971,23 +976,26 @@ function claimGift(boxNum) {
       var result = document.getElementById('gift-result');
       result.style.display = '';
       result.innerHTML = '🎉 You won <strong>+' + d.reward + ' Birr</strong>!';
-      document.getElementById('gift-btn').disabled = true;
+      var gb = document.getElementById('gift-btn'); if (gb) gb.disabled = true;
+      var gb2 = document.getElementById('gift-btn-2'); if (gb2) gb2.disabled = true;
       showToast('🎁 +' + d.reward + ' Birr added to wallet!');
+      setTimeout(updateGiftButton, 1000);
     });
 }
 
-(function initGift() {
+function updateGiftButton() {
   fetch('/arena/api/gift/status/?tg_id=' + TG_ID)
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      var btn = document.getElementById('gift-btn');
-      if (btn) {
-        if (!d.can_claim) {
-          btn.textContent = '🎁 ስጦታ (' + d.games_completed + '/3)';
-          btn.style.opacity = '0.6';
-        }
-      }
+      console.log('[GIFT DEBUG]', 'Player:', TG_ID, 'Gift button response:', d);
+      var label = d.can_claim ? '🎁 ስጦታ ✅' : '🎁 ስጦታ (' + d.games_completed + '/3)';
+      var opacity = d.can_claim ? '1' : '0.6';
+      [document.getElementById('gift-btn'), document.getElementById('gift-btn-2')].forEach(function(btn) {
+        if (btn) { btn.textContent = label; btn.style.opacity = opacity; btn.disabled = false; }
+      });
     });
-})();
+}
+
+(function initGift() { updateGiftButton(); setInterval(updateGiftButton, 3000); })();
 </script>
 {% endblock %}

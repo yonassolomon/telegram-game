@@ -230,6 +230,10 @@ def _award_winners(round_obj, winning_players, player_count):
         r.save()
         names = ', '.join(w['name'] for w in winners_list)
         logger.info(f'ARENA WINNERS ({num_winners}): round={r.round_number} winners=[{names}] prize={winner_prize}')
+    logger.info(
+        f'[GIFT DEBUG] Player(s): {[p.telegram_id for p, _ in winning_players.values()]} '
+        f'Round: {round_obj.round_number} Game completed: YES Result: WIN'
+    )
     _increment_gift_counters(round_obj)
     _start_next_round()
     _update_streaks(round_obj)
@@ -254,6 +258,10 @@ def _finish_draw(round_obj):
     round_obj.finished_at = timezone.now()
     round_obj.save(update_fields=['status', 'finished_at'])
     logger.info(f'ARENA DRAW: round={round_obj.round_number}')
+    logger.info(
+        f'[GIFT DEBUG] Player(s): {list(unique_players)} '
+        f'Round: {round_obj.round_number} Game completed: YES Result: DRAW'
+    )
     _increment_gift_counters(round_obj)
     _start_next_round()
     _update_streaks(round_obj)
@@ -311,16 +319,44 @@ def _update_streaks(round_obj):
 
 
 def _increment_gift_counters(round_obj):
-    from arena.models import DailyGift
-    selections = CardSelection.objects.filter(round=round_obj).values_list('player_id', flat=True).distinct()
-    for pid in selections:
-        gift, created = DailyGift.objects.get_or_create(player_id=pid)
-        if created:
-            gift.games_completed = 1
+    from arena.models import CardSelection, DailyGift
+    import logging as _gift_log
+    _log = _gift_log.getLogger('bingo.gift')
+    distinct_selections = list(
+        CardSelection.objects.filter(round=round_obj)
+        .select_related('player')
+        .order_by('player_id', 'id')
+    )
+    seen_players = set()
+    counted_players = []
+
+    for selection in distinct_selections:
+        if selection.player_id in seen_players:
+            continue
+        seen_players.add(selection.player_id)
+        counted_players.append(selection.player)
+
+    _log.info(
+        f'[GIFT DEBUG] Round: {round_obj.round_number} '
+        f'Increment function called: YES '
+        f'Eligible players: {[p.telegram_id for p in counted_players]}'
+    )
+
+    for player in counted_players:
+        gift, created = DailyGift.objects.get_or_create(player=player)
+        before = gift.games_completed
+        gift.games_completed = 1 if created else before + 1
+        update_fields = ['games_completed']
+        if created or not gift.cycle_start_at:
             gift.cycle_start_at = timezone.now()
-        else:
-            gift.games_completed = F('games_completed') + 1
-        gift.save(update_fields=['games_completed'] + (['cycle_start_at'] if created else []))
+            update_fields.append('cycle_start_at')
+        gift.save(update_fields=update_fields)
+        gift.refresh_from_db(fields=['games_completed'])
+        _log.info(
+            f'[GIFT DEBUG] Player: {player.telegram_id} '
+            f'Before: {before} After: {gift.games_completed} '
+            f'Saved to DB: YES Round: {round_obj.round_number}'
+        )
 
 
 def _start_next_round():
