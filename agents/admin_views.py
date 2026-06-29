@@ -68,16 +68,14 @@ def api_approve_agent(request, request_id):
         from django.http import JsonResponse
         return JsonResponse({'error': 'Already reviewed'})
 
-    username = ar.username
-    if User.objects.filter(username=username).exists():
-        existing = User.objects.get(username=username)
-        if hasattr(existing, 'agent_profile'):
-            ar.status = 'approved'
-            ar.reviewed_by = request.user
-            ar.reviewed_at = timezone.now()
-            ar.save()
-            return JsonResponse({'success': True, 'username': username})
-        username = f'{ar.username}_{ar.telegram_id}'
+    base_username = ar.username
+    username = base_username
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f'{base_username}_{ar.telegram_id}'
+        if User.objects.filter(username=username).exists():
+            username = f'{base_username}_{ar.telegram_id}_{counter}'
+            counter += 1
 
     user = User.objects.create_user(
         username=username,
@@ -91,7 +89,17 @@ def api_approve_agent(request, request_id):
         telegram_id=ar.telegram_id,
         defaults={'first_name': ar.username, 'phone_number': ar.phone}
     )
-    profile, _ = AgentProfile.objects.get_or_create(player=player)
+    if player.phone_number == '' and ar.phone:
+        player.phone_number = ar.phone
+        player.save(update_fields=['phone_number'])
+    if player.first_name == 'Player' and ar.username:
+        player.first_name = ar.username
+        player.save(update_fields=['first_name'])
+
+    profile, created = AgentProfile.objects.get_or_create(player=player)
+    if profile.user and profile.user != user:
+        profile.user.is_active = False
+        profile.user.save()
     profile.user = user
     profile.save(update_fields=['user'])
 
