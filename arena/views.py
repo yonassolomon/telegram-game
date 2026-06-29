@@ -351,7 +351,7 @@ def api_gift_claim(request):
     if gift.last_claim_at:
         since_claim = (now - gift.last_claim_at).total_seconds()
         if since_claim < 86400:
-            return JsonResponse({'error': 'Already claimed today. Come back in 24 hours.'}, status=400)
+            return JsonResponse({'error': 'እርስዎ ሽልማቱን አሁን ተጠቅመዋል 🎁 እባክዎ ለ24 ሰዓት ይጠብቁ ከዚያ በኋላ እንደገና ይከፈታል።'}, status=400)
         gift.games_completed = 0
         gift.cycle_start_at = now
 
