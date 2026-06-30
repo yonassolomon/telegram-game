@@ -14,6 +14,13 @@
 .card-cell.available:hover { background: rgba(0,230,118,0.1); border-color: var(--green); transform: scale(1.05); }
 .card-cell.taken { border-color: rgba(255,145,0,0.6); background: rgba(255,145,0,0.08); color: var(--orange); cursor: not-allowed; }
 .card-cell.selected { border-color: var(--cyan); background: rgba(0,229,255,0.15); color: var(--cyan); box-shadow: 0 0 10px rgba(0,229,255,0.3); }
+.card-cell.browsing {
+  border-color: rgba(0,229,255,0.4) !important;
+  background: rgba(0,229,255,0.08) !important;
+  color: var(--cyan) !important;
+  transform: scale(1.03);
+  transition: all 0.2s ease-in-out;
+}
 @keyframes popCell { 0%{transform:scale(0.7)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
 .timer-display { font-size: 36px; font-weight: 800; color: var(--neon-purple); text-align: center; }
 .arena-numbers { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
@@ -384,6 +391,48 @@ initVoice();
 if (MY_CARD_GRIDS.length > 0) renderAllCards(MY_CARD_GRIDS);
 attachCellClickHandlers();
 
+var BROWSING_TIMER = null;
+var BROWSING_HOVER_TIMER = null;
+
+function startBrowsingAnimation() {
+  if (BROWSING_TIMER) return;
+  if (STATUS !== 'waiting') return;
+  scheduleBrowseCycle();
+}
+
+function scheduleBrowseCycle() {
+  if (STATUS !== 'waiting') return;
+  var idleDelay = Math.floor(Math.random() * 3000) + 3000;
+  BROWSING_TIMER = setTimeout(function() {
+    if (STATUS !== 'waiting') return;
+    var available = document.querySelectorAll('.card-cell.available');
+    if (available.length === 0) { scheduleBrowseCycle(); return; }
+    var count = Math.random() < 0.15 ? 3 : (Math.random() < 0.35 ? 2 : 1);
+    count = Math.min(count, available.length);
+    var hovered = [];
+    for (var i = 0; i < count; i++) {
+      var idx = Math.floor(Math.random() * available.length);
+      if (hovered.indexOf(idx) === -1) {
+        available[idx].classList.add('browsing');
+        hovered.push(idx);
+      }
+    }
+    var hoverDuration = Math.floor(Math.random() * 1500) + 1500;
+    BROWSING_HOVER_TIMER = setTimeout(function() {
+      document.querySelectorAll('.card-cell.browsing').forEach(function(c) { c.classList.remove('browsing'); });
+      scheduleBrowseCycle();
+    }, hoverDuration);
+  }, idleDelay);
+}
+
+function stopBrowsingAnimation() {
+  if (BROWSING_TIMER) { clearTimeout(BROWSING_TIMER); BROWSING_TIMER = null; }
+  if (BROWSING_HOVER_TIMER) { clearTimeout(BROWSING_HOVER_TIMER); BROWSING_HOVER_TIMER = null; }
+  document.querySelectorAll('.card-cell.browsing').forEach(function(c) { c.classList.remove('browsing'); });
+}
+
+startBrowsingAnimation();
+
 (function formatBalls() {
   document.querySelectorAll('.arena-ball, #live-called-row span').forEach(function(ball) {
     var n = parseInt(ball.textContent);
@@ -523,6 +572,7 @@ function pollState() {
 
       if (d.status === 'active' && STATUS !== 'active') {
         STATUS = 'active'; document.getElementById('timer').textContent = '0';
+        stopBrowsingAnimation();
         document.getElementById('status-label').textContent = 'Game Live';
         var gui = document.getElementById('arena-game-ui');
         if (gui) gui.style.display = '';
@@ -800,6 +850,7 @@ function leaveArena() {
 }
 
 window.addEventListener('beforeunload', function() {
+  stopBrowsingAnimation();
   if (STATUS === 'waiting' && MY_CARDS.length > 0) {
     navigator.sendBeacon('/arena/api/' + ROUND_ID + '/leave/', JSON.stringify({tg_id: TG_ID}));
   }
