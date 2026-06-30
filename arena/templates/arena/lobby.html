@@ -116,11 +116,11 @@
     <button class="btn btn-outline btn-sm" onclick="location.reload()" style="margin-left:auto;">🔄 Refresh</button>
   </div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-    <div class="stat-card cyan" style="flex:1;">
+    <div class="stat-card cyan" style="flex:1;{% if round.status == 'waiting' %}display:none;{% endif %}" id="player-stat">
       <div class="stat-value" id="player-count">{{ round.player_count|default:0 }}</div>
       <div class="stat-label">Players</div>
     </div>
-    <div class="stat-card gold" style="flex:1;">
+    <div class="stat-card gold" style="flex:1;{% if round.status == 'waiting' %}display:none;{% endif %}" id="prize-stat">
       <div class="stat-value" id="prize-pool">{{ round.prize_pool|default:0 }}</div>
       <div class="stat-label">Prize 💰</div>
     </div>
@@ -573,6 +573,8 @@ function pollState() {
       if (d.status === 'active' && STATUS !== 'active') {
         STATUS = 'active'; document.getElementById('timer').textContent = '0';
         stopBrowsingAnimation();
+        var ps = document.getElementById('player-stat'); if (ps) ps.style.display = '';
+        var prs = document.getElementById('prize-stat'); if (prs) prs.style.display = '';
         document.getElementById('status-label').textContent = 'Game Live';
         var gui = document.getElementById('arena-game-ui');
         if (gui) gui.style.display = '';
@@ -633,6 +635,8 @@ function pollState() {
       if (pc && !showPlayerCard) pc.style.display = 'none';
       var tr = document.getElementById('toggle-row');
       if (tr) tr.style.display = isActive ? '' : 'none';
+      var ps = document.getElementById('player-stat'); if (ps) ps.style.display = isActive ? '' : 'none';
+      var prs = document.getElementById('prize-stat'); if (prs) prs.style.display = isActive ? '' : 'none';
     });
 }
 
