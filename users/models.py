@@ -32,6 +32,10 @@ class Player(models.Model):
     is_banned = models.BooleanField(default=False)
     registration_bonus_claimed = models.BooleanField(default=False)
     last_daily_bonus = models.DateTimeField(null=True, blank=True)
+    first_deposit_at = models.DateTimeField(null=True, blank=True)
+    first_deposit_amount = models.BigIntegerField(default=0)
+    has_received_first_deposit_bonus = models.BooleanField(default=False)
+    wins_since_first_deposit = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

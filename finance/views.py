@@ -74,15 +74,22 @@ def withdrawal(request):
             if requested_amount < 10:
                 error = 'Minimum withdrawal is 10 Birr'
             else:
-                player_obj.refresh_from_db(fields=['wins', 'coins'])
+                player_obj.refresh_from_db(fields=['wins', 'coins', 'first_deposit_at', 'wins_since_first_deposit'])
                 from finance.models import DepositRequest, WithdrawalRequest
-                has_deposited = DepositRequest.objects.filter(player=player_obj, status='approved').exists()
                 total_balance = player_obj.coins
 
-                if total_balance < MIN_WITHDRAWABLE_BALANCE:
-                    error = 'ገንዘብ ለማውጣት ቢያንስ 100 ብር በዋሌትዎ ውስጥ ሊኖር ይገባል።'
-                elif player_obj.wins < 1 and not has_deposited:
-                    error = 'You must win at least one game before withdrawing.\nእባክዎ ገንዘብ ከማውጣትዎ በፊት ቢያንስ አንድ ጨዋታ አሸንፈው መሆን አለበት።'
+                if not player_obj.first_deposit_at:
+                    error = ('⚠️ ገንዘብ ለማውጣት በመጀመሪያ ተቀማጭ ማድረግ አለብዎት።\n\n'
+                             '🎁 የመጀመሪያ ተቀማጭዎ 2 እጥፍ (2×) ይሆናል!\n\n'
+                             'ለምሳሌ፦\n'
+                             '• 30 ብር ካስገቡ → 60 ኮይን ይቀበላሉ።\n'
+                             '• 50 ብር ካስገቡ → 100 ኮይን ይቀበላሉ።\n'
+                             '• 100 ብር ካስገቡ → 200 ኮይን ይቀበላሉ።\n\n'
+                             'ይህ 2 እጥፍ (2×) ጉርሻ የሚሰጠው ለመጀመሪያ ተቀማጭዎ ብቻ ነው።')
+                elif total_balance < MIN_WITHDRAWABLE_BALANCE:
+                    error = '⚠️ ለማውጣት የሚበቃ ቀሪ ሂሳብ የለዎትም።'
+                elif player_obj.wins_since_first_deposit < 1:
+                    error = '⚠️ ገንዘብ ካስገቡ በኋላ ቢያንስ አንድ ጨዋታ ማሸነፍ አለብዎት። ከዚያ በኋላ ገንዘብ ማውጣት ይችላሉ።'
                 elif WithdrawalRequest.objects.filter(player=player_obj, status='pending').exists():
                     error = 'You have a pending withdrawal. Please wait for it to be processed.\nአንድ በሂደት ላይ ያለ የማውጫ ጥያቄ አለዎት። እባክዎ መጀመሪያ ውጤቱን ይጠብቁ።'
                 else:
@@ -152,11 +159,27 @@ def api_approve_deposit(request, request_id):
         dep.reviewed_by = request.user
         dep.reviewed_at = timezone.now()
         dep.save()
-        Player.objects.filter(id=dep.player_id).update(coins=F('coins') + dep.amount, deposit_credit=F('deposit_credit') + dep.amount)
+
+        player = Player.objects.select_for_update().get(id=dep.player_id)
+        is_first = not player.first_deposit_at
+        bonus_multiplier = 2 if is_first else 1
+        total_coins = dep.amount * bonus_multiplier
+
+        player.coins = F('coins') + total_coins
+        player.deposit_credit = F('deposit_credit') + dep.amount
+        if is_first:
+            player.first_deposit_at = timezone.now()
+            player.first_deposit_amount = dep.amount
+            player.has_received_first_deposit_bonus = True
+            player.save(update_fields=['coins', 'deposit_credit', 'first_deposit_at',
+                                       'first_deposit_amount', 'has_received_first_deposit_bonus'])
+        else:
+            player.save(update_fields=['coins', 'deposit_credit'])
+
         Transaction.objects.create(
-            player=dep.player, amount=dep.amount,
+            player=dep.player, amount=total_coins,
             transaction_type='deposit',
-            description=f'Deposit {dep.amount} approved by {request.user.username}'
+            description=f'Deposit {dep.amount} approved by {request.user.username}' + (' (First Deposit 2x Bonus!)' if is_first else '')
         )
         from referrals.models import Referral
         ref = Referral.objects.filter(invited=dep.player, reward_claimed=False).first()

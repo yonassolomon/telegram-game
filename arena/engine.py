@@ -196,7 +196,11 @@ def _award_winners(round_obj, winning_players, player_count):
             p.wins = db_models.F('wins') + 1
             p.games_played = db_models.F('games_played') + 1
             p.xp = db_models.F('xp') + 200
-            p.save(update_fields=['coins', 'wins', 'games_played', 'xp'])
+            update_fields = ['coins', 'wins', 'games_played', 'xp']
+            if p.first_deposit_at:
+                p.wins_since_first_deposit = db_models.F('wins_since_first_deposit') + 1
+                update_fields.append('wins_since_first_deposit')
+            p.save(update_fields=update_fields)
             Transaction.objects.create(player=p, amount=share, transaction_type='game_win',
                                        description=f'Arena Round #{r.round_number} win')
             if num_winners == 1:
