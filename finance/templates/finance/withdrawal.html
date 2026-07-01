@@ -11,10 +11,8 @@
   <div class="card" style="text-align:center;padding:40px;">
     <div style="font-size:64px;">✅</div>
     <h2 style="color:var(--neon-green);margin:16px 0;">የገንዘብ ማውጫ ጥያቄዎ ተልኳል</h2>
-    {% if requested_amount and requested_amount != actual_amount %}
-    <p style="color:var(--neon-gold);font-size:14px;margin:8px 0;">20 ብሩ የቦነስ ገንዘብ ስለሆነ ሊወጣ አይችልም። {{ actual_amount }} ብር ለማውጣት ተመዝግቧል።</p>
-    {% endif %}
-    <p style="color:var(--text-secondary);">Admin will review your request shortly.<br>ጥያቄዎ በሂደት ላይ ነው።</p>
+    <p style="color:var(--neon-gold);font-size:14px;margin:8px 0;">{{ actual_amount }} ብር ለማውጣት ተመዝግቧል።</p>
+    <p style="color:var(--text-secondary);">እባክዎ የአስተዳዳሪውን ማጽደቅ ይጠብቁ።<br>የጠየቁት መጠን ከቀሪ ሂሳብዎ ለጊዜው ተቀንሷል።</p>
     <a href="{% url 'webapp:wallet' %}" class="btn btn-primary" style="margin-top:16px;">👛 Go to Wallet</a>
   </div>
   {% else %}
@@ -35,13 +33,10 @@
       <div class="coin-amount">{{ player.coins }}</div>
       <div class="coin-label">የዋሌት ሂሳብ</div>
     </div>
-    <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:8px;">
-      ቢያንስ 100 ብር ማውጣት ይችላሉ። 20 ብር ቦነስ አይወጣም።
-    </div>
     <form method="POST">
       {% csrf_token %}
       {% if error %}<div style="color:var(--red);font-size:13px;margin-bottom:8px;white-space:pre-line;line-height:1.6;">{{ error }}</div>{% endif %}
-      <input type="number" name="amount" placeholder="Amount (min 10)" min="10"
+      <input type="number" name="amount" placeholder="Amount (min 15)" min="15"
         style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:14px;border-radius:var(--radius-sm);font-size:18px;font-weight:700;text-align:center;outline:none;">
       <div style="margin-top:12px;">
         <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">የመቀበያ ቁጥር</div>

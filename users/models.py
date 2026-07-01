@@ -4,9 +4,6 @@ import uuid
 
 
 class Player(models.Model):
-    NON_WITHDRAWABLE_BONUS = 20
-    MIN_WITHDRAWABLE_BALANCE = 100
-
     telegram_id = models.BigIntegerField(unique=True, db_index=True)
     username = models.CharField(max_length=255, blank=True, default='')
     first_name = models.CharField(max_length=255, blank=True, default='')

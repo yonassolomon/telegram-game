@@ -57,10 +57,6 @@ def withdrawal(request):
     if not player_obj:
         return redirect('webapp:home')
 
-    from users.models import Player
-    NON_WITHDRAWABLE_BONUS = Player.NON_WITHDRAWABLE_BONUS
-    MIN_WITHDRAWABLE_BALANCE = Player.MIN_WITHDRAWABLE_BALANCE
-
     success = False
     error = None
     actual_amount = 0
@@ -71,43 +67,36 @@ def withdrawal(request):
         except (ValueError, TypeError):
             error = 'Invalid amount'
         else:
-            if requested_amount < 10:
-                error = 'Minimum withdrawal is 10 Birr'
+            player_obj.refresh_from_db(fields=['wins', 'coins', 'first_deposit_at', 'wins_since_first_deposit'])
+            from finance.models import WithdrawalRequest
+
+            if not player_obj.first_deposit_at:
+                error = ('⚠️ ገንዘብ ለማውጣት በመጀመሪያ ተቀማጭ ማድረግ አለብዎት።\n\n'
+                         '🎁 የመጀመሪያ ተቀማጭዎ 2 እጥፍ (2×) ይሆናል!\n\n'
+                         'ለምሳሌ፦\n'
+                         '• 30 ብር ካስገቡ → 60 ኮይን ይቀበላሉ።\n'
+                         '• 50 ብር ካስገቡ → 100 ኮይን ይቀበላሉ።\n'
+                         '• 100 ብር ካስገቡ → 200 ኮይን ይቀበላሉ።\n\n'
+                         'ይህ 2 እጥፍ (2×) ጉርሻ የሚሰጠው ለመጀመሪያ ተቀማጭዎ ብቻ ነው።')
+            elif player_obj.wins_since_first_deposit < 1:
+                error = '⚠️ ገንዘብ ካስገቡ በኋላ ቢያንስ አንድ ጨዋታ ማሸነፍ አለብዎት።'
+            elif requested_amount < 15:
+                error = '⚠️ የሚወጣው መጠን ቢያንስ 15 ብር መሆን አለበት።'
+            elif requested_amount > player_obj.coins:
+                error = '⚠️ የጠየቁት የማውጣት መጠን ካለዎት ቀሪ ሂሳብ በላይ ነው።'
+            elif WithdrawalRequest.objects.filter(player=player_obj, status='pending').exists():
+                error = 'You have a pending withdrawal. Please wait for it to be processed.\nአንድ በሂደት ላይ ያለ የማውጫ ጥያቄ አለዎት። እባክዎ መጀመሪያ ውጤቱን ይጠብቁ።'
             else:
-                player_obj.refresh_from_db(fields=['wins', 'coins', 'first_deposit_at', 'wins_since_first_deposit'])
-                from finance.models import DepositRequest, WithdrawalRequest
-                total_balance = player_obj.coins
-
-                if not player_obj.first_deposit_at:
-                    error = ('⚠️ ገንዘብ ለማውጣት በመጀመሪያ ተቀማጭ ማድረግ አለብዎት።\n\n'
-                             '🎁 የመጀመሪያ ተቀማጭዎ 2 እጥፍ (2×) ይሆናል!\n\n'
-                             'ለምሳሌ፦\n'
-                             '• 30 ብር ካስገቡ → 60 ኮይን ይቀበላሉ።\n'
-                             '• 50 ብር ካስገቡ → 100 ኮይን ይቀበላሉ።\n'
-                             '• 100 ብር ካስገቡ → 200 ኮይን ይቀበላሉ።\n\n'
-                             'ይህ 2 እጥፍ (2×) ጉርሻ የሚሰጠው ለመጀመሪያ ተቀማጭዎ ብቻ ነው።')
-                elif total_balance < MIN_WITHDRAWABLE_BALANCE:
-                    error = '⚠️ ለማውጣት የሚበቃ ቀሪ ሂሳብ የለዎትም።'
-                elif player_obj.wins_since_first_deposit < 1:
-                    error = '⚠️ ገንዘብ ካስገቡ በኋላ ቢያንስ አንድ ጨዋታ ማሸነፍ አለብዎት። ከዚያ በኋላ ገንዘብ ማውጣት ይችላሉ።'
-                elif WithdrawalRequest.objects.filter(player=player_obj, status='pending').exists():
-                    error = 'You have a pending withdrawal. Please wait for it to be processed.\nአንድ በሂደት ላይ ያለ የማውጫ ጥያቄ አለዎት። እባክዎ መጀመሪያ ውጤቱን ይጠብቁ።'
-                else:
-                    max_withdrawable = total_balance - NON_WITHDRAWABLE_BONUS
-                    actual_amount = max_withdrawable if requested_amount > max_withdrawable else requested_amount
-
-                    if actual_amount <= 0:
-                        error = 'የሚወጣ ገንዘብ የለም። 20 ብሩ የቦነስ ገንዘብ ስለሆነ ሊወጣ አይችልም።'
-                    else:
-                        receiving_number = request.POST.get('receiving_number', '')
-                        player_obj.coins = F('coins') - actual_amount
-                        player_obj.save(update_fields=['coins'])
-                        WithdrawalRequest.objects.create(
-                            player=player_obj, amount=actual_amount,
-                            receiving_number=receiving_number
-                        )
-                        player_obj.refresh_from_db()
-                        success = True
+                actual_amount = requested_amount
+                receiving_number = request.POST.get('receiving_number', '')
+                player_obj.coins = F('coins') - actual_amount
+                player_obj.save(update_fields=['coins'])
+                WithdrawalRequest.objects.create(
+                    player=player_obj, amount=actual_amount,
+                    receiving_number=receiving_number
+                )
+                player_obj.refresh_from_db()
+                success = True
 
     return render(request, 'finance/withdrawal.html', {
         'player': player_obj,
