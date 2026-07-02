@@ -2,18 +2,18 @@
 {% load static %}
 {% block content %}
 <style>
-.card-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; padding: 4px; max-height: 450px; overflow-y: auto; }
+.card-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 4px; max-height: 500px; overflow-y: auto; }
 .card-cell {
-  aspect-ratio: 1; border-radius: 6px; border: 2px solid var(--border);
+  aspect-ratio: 1; border-radius: 8px; border: 2px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 600; cursor: pointer; transition: .2s;
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: .2s;
   background: var(--bg-secondary); color: var(--text-secondary);
   user-select: none; position: relative;
 }
 .card-cell.available { border-color: rgba(0,230,118,0.5); color: var(--green); }
 .card-cell.available:hover { background: rgba(0,230,118,0.1); border-color: var(--green); transform: scale(1.05); }
 .card-cell.taken { border-color: rgba(255,145,0,0.6); background: rgba(255,145,0,0.08); color: var(--orange); cursor: not-allowed; }
-.card-cell.selected { border-color: var(--cyan); background: rgba(0,229,255,0.15); color: var(--cyan); box-shadow: 0 0 10px rgba(0,229,255,0.3); }
+.card-cell.selected { border-color: var(--gold); background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,140,0,0.15)); color: var(--gold); box-shadow: 0 0 14px rgba(255,215,0,0.4); transform: scale(1.05); }
 .card-cell.browsing {
   border-color: rgba(255,145,0,0.5) !important;
   background: rgba(255,145,0,0.08) !important;
