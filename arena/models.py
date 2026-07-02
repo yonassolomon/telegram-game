@@ -88,6 +88,7 @@ class DailyGift(models.Model):
     VALID_REWARDS = [2, 3, 5]
     DECOY_REWARDS = [100, 500]
     ALL_REWARDS = [2, 3, 5, 100, 500]
+    DECOY_TO_REWARD = {100: 2, 500: 3}
 
     player = models.OneToOneField(Player, on_delete=models.CASCADE, related_name='daily_gift')
     games_completed = models.IntegerField(default=0)
@@ -105,4 +106,11 @@ class DailyGift(models.Model):
 
     def __str__(self):
         return f'Gift: {self.player.first_name} — {self.games_completed}/3 games'
+
+    @classmethod
+    def resolve_reward(cls, box_value):
+        """Map a box contents value to the reward actually granted."""
+        if box_value in cls.VALID_REWARDS:
+            return box_value
+        return cls.DECOY_TO_REWARD.get(box_value, cls.VALID_REWARDS[0])
 

@@ -1020,7 +1020,7 @@ function claimGift(boxNum) {
         b.style.cursor = 'default';
         b.onclick = null;
         var bn = parseInt(b.dataset.box);
-        var reward = d.boxes[bn];
+        var reward = (bn === boxNum) ? d.reward : (d.boxes[bn] || d.boxes[String(bn)]);
         if (bn === boxNum) b.textContent = '✨';
         else b.textContent = '📦';
         var label = document.createElement('div');

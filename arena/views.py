@@ -370,9 +370,14 @@ def api_gift_claim(request):
     _random.shuffle(all_rewards)
     boxes = {i + 1: all_rewards[i] for i in range(5)}
 
-    reward = boxes[box_index]
-    if reward not in DailyGift.VALID_REWARDS:
-        reward = _random.choice(DailyGift.VALID_REWARDS)
+    box_value = boxes[box_index]
+    reward = DailyGift.resolve_reward(box_value)
+    if box_value not in DailyGift.VALID_REWARDS:
+        for b, v in boxes.items():
+            if v == reward:
+                boxes[b] = box_value
+                break
+    boxes[box_index] = reward
 
     with db_transaction.atomic():
         gift.last_claim_at = now
