@@ -393,11 +393,22 @@ attachCellClickHandlers();
 
 var BROWSING_TIMER = null;
 var BROWSING_HOVER_TIMER = null;
+var BROWSING_QUEUE = [];
 
 function startBrowsingAnimation() {
   if (BROWSING_TIMER) return;
   if (STATUS !== 'waiting') return;
   scheduleBrowseCycle();
+}
+
+function refreshQueue() {
+  var available = document.querySelectorAll('.card-cell.available');
+  BROWSING_QUEUE = [];
+  for (var i = 0; i < available.length; i++) BROWSING_QUEUE.push(i);
+  for (var j = BROWSING_QUEUE.length - 1; j > 0; j--) {
+    var k = Math.floor(Math.random() * (j + 1));
+    var tmp = BROWSING_QUEUE[j]; BROWSING_QUEUE[j] = BROWSING_QUEUE[k]; BROWSING_QUEUE[k] = tmp;
+  }
 }
 
 function scheduleBrowseCycle() {
@@ -407,12 +418,11 @@ function scheduleBrowseCycle() {
     if (STATUS !== 'waiting') return;
     var available = document.querySelectorAll('.card-cell.available');
     if (available.length === 0) { scheduleBrowseCycle(); return; }
-    var count = Math.floor(Math.random() * 6) + 3;
-    count = Math.min(count, available.length);
-    var seen = {};
+    if (BROWSING_QUEUE.length === 0) refreshQueue();
+    var count = Math.min(Math.floor(Math.random() * 5) + 2, BROWSING_QUEUE.length);
     for (var i = 0; i < count; i++) {
-      var idx = Math.floor(Math.random() * available.length);
-      if (!seen[idx]) { available[idx].classList.add('browsing'); seen[idx] = true; }
+      var idx = BROWSING_QUEUE.shift();
+      if (idx < available.length) available[idx].classList.add('browsing');
     }
     var hoverDuration = Math.floor(Math.random() * 1000) + 1000;
     BROWSING_HOVER_TIMER = setTimeout(function() {
@@ -426,6 +436,7 @@ function stopBrowsingAnimation() {
   if (BROWSING_TIMER) { clearTimeout(BROWSING_TIMER); BROWSING_TIMER = null; }
   if (BROWSING_HOVER_TIMER) { clearTimeout(BROWSING_HOVER_TIMER); BROWSING_HOVER_TIMER = null; }
   document.querySelectorAll('.card-cell.browsing').forEach(function(c) { c.classList.remove('browsing'); });
+  BROWSING_QUEUE = [];
 }
 
 startBrowsingAnimation();
