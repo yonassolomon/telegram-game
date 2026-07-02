@@ -384,7 +384,31 @@ def _randomize_bot_coins():
         'Eyob Tadese', 'Dawit Bekele', 'Yonatan Alemu', 'Henok Getachew', 'Biruk Tadesse',
         'Natnael Fikru', 'Yared Assefa', 'Abel Tesfaye', 'Bereket Demissie', 'Nahom Girma',
         'Samuel Mekonnen', 'Biniyam Desta', 'Robel Kassahun', 'Surafel Abebe', 'Melaku Belay',
-        'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe']
+        'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe',
+        'Kebede Alemu', 'Tigist Bekele', 'Aster Tadesse', 'Mulugeta Tesfaye', 'Zewdu Girma',
+        'Tadesse Mulatu', 'Worku Assefa', 'Genet Kebede', 'Eden Getachew', 'Liya Abebe',
+        'Meron Hailu', 'Selam Desta', 'Betelhem Wolde', 'Yonas Negash', 'Ermias Lemma',
+        'Fitsum Teshome', 'Tsehay Asfaw', 'Hiwot Mekuria', 'Meseret Alebachew', 'Habtamu Fikadu',
+        'Desalegn Workneh', 'Abebech Desalegn', 'Frehiwot Solomon', 'Amarech Tesfahun', 'Getu Tola',
+        'Mekonnen Asefa', 'Belaynesh Taye', 'Tsigereda Gebre', 'Atsede Mamo', 'Emebet Ejigu',
+        'Sisay Abate', 'Wubalem Gashaw', 'Zerihun Dagnachew', 'Ehitnesh Mengistu', 'Amanuel Zewdu',
+        'Berhanu Asrat', 'Eshete Alemu', 'Fikru Desta', 'Kifle Tamiru', 'Meaza Biranu',
+        'Wondwossen Ayele', 'Alemu Bekele', 'Amsale Worku', 'Birhane Habte', 'Damtew Mengesha',
+        'Etsegenet Teklu', 'Gezahagn Mesfin', 'Helina Dereje', 'Israel Abiy', 'Jemal Tadese',
+        'Kidist Akalu', 'Lemlem Belihu', 'Mahlet Geremew', 'Nebiyu Tilahun', 'Oliyad Fikre',
+        'Petros Woldemariam', 'Ruth Mekasha', 'Simret Tesfaye', 'Tamerat Wondimu', 'Urael Tadesse',
+        'Wubishet Endale', 'Yemisrach Adugna', 'Zinash Getahun', 'Abnet Zeleke', 'Beti Gizaw',
+        'Chaltu Tufa', 'Dinku Kassa', 'Embiale Aragaw', 'Firehiwot Bogale', 'Gizachew Bayisa',
+        'Hirut Kasim', 'Isayas Negussie', 'Jemila Seid', 'Kalid Yasin', 'Lidya Teklay',
+        'Mahder Gidey', 'Nebeyu Abate', 'Omar Jemal', 'Rediet Yohannes', 'Semhal Haileselassie',
+        'Tsiyon Ashenafi', 'Woynshet Kebede', 'Yonatan Shiferaw', 'Zelalem Tarekegn',
+        'Addisalem Berihun', 'Bereketab Girmay', 'Dibora Tesfamariam', 'Ephrem Yitbarek',
+        'Fisha Damena', 'Gelila Tadesse', 'Henos Gebre', 'Jemal Seid', 'Kibur Abdisa',
+        'Lideta Zewde', 'Mekdelawit Alemu', 'Nebil Ahmed', 'Oromia Bekele', 'Rahel Assefa',
+        'Samirawit Degu', 'Tekalign Fikadu', 'Wendimu Belay', 'Yabsira Mekuria', 'Zufan Gashaw',
+        'Abdi Mohamed', 'Banchi Fikre', 'Chala Gutema', 'Dagne Asfaw', 'Endalkachew Taye',
+        'Fikerte Ayele', 'Gosa Hailu', 'Haimanot Yirga', 'Ibsaa Tola', 'Jiru Bekele',
+        'Ketema Wolde', 'Lelisa Desisa']
     for i, name in enumerate(bot_names):
         p, created = Player.objects.get_or_create(
             telegram_id=900000000 + i,
@@ -407,7 +431,31 @@ def ensure_bots_in_round(round_obj):
         'Eyob Tadese', 'Dawit Bekele', 'Yonatan Alemu', 'Henok Getachew', 'Biruk Tadesse',
         'Natnael Fikru', 'Yared Assefa', 'Abel Tesfaye', 'Bereket Demissie', 'Nahom Girma',
         'Samuel Mekonnen', 'Biniyam Desta', 'Robel Kassahun', 'Surafel Abebe', 'Melaku Belay',
-        'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe']
+        'Tamirat Haile', 'Tewodros Kebede', 'Misganaw Solomon', 'Anibe',
+        'Kebede Alemu', 'Tigist Bekele', 'Aster Tadesse', 'Mulugeta Tesfaye', 'Zewdu Girma',
+        'Tadesse Mulatu', 'Worku Assefa', 'Genet Kebede', 'Eden Getachew', 'Liya Abebe',
+        'Meron Hailu', 'Selam Desta', 'Betelhem Wolde', 'Yonas Negash', 'Ermias Lemma',
+        'Fitsum Teshome', 'Tsehay Asfaw', 'Hiwot Mekuria', 'Meseret Alebachew', 'Habtamu Fikadu',
+        'Desalegn Workneh', 'Abebech Desalegn', 'Frehiwot Solomon', 'Amarech Tesfahun', 'Getu Tola',
+        'Mekonnen Asefa', 'Belaynesh Taye', 'Tsigereda Gebre', 'Atsede Mamo', 'Emebet Ejigu',
+        'Sisay Abate', 'Wubalem Gashaw', 'Zerihun Dagnachew', 'Ehitnesh Mengistu', 'Amanuel Zewdu',
+        'Berhanu Asrat', 'Eshete Alemu', 'Fikru Desta', 'Kifle Tamiru', 'Meaza Biranu',
+        'Wondwossen Ayele', 'Alemu Bekele', 'Amsale Worku', 'Birhane Habte', 'Damtew Mengesha',
+        'Etsegenet Teklu', 'Gezahagn Mesfin', 'Helina Dereje', 'Israel Abiy', 'Jemal Tadese',
+        'Kidist Akalu', 'Lemlem Belihu', 'Mahlet Geremew', 'Nebiyu Tilahun', 'Oliyad Fikre',
+        'Petros Woldemariam', 'Ruth Mekasha', 'Simret Tesfaye', 'Tamerat Wondimu', 'Urael Tadesse',
+        'Wubishet Endale', 'Yemisrach Adugna', 'Zinash Getahun', 'Abnet Zeleke', 'Beti Gizaw',
+        'Chaltu Tufa', 'Dinku Kassa', 'Embiale Aragaw', 'Firehiwot Bogale', 'Gizachew Bayisa',
+        'Hirut Kasim', 'Isayas Negussie', 'Jemila Seid', 'Kalid Yasin', 'Lidya Teklay',
+        'Mahder Gidey', 'Nebeyu Abate', 'Omar Jemal', 'Rediet Yohannes', 'Semhal Haileselassie',
+        'Tsiyon Ashenafi', 'Woynshet Kebede', 'Yonatan Shiferaw', 'Zelalem Tarekegn',
+        'Addisalem Berihun', 'Bereketab Girmay', 'Dibora Tesfamariam', 'Ephrem Yitbarek',
+        'Fisha Damena', 'Gelila Tadesse', 'Henos Gebre', 'Jemal Seid', 'Kibur Abdisa',
+        'Lideta Zewde', 'Mekdelawit Alemu', 'Nebil Ahmed', 'Oromia Bekele', 'Rahel Assefa',
+        'Samirawit Degu', 'Tekalign Fikadu', 'Wendimu Belay', 'Yabsira Mekuria', 'Zufan Gashaw',
+        'Abdi Mohamed', 'Banchi Fikre', 'Chala Gutema', 'Dagne Asfaw', 'Endalkachew Taye',
+        'Fikerte Ayele', 'Gosa Hailu', 'Haimanot Yirga', 'Ibsaa Tola', 'Jiru Bekele',
+        'Ketema Wolde', 'Lelisa Desisa']
     bot_players = []
     for i, name in enumerate(bot_names):
         tg_id = 900000000 + i
@@ -425,7 +473,7 @@ def ensure_bots_in_round(round_obj):
     if existing_bots > 0:
         return
 
-    bot_count = _random.randint(20, 30)
+    bot_count = _random.randint(100, 150)
     chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
     existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
     available = [i for i in range(1, 201) if i not in existing_cards]
