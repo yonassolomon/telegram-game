@@ -473,7 +473,7 @@ def ensure_bots_in_round(round_obj):
     if existing_bots > 0:
         return
 
-    bot_count = _random.randint(100, 150)
+    bot_count = _random.randint(30, 50)
     chosen = _random.sample(bot_players, min(bot_count, len(bot_players)))
     existing_cards = set(CardSelection.objects.filter(round=round_obj).values_list('card_number', flat=True))
     available = [i for i in range(1, 201) if i not in existing_cards]
