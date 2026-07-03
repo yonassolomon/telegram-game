@@ -84,6 +84,8 @@ def withdrawal(request):
                 error = '⚠️ የሚወጣው መጠን ቢያንስ 15 ብር መሆን አለበት።'
             elif requested_amount > player_obj.coins:
                 error = '⚠️ የጠየቁት የማውጣት መጠን ካለዎት ቀሪ ሂሳብ በላይ ነው።'
+            elif requested_amount > player_obj.coins - player_obj.balance_at_first_deposit:
+                error = '⚠️ ከተቀማጭዎ በፊት የነበረውን ገንዘብ ማውጣት አይችሉም። ሊወጣ የሚችለው ከተቀማጭ በኋላ ያገኙት ገንዘብ ብቻ ነው።'
             elif WithdrawalRequest.objects.filter(player=player_obj, status='pending').exists():
                 error = 'You have a pending withdrawal. Please wait for it to be processed.\nአንድ በሂደት ላይ ያለ የማውጫ ጥያቄ አለዎት። እባክዎ መጀመሪያ ውጤቱን ይጠብቁ።'
             else:
@@ -151,6 +153,7 @@ def api_approve_deposit(request, request_id):
 
         player = Player.objects.select_for_update().get(id=dep.player_id)
         is_first = not player.first_deposit_at
+        pre_deposit_balance = player.coins
         bonus_multiplier = 2 if is_first else 1
         total_coins = dep.amount * bonus_multiplier
 
@@ -160,8 +163,10 @@ def api_approve_deposit(request, request_id):
             player.first_deposit_at = timezone.now()
             player.first_deposit_amount = dep.amount
             player.has_received_first_deposit_bonus = True
+            player.balance_at_first_deposit = pre_deposit_balance
             player.save(update_fields=['coins', 'deposit_credit', 'first_deposit_at',
-                                       'first_deposit_amount', 'has_received_first_deposit_bonus'])
+                                       'first_deposit_amount', 'has_received_first_deposit_bonus',
+                                       'balance_at_first_deposit'])
         else:
             player.save(update_fields=['coins', 'deposit_credit'])
 

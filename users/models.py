@@ -33,6 +33,7 @@ class Player(models.Model):
     first_deposit_amount = models.BigIntegerField(default=0)
     has_received_first_deposit_bonus = models.BooleanField(default=False)
     wins_since_first_deposit = models.IntegerField(default=0)
+    balance_at_first_deposit = models.BigIntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
