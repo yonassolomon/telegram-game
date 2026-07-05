@@ -16,6 +16,33 @@
     <a href="{% url 'webapp:wallet' %}" class="btn btn-primary" style="margin-top:16px;">👛 Go to Wallet</a>
   </div>
   {% else %}
+  {% if needs_confirmation %}
+  <div class="card" style="text-align:center;padding:20px;">
+    <h3 style="color:var(--neon-gold);margin-bottom:12px;">💰 የገንዘብ ማውጫ ማረጋገጫ</h3>
+    <div style="font-size:13px;color:var(--text);line-height:2;">
+      💳 ጠቅላላ ቀሪ ሂሳብዎ: <strong>{{ total_balance }} ብር</strong><br>
+      🎁 ለማውጣት የማይፈቀደው ቀሪ ሂሳብ: <strong>{{ non_withdrawable }} ብር</strong><br>
+      <span style="font-size:11px;color:var(--muted);">(ይህ ገንዘብ በቦርሳዎ ውስጥ ይቀራል፣ ለመጫወት መጠቀም ይችላሉ።)</span><br>
+      🏆 ማውጣት የሚችሉት ቀሪ ሂሳብ: <strong style="color:var(--neon-green);">{{ actual_amount }} ብር</strong><br>
+      💸 አሁን የሚወጣው መጠን: <strong style="color:var(--neon-green);">{{ actual_amount }} ብር</strong><br>
+      💼 ከማውጣቱ በኋላ በቦርሳዎ የሚቀረው: <strong>{{ remaining_balance }} ብር</strong><br>
+    </div>
+    <div style="font-size:12px;color:var(--cyan);margin:12px 0;line-height:1.5;">
+      ℹ️ <strong>የቀረው {{ non_withdrawable }} ብር የእርስዎ ቀሪ ሂሳብ ነው። በዚህ ገንዘብ መጫወት ይችላሉ፣ እና ወደፊት የሚያሸንፉት ለማውጣት የሚችል ቀሪ ሂሳብዎን ይጨምራል።</strong>
+    </div>
+    <p style="color:var(--neon-gold);font-size:14px;margin:12px 0;">❓ <strong>{{ actual_amount }} ብር ለማውጣት ይፈልጋሉ?</strong></p>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <form method="POST" style="display:inline;">
+        {% csrf_token %}
+        <input type="hidden" name="amount" value="{{ actual_amount }}">
+        <input type="hidden" name="receiving_number" value="{{ request.POST.receiving_number }}">
+        <input type="hidden" name="confirm" value="1">
+        <button type="submit" class="btn" style="background:var(--neon-green);color:#000;padding:12px 24px;font-weight:700;">✅ እስማማለሁ</button>
+      </form>
+      <a href="{% url 'finance:withdrawal' %}" class="btn btn-red" style="padding:12px 24px;">❌ ይቅር</a>
+    </div>
+  </div>
+  {% else %}
   <div class="card" style="background:rgba(0,229,255,0.05);border-color:rgba(0,229,255,0.2);margin-bottom:12px;">
     <div style="font-size:12px;color:var(--cyan);line-height:1.6;">
       <strong>ℹ️ ማስታወሻ</strong><br><br>
@@ -47,6 +74,7 @@
       <button type="submit" class="btn btn-purple" style="margin-top:12px;">📤 Send Request</button>
     </form>
   </div>
+  {% endif %}
   {% endif %}
 </div>
 {% endblock %}

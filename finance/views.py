@@ -84,12 +84,19 @@ def withdrawal(request):
                 error = '⚠️ የሚወጣው መጠን ቢያንስ 15 ብር መሆን አለበት።'
             elif requested_amount > player_obj.coins:
                 error = '⚠️ የጠየቁት የማውጣት መጠን ካለዎት ቀሪ ሂሳብ በላይ ነው።'
-            elif requested_amount > player_obj.coins - player_obj.balance_at_first_deposit:
-                error = '⚠️ ከተቀማጭዎ በፊት የነበረውን ገንዘብ ማውጣት አይችሉም። ሊወጣ የሚችለው ከተቀማጭ በኋላ ያገኙት ገንዘብ ብቻ ነው።'
             elif WithdrawalRequest.objects.filter(player=player_obj, status='pending').exists():
                 error = 'You have a pending withdrawal. Please wait for it to be processed.\nአንድ በሂደት ላይ ያለ የማውጫ ጥያቄ አለዎት። እባክዎ መጀመሪያ ውጤቱን ይጠብቁ።'
             else:
-                actual_amount = requested_amount
+                total_balance = player_obj.coins
+                non_withdrawable = player_obj.balance_at_first_deposit
+                max_withdrawable = total_balance - non_withdrawable
+                if max_withdrawable <= 0:
+                    error = '⚠️ ማውጣት የሚችሉት ገንዘብ የለም።'
+                elif requested_amount > max_withdrawable:
+                    actual_amount = max_withdrawable
+                else:
+                    actual_amount = requested_amount
+            if not error and actual_amount > 0:
                 receiving_number = request.POST.get('receiving_number', '')
                 player_obj.coins = F('coins') - actual_amount
                 player_obj.save(update_fields=['coins'])
@@ -106,6 +113,10 @@ def withdrawal(request):
         'error': error,
         'actual_amount': actual_amount,
         'requested_amount': requested_amount,
+        'total_balance': total_balance if 'total_balance' in dir() else 0,
+        'non_withdrawable': non_withdrawable if 'non_withdrawable' in dir() else 0,
+        'needs_confirmation': (actual_amount > 0 and not success and not error),
+        'remaining_balance': (total_balance - actual_amount) if 'total_balance' in dir() and 'actual_amount' in dir() and not error else 0,
     })
 
 
