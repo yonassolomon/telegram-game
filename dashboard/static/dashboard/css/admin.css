@@ -1,17 +1,18 @@
 /* ═══ Bingo2Bingo Admin Dashboard ═══ */
 :root {
-  --bg: #0f1119;
-  --sidebar-bg: #141724;
-  --card-bg: #1a1d2e;
-  --border: #252840;
-  --text: #e0e2f0;
-  --muted: #7c7f9a;
-  --cyan: #00e5ff;
-  --purple: #b44dff;
-  --gold: #ffd700;
-  --green: #00e676;
-  --red: #ff3d5a;
-  --orange: #ff9100;
+  --bg: #08101E;
+  --sidebar-bg: #060C18;
+  --card-bg: #111827;
+  --border: #1F2A3A;
+  --gold-border: #C89B3C;
+  --text: #FFFFFF;
+  --muted: #94A3B8;
+  --cyan: #2563EB;
+  --purple: #7C3AED;
+  --gold: #F4C430;
+  --green: #4ADE80;
+  --red: #EF4444;
+  --orange: #F59E0B;
   --radius: 10px;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
