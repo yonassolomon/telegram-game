@@ -44,7 +44,7 @@ def _handle_start(telegram_id, username, first_name, args):
             pass
 
     if created:
-        player.coins = 20
+        player.coins = 10
         player.registration_bonus_claimed = True
         player.save(update_fields=['coins', 'registration_bonus_claimed'])
         text = (

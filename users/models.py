@@ -8,7 +8,7 @@ class Player(models.Model):
     username = models.CharField(max_length=255, blank=True, default='')
     first_name = models.CharField(max_length=255, blank=True, default='')
     phone_number = models.CharField(max_length=20, blank=True, default='')
-    coins = models.BigIntegerField(default=20)
+    coins = models.BigIntegerField(default=10)
     locked_balance = models.BigIntegerField(default=0)
     deposit_credit = models.BigIntegerField(default=0)
     wins = models.IntegerField(default=0)
