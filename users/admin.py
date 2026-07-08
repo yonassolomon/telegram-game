@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import Player
 
 
-@admin.register(Player)
+@admin.register(Player) 
 class PlayerAdmin(admin.ModelAdmin):
     list_display = ('telegram_id', 'username', 'first_name', 'coins', 'wins', 'losses', 'level', 'is_banned', 'created_at')
     list_filter = ('is_banned', 'level', 'created_at')
