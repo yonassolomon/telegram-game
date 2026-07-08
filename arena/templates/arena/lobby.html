@@ -507,9 +507,25 @@ function showWinnerOverlay(d) {
     });
     html += '</div>';
     html += '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">💰 እያንዳንዳቸው ' + winners[0].prize + ' ብር አሸንፈዋል።</div>';
+    if (d.winning_card) {
+      html += '<div style="font-size:11px;color:var(--cyan);margin-top:2px;">ያሸነፉት ካርድ: #' + d.winning_card + '</div>';
+    }
     document.getElementById('winner-sub').innerHTML = html;
     document.getElementById('winner-prize').textContent = d.prize_pool + ' 💰 (total)';
     document.getElementById('winner-card-info').textContent = '';
+
+    var pat = d.win_pattern || '';
+    var patEl = document.getElementById('winner-pattern');
+    if (pat) {
+      patEl.style.display = 'inline-block';
+      patEl.textContent = pat === 'horizontal' ? 'Horizontal Row' :
+                         pat === 'vertical' ? 'Vertical Column' :
+                         pat === 'diagonal' ? 'Diagonal ↘' : 'Diagonal ↙';
+      patEl.className = 'winner-pattern-label ' + (
+        pat === 'horizontal' ? 'pattern-horizontal' : pat === 'vertical' ? 'pattern-vertical' :
+        pat === 'diagonal' ? 'pattern-diagonal' : 'pattern-diagonal_rev');
+    }
+    if (d.win_cells) highlightWinCells(d.win_cells);
   } else {
     var name = d.winner_name || (winners && winners[0] ? winners[0].name : '');
     var prize = winners && winners[0] ? winners[0].prize : d.prize_pool;
