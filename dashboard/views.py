@@ -91,6 +91,7 @@ def overview(request):
 def players(request):
     search = request.GET.get('search', '')
     status_filter = request.GET.get('status', 'all')
+    show_all = request.GET.get('all', '') == '1'
 
     players_qs = Player.objects.all()
     if search:
@@ -104,13 +105,16 @@ def players(request):
     elif status_filter == 'active':
         players_qs = players_qs.filter(is_banned=False)
 
-    players_list = list(players_qs.order_by('-coins')[:100])
+    players_list = list(players_qs.order_by('-coins') if show_all else players_qs.order_by('-coins')[:100])
+    total_count = players_qs.count()
 
     from django.views.decorators.cache import never_cache
     response = render(request, 'dashboard/players.html', {
         'players': players_list,
         'search': search,
         'status_filter': status_filter,
+        'show_all': show_all,
+        'total_count': total_count,
     })
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response

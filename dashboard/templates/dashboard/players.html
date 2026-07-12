@@ -13,6 +13,11 @@
       <option value="banned" {% if status_filter == 'banned' %}selected{% endif %}>Banned</option>
     </select>
     <button type="submit" class="btn btn-cyan btn-sm">Search</button>
+    {% if not show_all %}
+    <a href="?all=1&status={{ status_filter }}&search={{ search }}" class="btn btn-gold btn-sm">📋 Show All ({{ total_count }})</a>
+    {% else %}
+    <a href="?status={{ status_filter }}&search={{ search }}" class="btn btn-outline btn-sm">📋 Show 100</a>
+    {% endif %}
   </form>
 
   <table>
