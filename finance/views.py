@@ -91,7 +91,13 @@ def withdrawal(request):
                 non_withdrawable = player_obj.balance_at_first_deposit
                 max_withdrawable = total_balance - non_withdrawable
                 if max_withdrawable <= 0:
-                    error = '⚠️ ማውጣት የሚችሉት ገንዘብ የለም።'
+                    error = ('⚠️ **ማውጣት የሚችሉት ገንዘብ የለም።**\n\n'
+                             'ያሉት ኮይኖች ከቦነስ ወይም ከነፃ ሽልማት የተገኙ ስለሆኑ በቀጥታ ማውጣት አይቻልም።\n\n'
+                             '**ገንዘብ ማውጣት እንዲችሉ፦**\n'
+                             '• 💳 መጀመሪያ ዲፖዚት ያድርጉ።\n'
+                             '• 🎮 ከዲፖዚትዎ በመጫወት ያሸነፉት ሁሉ ለማውጣት ይችላሉ።\n'
+                             '• 🎁 ከቦነስ የተገኙ ኮይኖች በቀጥታ ለማውጣት አይፈቀዱም።\n\n'
+                             'እናመሰግናለን!')
                 elif requested_amount > max_withdrawable:
                     actual_amount = max_withdrawable
                 else:
